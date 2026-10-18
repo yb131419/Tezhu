@@ -1709,7 +1709,7 @@ function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字
     // 暖光版封面（2026-10-18）：靠左大字、左邊金色直條
     const fit = kitFit_(P.title + '。', 440, 58, 36, 260);
     kitRect_(req, slide, slide + '_lb', X, 92, 3.5, 30, KIT_S_.c.gold);
-    kitText_(req, slide, slide + '_k', [X + 12, 88, TW, 40], [{ t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    kitText_(req, slide, slide + '_kick', [X + 12, 88, TW, 40], [{ t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
     kitRect_(req, slide, slide + '_hb', X, 196, 4, Math.max(40, fit.h - fit.size * 0.45), KIT_S_.c.gold);
     kitText_(req, slide, slide + '_main', [X + 22, 186, TW - 10, 560], [
       { t: P.title + '。', size: fit.size, bold: true, color: KIT_S_.c.ink, ls: 125, align: 'START' },
