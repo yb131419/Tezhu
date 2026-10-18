@@ -1418,7 +1418,7 @@ function kitWrite_(k) {
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」；火山草本改成「認識○○的三件事」，○○是這次的植物）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人在最後一張留言索取 PDF。',
     '【關鍵字】keyword 要從這次的具體內容取（例如「熬夜」「早餐」「排便」「開口」），不可以用主題或分類名稱（火山草本、草本、健康、觀念、經營、行銷這類大詞），每次都要不一樣。' + (kws.length ? '最近用過：' + kws.join('、') + '，這次不可以再用。' : ''),
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
-    'cover：head 是三行內的反骨鉤子（例如「約不到人，\\n不是你\\n**不會說**。」），sub 兩行（點出問題＋三個動作今天就用得上）。',
+    'cover：head 最多兩行、每行 8 字內、整體 14 字內，反骨鉤子（例如「約不到人，\\n不是你**不會說**。」）；sub 最多兩行、每行 20 字內（點出問題＋三個動作今天就用得上）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
@@ -1615,11 +1615,14 @@ function kitRect_(req, slide, id, x, y, w, h, color) {
     shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(color) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
 }
 // 大標字級：最長一行要放得下 width，整塊（含換行）不超過 maxH；回傳字級和估計高度（給左邊金色直條用）
+// 2026-10-18 修正：中文字寬 1.05、英數字寬 0.55 分開計算（原本一律用字數，封面字數多時會超出）
 function kitFit_(t, width, max, min, maxH) {
   const lines = String(t || '').replace(/\*\*|~~/g, '').split('\n');
-  const rows = sz => lines.reduce((n, l) => n + Math.max(1, Math.ceil((l.length + 0.6) * sz / width)), 0);
-  let size = Math.max(min, Math.min(max, Math.floor(width / Math.max.apply(null, lines.map(l => l.length + 0.6)))));
-  while (size > min && rows(size) * size * 1.5 > maxH) size -= 2;   // 行距 125%（簡報的單行約 1.2 倍字高）
+  const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1.05), 0);
+  const rows = sz => lines.reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * sz / width)), 0);
+  const widest = Math.max.apply(null, lines.map(units)) || 1;
+  let size = Math.max(min, Math.min(max, Math.floor(width / widest)));
+  while (size > min && rows(size) * size * 1.5 > maxH) size -= 2;   // 行距 150%
   return { size: size, h: rows(size) * size * 1.5 };
 }
 const KIT_EN = ['ONE', 'TWO', 'THREE'];
@@ -1686,12 +1689,18 @@ function kitCardLayout_(kit, i) {
 }
 
 // 封面：暖光生活筆記（2026-10-18 使用者給圖一）——大字標題靠左、左邊金色直條，不放領取 PDF
+// 2026-10-18 修正：標題高度上限依文字框實際高度（492 − 128 = 364）扣掉副標高度算，避免標題壓到副標和底部
 function kitCoverLayout_(kit, s, num, W, H) {
   const cat = kit.cat || String(kit.theme || '').replace(/主題$/, ''), C = KIT_S_.c;
-  const subRows = String(s.sub || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 20)), 0);
-  const fit = kitFit_(s.head, 420, 66, 36, 350 - subRows * 35 - 30);
+  const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1.05), 0);
+  const subLines = String(s.sub || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * 20 / 420)), 0);
+  const subH = subLines * 20 * 1.45;   // 副標：字級 20、行距 145%
+  const gap = 30;                       // 標題和副標之間的間距
+  const TEXT_BOX_H = 492 - 128;         // 標題＋副標共用的文字框高度（kitHeadBlock_ 的 top 是 128）
+  const maxH = TEXT_BOX_H - subH - gap - 10;   // 再留 10pt 安全邊距
+  const fit = kitFit_(s.head, 420, 60, 36, maxH);
   return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記 · ' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) =>
-    kitHeadBlock_(req, slide, s.head, fit, 128, [{ t: s.sub, size: 20, color: C.sub, ls: 145, above: 30, align: 'START', em: C.gold }]));
+    kitHeadBlock_(req, slide, s.head, fit, 128, [{ t: s.sub, size: 20, color: C.sub, ls: 145, above: gap, align: 'START', em: C.gold }]));
 }
 
 // PDF 實作手冊（A4 直式 595×842，內容跟圖卡、貼文不一樣；使用者 2026-10-16）
