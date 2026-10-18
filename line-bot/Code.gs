@@ -1328,14 +1328,16 @@ const KIT_DARK = (soft, lab, mute) => ({ ink: '#F3EBDD', soft: soft, gold: '#D9B
 // 2026-10-17 使用者：五款各配一個主題（t＝主題），自動發文照主題用對應款式；同日改成五款都是淺色萬元風格（淺色絲絨底＋象牙卡＋燙金框，字用該款深色）
 const KIT_PALE = (ink, gold, sub) => ({ cv: { ink: ink, gold: gold, top: gold, sub: sub, series: ink, by: ink },
   c: Object.assign({}, KIT_LIGHT, { ink: ink, soft: sub, gold: gold, top: gold, orn: gold, sub: sub, lab: sub }) });
+// 2026-10-18 使用者給圖一（暖光牆面＋葉影＋桌面、金色細線小標、大字標題）：五款都改成暖光風格，各主題自己的顏色；en＝封面小標下方的英文
 const KIT_STYLES = [   // 舊按鈕名稱（old）也認得
-  Object.assign({ n: '暖灰', old: '淺綠', t: 'concept', d: 'mint/', tip: '暖灰香檳：暖灰底、象牙卡、香檳金框' }, KIT_PALE('#2A2620', '#9C7A3E', '#5F574C')),
-  Object.assign({ n: '駝色', t: 'health', d: 'camel/', tip: '駝色奶油：奶茶駝色底、奶油卡、燙金框' }, KIT_PALE('#3A2A1C', '#9A7038', '#6B5843')),
-  Object.assign({ n: '鼠尾草', old: '綠底', t: 'herb', d: 'emerald/', tip: '鼠尾草綠：淺灰綠底、象牙卡、燙金框' }, KIT_PALE('#22362B', '#977536', '#4F6356')),
-  Object.assign({ n: '霧藍', old: '藏青', t: 'biz', d: 'navy/', tip: '霧藍：淺霧藍底、珍珠白卡、燙金框、藏青字' }, KIT_PALE('#1E2C48', '#9A7A3C', '#56627A')),
-  Object.assign({ n: '玫瑰', old: '酒紅', t: 'net', d: 'wine/', tip: '玫瑰酒紅：淺玫瑰底、象牙卡、燙金框、酒紅字' }, KIT_PALE('#4A1A24', '#9A7038', '#7A5A5E'))];
+  Object.assign({ n: '暖米白', old: ['暖灰', '淺綠'], t: 'concept', d: 'mint/', en: 'LIFE NOTES', tip: '暖米白：暖光牆面、葉影、木桌，金色細線' }, KIT_PALE('#2B241D', '#9C7638', '#4A4036')),
+  Object.assign({ n: '奶茶駝', old: ['駝色'], t: 'health', d: 'camel/', en: 'WELL-BEING', tip: '奶茶駝：奶茶色暖光、葉影、木桌，琥珀金字' }, KIT_PALE('#3A2A1C', '#A0703A', '#5A4634')),
+  Object.assign({ n: '鼠尾草', old: ['綠底'], t: 'herb', d: 'emerald/', en: 'HERBAL NOTES', tip: '鼠尾草綠：淡綠暖光、綠色葉影、木桌，墨綠字' }, KIT_PALE('#22362B', '#8C7A3C', '#3F5246')),
+  Object.assign({ n: '霧藍', old: ['藏青'], t: 'biz', d: 'navy/', en: 'BUSINESS NOTES', tip: '霧藍灰：霧藍晨光、葉影、木桌，藏青字' }, KIT_PALE('#1E2C48', '#9A7A3C', '#3E4A62')),
+  Object.assign({ n: '玫瑰', old: ['酒紅'], t: 'net', d: 'wine/', en: 'MARKETING NOTES', tip: '玫瑰粉：玫瑰暖光、葉影、木桌，酒紅字' }, KIT_PALE('#4A1A24', '#A0645A', '#6A454A'))];
+const kitIs_ = (x, n) => x.n === n || [].concat(x.old || []).indexOf(n) >= 0;
 let KIT_S_ = KIT_STYLES[2];   // 預設鼠尾草（原綠底）；這次畫圖用的款式（kitMake_ 依 kit.style 設定）
-const kitStyle_ = n => KIT_STYLES.filter(x => x.n === n || x.old === n)[0] || KIT_STYLES[2];   // 沒指定用鼠尾草（原綠底）；舊按鈕名稱也認得
+const kitStyle_ = n => KIT_STYLES.filter(x => kitIs_(x, n))[0] || KIT_STYLES[2];   // 沒指定用鼠尾草（原綠底）；舊按鈕名稱也認得
 const kitThemeStyle_ = k => KIT_STYLES.filter(x => x.t === k)[0] || KIT_STYLES[2];   // 主題配套款式（軍師判定沒有固定款，用鼠尾草）
 
 function kitMenu_() {
@@ -1348,7 +1350,7 @@ function kitPick_(raw) {
   if (t === KIT_BTN || /^(7張|七張)[＋+]?PDF$|^名單包$/i.test(t.replace(/^📕 ?|\s/g, ''))) return 'menu';
   const th = name => STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === name)[0];
   const st = t.match(/^🎨 ?(\S+?)・(\S+)$/);   // 「🎨 健康・綠底」：主題＋款式都選好了
-  if (st) { const hit = th(st[1]); const sy = KIT_STYLES.filter(x => x.n === st[2] || x.old === st[2])[0]; return hit && sy ? hit.k + '|' + sy.n : null; }
+  if (st) { const hit = th(st[1]); const sy = KIT_STYLES.filter(x => kitIs_(x, st[2]))[0]; return hit && sy ? hit.k + '|' + sy.n : null; }
   const m = t.match(/^(\S+?) ?([\p{L}]+)$/u);
   if (!m) return null;
   const hit = th(m[2]);
@@ -1591,66 +1593,92 @@ function kitBg_(req, slide, file, W, H) {
 }
 const KIT_ORN = '───────　◆　───────';
 
-// 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
-function kitCardLayout_(kit, i) {
-  const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length;
-  const head = (t, size) => ({ t: t, size: size, bold: true, color: KIT_S_.c.ink, ls: 135 });
-  const orn = { t: KIT_ORN, size: 9, color: KIT_S_.c.orn, above: 16 };
-  const body = t => ({ t: t, size: 18, color: KIT_S_.c.soft, ls: 175, above: 16, em: KIT_S_.c.ink });
-  let paras;
-  if (s.kind === 'cover') paras = [head(s.head, 40), orn, body(s.sub)];
-  else if (s.kind === 'action') paras = [head(s.head, 34), orn, body(s.body)];
-  else if (s.kind === 'reason') paras = [head(s.head, 32)];
-  else if (s.kind === 'last') paras = [{ t: s.pre, size: 25, color: KIT_S_.c.mute, ls: 160 }, orn, Object.assign(head(s.head, 40), { above: 14 })];
-  else paras = [head(s.head, 27), orn, { t: '留言', size: 14, color: KIT_S_.c.sub, above: 18 },   // 整組只有最後一張引導留言（使用者 2026-10-16）
-    { t: kit.keyword.split('').join(' '), size: 54, bold: true, color: KIT_S_.c.gold, above: 2 }, { t: s.sub, size: 16, color: KIT_S_.c.sub, above: 10 }];
-  const label = s.kind === 'action' ? s.step : s.label || (s.kind === 'cover' ? '生活筆記「' + (kit.cat || kit.theme.replace(/主題$/, '')) + '」' : '');
-  const num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
-  if (s.kind === 'cover') return kitCoverLayout_(kit, s, num, W, H);
+// 實心色塊（金色直條、細線）
+function kitRect_(req, slide, id, x, y, w, h, color) {
+  req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
+    size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+    transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: y, unit: 'PT' } } } });
+  req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
+    shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(color) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
+}
+// 大標字級：最長一行要放得下 width，整塊（含換行）不超過 maxH；回傳字級和估計高度（給左邊金色直條用）
+function kitFit_(t, width, max, min, maxH) {
+  const lines = String(t || '').replace(/\*\*|~~/g, '').split('\n');
+  const rows = sz => lines.reduce((n, l) => n + Math.max(1, Math.ceil((l.length + 0.6) * sz / width)), 0);
+  let size = Math.max(min, Math.min(max, Math.floor(width / Math.max.apply(null, lines.map(l => l.length + 0.6)))));
+  while (size > min && rows(size) * size * 1.5 > maxH) size -= 2;   // 行距 125%（簡報的單行約 1.2 倍字高）
+  return { size: size, h: rows(size) * size * 1.5 };
+}
+const KIT_EN = ['ONE', 'TWO', 'THREE'];
+
+// 暖光生活筆記版面（2026-10-18 使用者給圖一）：左上金色直條小標＋英文、右上頁碼、大字標題左邊一條金線、下方細線＋系列名＋署名
+function kitWarm_(kit, s, i, N, W, H, lab, en, right, main) {
+  const C = KIT_S_.c, num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
+  const sp = t => t.length <= 8 ? t.split('').join(' ') : t;   // 短小標字距拉開
   return { W: W, H: H, build: slide => {
     const req = [];
-    kitBg_(req, slide, 'card_bg.jpg', W, H);
-    // 上方系列名＋分類、下方頁碼＋署名：使用者 2026-10-16 圈出來要放大
-    kitText_(req, slide, slide + '_top', [40, 110, 460, 62], [
-      { t: 'NO. ' + ('0' + (i + 1)).slice(-2) + ' · ' + kit.series, size: 15, bold: true, color: KIT_S_.c.top, font: 'Noto Sans TC' },
-      { t: label, size: 19, bold: true, color: KIT_S_.c.lab, font: 'Noto Sans TC', above: 4 }], 'TOP');
-    kitText_(req, slide, slide + '_main', [64, 178, 412, 372], paras);
-    kitText_(req, slide, slide + '_ft', [40, 552, 460, 66], [
-      { t: num, size: 20, bold: true, color: KIT_S_.c.top, font: 'Cormorant Garamond' },
-      { t: cardBy_(), size: 16, bold: true, color: KIT_S_.c.soft, font: 'Noto Sans TC', above: 4 }], 'TOP');
+    kitBg_(req, slide, i ? 'card_bg.jpg' : 'cover_bg.jpg', W, H);
+    kitRect_(req, slide, slide + '_lb', 48, 43, 3.5, 41, C.gold);
+    kitText_(req, slide, slide + '_lab', [60, 36, 300, 52], [
+      { t: sp(lab), size: 17, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'START' },
+      { t: en.split('').join(' '), size: 10, color: C.gold, font: 'Cormorant Garamond', align: 'START', above: 1 }], 'TOP');
+    kitRect_(req, slide, slide + '_ls', 66.5, 91, 65, 1.5, C.gold);
+    kitText_(req, slide, slide + '_no', [350, 66, 142, 28], [{ t: num, size: 20, color: C.gold, font: 'Cormorant Garamond', align: 'END' }], 'TOP');
+    main(req, slide);
+    kitRect_(req, slide, slide + '_fr', 80, 500, 380, 1, C.gold);
+    kitText_(req, slide, slide + '_ser', [74, 508, 290, 32], [{ t: kit.series, size: 19, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'START' }]);
+    kitText_(req, slide, slide + '_sw', [340, 508, 126, 32], [{ t: right, size: 18, color: C.gold, font: 'Cormorant Garamond', align: 'END' }]);
+    kitText_(req, slide, slide + '_by', [74, 543, 400, 30], [{ t: cardBy_(), size: 15, color: C.sub, font: 'Noto Sans TC', align: 'START' }], 'TOP');
     return req;
   } };
 }
+// 大標（左邊金色直條）＋下面幾段：top 起排，大標字級自動縮到放得下
+function kitHeadBlock_(req, slide, head, fit, top, rest) {
+  const C = KIT_S_.c;
+  kitRect_(req, slide, slide + '_hb', 48, top + 8, 4, Math.max(40, fit.h - fit.size * 0.45), C.gold);
+  kitText_(req, slide, slide + '_main', [72, top, 440, 492 - top], [
+    { t: head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START' }].concat(rest), 'TOP');
+}
 
-// 封面：黑金精品（使用者 2026-10-16 選 A）——黑曜石底＋雙層香檳金框，象牙白大標題靠左，不放領取 PDF
-const KIT_COVER = { ink: '#F4EEE2', gold: '#D9BC7E', top: '#C9A56A', sub: '#B9AE9B', series: '#E9D3A2', by: '#F1DFB4' };
+// 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
+function kitCardLayout_(kit, i) {
+  const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length, C = KIT_S_.c;
+  const body = (t, o) => Object.assign({ t: t, size: 21, color: C.sub, ls: 145, above: 24, align: 'START', em: C.gold }, o || {});
+  if (s.kind === 'cover') return kitCoverLayout_(kit, s, ('01 — ') + ('0' + N).slice(-2), W, H);
+  if (s.kind === 'action') {
+    const n = Math.max(0, '一二三'.indexOf(String(s.step || '').slice(-1)));
+    const fit = kitFit_(s.head, 420, 52, 34, 170);
+    return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
+      kitHeadBlock_(req, slide, s.head, fit, 128, [body(s.body)]));
+  }
+  if (s.kind === 'reason') {
+    const fit = kitFit_(s.head, 420, 50, 30, 340);
+    return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
+      kitHeadBlock_(req, slide, s.head, fit, 136, []));
+  }
+  if (s.kind === 'last') {
+    const fit = kitFit_(s.head, 420, 52, 32, 220);
+    return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
+      kitText_(req, slide, slide + '_pre', [72, 128, 440, 110], [body(s.pre, { above: 0 })], 'TOP');
+      kitHeadBlock_(req, slide, s.head, fit, 250, []);
+    });
+  }
+  // 最後一張：整組只有這張引導留言（使用者 2026-10-16）
+  const fit = kitFit_(s.head, 420, 40, 26, 170);
+  return kitWarm_(kit, s, i, N, W, H, '送你一份 PDF', 'FREE GUIDE', 'END', (req, slide) =>
+    kitHeadBlock_(req, slide, s.head, fit, 128, [
+      { t: '留 言 關 鍵 字', size: 16, bold: true, color: C.sub, font: 'Noto Sans TC', align: 'START', above: 24 },
+      { t: kit.keyword.split('').join(' '), size: 64, bold: true, color: C.gold, align: 'START', above: 0, ls: 120 },
+      body(s.sub, { size: 18, above: 6 })]));
+}
+
+// 封面：暖光生活筆記（2026-10-18 使用者給圖一）——大字標題靠左、左邊金色直條，不放領取 PDF
 function kitCoverLayout_(kit, s, num, W, H) {
-  const C = KIT_S_.cv || KIT_COVER, cat = kit.cat || String(kit.theme || '').replace(/主題$/, '');
-  // 大標字級：最長一行要放得下（留空間給句尾標點，才不會「，」單獨掉一行），整塊字也不能超出上下兩條線（使用者 2026-10-16）
-  const lines = String(s.head || '').replace(/\*\*|~~/g, '').split('\n');
-  const longest = Math.max.apply(null, lines.map(l => l.length));
-  const subLines = String(s.sub || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 18)), 0);
-  let size = Math.max(34, Math.min(70, Math.floor(340 / Math.max(longest, 1))));
-  while (size > 34 && lines.length * size * 1.25 + 24 + subLines * 31 > 380) size -= 2;
-  return { W: W, H: H, build: slide => {
-    const req = [];
-    kitBg_(req, slide, 'cover_bg.jpg', W, H);
-    kitText_(req, slide, slide + '_top', [75, 74, 250, 36], [
-      { t: ('生活筆記' + (cat ? '・' + cat : '')).split('').join(' '), size: 15, bold: true, color: C.top, font: 'Noto Sans TC', align: 'START' }], 'TOP');
-    kitText_(req, slide, slide + '_no', [325, 70, 140, 40], [
-      { t: num, size: 20, color: C.top, font: 'Cormorant Garamond', align: 'END' }], 'TOP');
-    // 從上方短金線（118）下面開始往下排，不再置中往上長；底線在 540
-    kitText_(req, slide, slide + '_main', [75, 136, 400, 396], [
-      { t: s.head, size: size, bold: true, color: C.ink, em: C.gold, ls: 120, align: 'START' },
-      { t: s.sub, size: 20, color: C.sub, ls: 150, above: 24, align: 'START' }], 'TOP');
-    kitText_(req, slide, slide + '_ser', [75, 552, 260, 34], [
-      { t: kit.series, size: 18, bold: true, color: C.series, font: 'Noto Sans TC', align: 'START' }]);
-    kitText_(req, slide, slide + '_sw', [335, 552, 130, 34], [
-      { t: 'SWIPE  →', size: 19, color: C.top, font: 'Cormorant Garamond', align: 'END' }]);
-    kitText_(req, slide, slide + '_by', [40, 594, 460, 34], [   // 使用者 2026-10-16：底下署名要亮、要大
-      { t: cardBy_(), size: 16, bold: true, color: C.by, font: 'Noto Sans TC' }]);
-    return req;
-  } };
+  const cat = kit.cat || String(kit.theme || '').replace(/主題$/, ''), C = KIT_S_.c;
+  const subRows = String(s.sub || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 20)), 0);
+  const fit = kitFit_(s.head, 420, 66, 36, 350 - subRows * 35 - 30);
+  return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記 · ' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) =>
+    kitHeadBlock_(req, slide, s.head, fit, 128, [{ t: s.sub, size: 20, color: C.sub, ls: 145, above: 30, align: 'START', em: C.gold }]));
 }
 
 // PDF 實作手冊（A4 直式 595×842，內容跟圖卡、貼文不一樣；使用者 2026-10-16）
@@ -1663,13 +1691,11 @@ function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字
   const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'pdf_page.jpg', W, H);
-    kitText_(req, slide, slide + '_hd', [X, 62, TW, 100], [{ t: small, size: 14, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' },
-      { t: title, size: 34, bold: true, color: KIT_S_.c.ink, align: 'START', above: 4, ls: 120 }], 'BOTTOM');
-    req.push({ createShape: { objectId: slide + '_rule', shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
-      size: { width: { magnitude: TW - 14, unit: 'PT' }, height: { magnitude: 0.8, unit: 'PT' } },
-      transform: { scaleX: 1, scaleY: 1, translateX: X + 7, translateY: 170, unit: 'PT' } } } });
-    req.push({ updateShapeProperties: { objectId: slide + '_rule', fields: 'shapeBackgroundFill,outline', shapeProperties: {
-      shapeBackgroundFill: { solidFill: { color: { rgbColor: rgb_(KIT_S_.c.rule) } } }, outline: { propertyState: 'NOT_RENDERED' } } } });
+    // 暖光版（2026-10-18）：左上金色直條小標、大標、短金線
+    kitRect_(req, slide, slide + '_lb', X, 52, 3.5, 24, KIT_S_.c.gold);
+    kitText_(req, slide, slide + '_sm', [X + 10, 50, TW - 10, 30], [{ t: small, size: 15, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    kitText_(req, slide, slide + '_hd', [X - 4, 82, TW + 4, 84], [{ t: title, size: 34, bold: true, color: KIT_S_.c.ink, align: 'START', ls: 120 }], 'BOTTOM');
+    kitRect_(req, slide, slide + '_rule', X + 2, 172, 90, 1.5, KIT_S_.c.gold);
     kitText_(req, slide, slide + '_bd', [X, 184, TW, 598], paras, 'TOP');
     kitText_(req, slide, slide + '_ft', [X, 786, TW, 24], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 11, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
     return req;
@@ -1680,12 +1706,15 @@ function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字
   L.push({ W: W, H: H, build: slide => {   // 封面
     const req = [];
     kitBg_(req, slide, 'pdf_cover.jpg', W, H);
-    kitText_(req, slide, slide + '_main', [X, 180, TW, 560], [
-      { t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC' },
-      { t: P.title + '。', size: 58, bold: true, color: KIT_S_.c.ink, ls: 125, above: 24 },
-      { t: '────────', size: 12, color: KIT_S_.c.orn, above: 22 },
-      { t: P.intro, size: 20, color: KIT_S_.c.soft, ls: 170, above: 24 }]);
-    kitText_(req, slide, slide + '_ft', [X, 752, TW, 26], [{ t: cardBy_(), size: 12, color: KIT_S_.c.mute, font: 'Noto Sans TC' }], 'TOP');
+    // 暖光版封面（2026-10-18）：靠左大字、左邊金色直條
+    const fit = kitFit_(P.title + '。', 440, 58, 36, 260);
+    kitRect_(req, slide, slide + '_lb', X, 92, 3.5, 30, KIT_S_.c.gold);
+    kitText_(req, slide, slide + '_k', [X + 12, 88, TW, 40], [{ t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    kitRect_(req, slide, slide + '_hb', X, 196, 4, Math.max(40, fit.h - fit.size * 0.45), KIT_S_.c.gold);
+    kitText_(req, slide, slide + '_main', [X + 22, 186, TW - 10, 560], [
+      { t: P.title + '。', size: fit.size, bold: true, color: KIT_S_.c.ink, ls: 125, align: 'START' },
+      { t: P.intro, size: 20, color: KIT_S_.c.soft, ls: 170, above: 34, align: 'START' }], 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 690, TW, 26], [{ t: cardBy_(), size: 13, color: KIT_S_.c.soft, font: 'Noto Sans TC', align: 'START' }], 'TOP');
     return req;
   } });
   const B = P.before;
@@ -1697,8 +1726,8 @@ function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字
   L.push(page(6, '自查', C.title, [lead(C.lead)].concat((C.items || []).slice(0, 6).map((t, i) =>
     ({ t: '☐　' + t, size: 19, bold: true, color: KIT_S_.c.ink, align: 'START', above: 22, ls: 150 })), note(C.note))));
   const F = P.final;
-  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: KIT_ORN, size: 12, color: KIT_S_.c.orn, above: 34 },
-    { t: F.close, size: 30, bold: true, color: KIT_S_.c.ink, ls: 150, above: 18 }])));
+  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: '──────', size: 12, color: KIT_S_.c.gold, align: 'START', above: 34 },
+    { t: F.close, size: 30, bold: true, color: KIT_S_.c.ink, ls: 150, above: 14, align: 'START' }])));
   return L;
 }
 
