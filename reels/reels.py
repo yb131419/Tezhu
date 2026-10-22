@@ -1463,7 +1463,14 @@ def voiceover(plan, opt, total, work):
     return out
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None):
+def music_gain(base, accents):
+    """配樂音量起伏（使用者 2026-10-22：配樂太單調）：每個剪點音樂跟著鼓起來 0.5 秒再慢慢回來，不會一路平平。"""
+    bumps = ['if(between(t,%.2f,%.2f),%.3f*(1-(t-%.2f)/.5),0)' % (c, c + .5, .2 * base, c)
+             for c in sorted(set(round(x, 2) for x in accents or [] if x > 0))[:40]]
+    return '+'.join(['%.3f' % base] + bumps)
+
+
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None, accents=None):
     # 控制檔案大小，Telegram 機器人傳影片上限 50MB
     kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
     vf = "[0:v]%s%sass='%s':fontsdir='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
@@ -1494,8 +1501,8 @@ def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx
         key = '[vok]' if voice else '[s2]'
         fc = (vf + ';[0:a]%s%s;' % ('apad,' if pad else '', 'anull[s1]' if voice else 'asplit[s1][s2]') + vo_fc +
               '[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-18:TP=-2:LRA=9,aresample=48000,'
-              'afade=t=in:d=1.2,volume=%.2f[m0];'
-              '[m0]%ssidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % (music_vol, key))
+              "afade=t=in:d=1.2,volume='%s':eval=frame[m0];"
+              '[m0]%ssidechaincompress=threshold=0.03:ratio=8:attack=15:release=450[m]' % (music_gain(music_vol, accents), key))
         mix.append('[m]')
     else:
         fc = vf + ';[0:a]%s[s1]' % ('apad' if pad else 'anull') + (';' + vo_fc if voice else '')
@@ -1724,7 +1731,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         voice = voiceover(plan, opt, total, work) if silent and opt['voice'] and plan else []
         log('配音 %d 句' % len(voice))
         thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent and not voice else .35, grade=opt['fx'], sfx=sfx,
-                       look=look, pad=pad, voice=voice)
+                       look=look, pad=pad, voice=voice, accents=(plan or {}).get('xfades'))
         fx_desc = fx_summary(plan, opt, silent)
         if CARDS:
             fx_desc = (cards_done[1] if cards_done else '卡片特效這次沒做成（%s）' % CARD_SKIP) + ('、' + fx_desc if fx_desc else '')
