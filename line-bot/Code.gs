@@ -684,6 +684,8 @@ function answer_(text) {
   }
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
+  const hs = reelHeroSetting_(t2);   // 「設定主角 …」「查看主角」（短劇的主角，使用者自訂）
+  if (hs) return hs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
   const kp = kitPick_(raw);   // 「📕 7張＋PDF」：選主題後要做 1～2 分鐘，先回「製作中」，做好再傳
   if (kp === 'menu') return kitMenu_();
@@ -830,7 +832,7 @@ function stratMenu_() {
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [STRAT_SWITCH]] };
+  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，打「設定主角 名字、性別、年齡、外型」，例如：設定主角 小美，女生，25 歲，短髮、穿白襯衫。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1015,19 +1017,38 @@ function reelOnly_(k) {
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
   } finally { busyEnd_('STRAT_BUSY'); }
 }
+// 短劇主角（使用者自訂，存在指令碼屬性；沒設定就由軍師照主題自己安排）
+const REEL_HERO_KEY = 'REEL_HERO';
+function reelHero_() { return prop_(REEL_HERO_KEY); }
+// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存起來；「設定主角 預設」清掉；「查看主角」或「設定主角」單打就看目前的
+function reelHeroSetting_(t) {
+  const s = String(t || '').trim();
+  const m = s.match(/^(?:設定|修改|更改|改)主角[\s：:]*(.*)$/);
+  if (!m && !/^(?:查看|看|目前)主角$/.test(s)) return null;
+  const v = m ? m[1].trim().slice(0, 300) : '';
+  if (!v) return '目前的短劇主角：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要恢復預設請打「設定主角 預設」。';
+  if (/^(預設|恢復預設|改回預設|清除|取消)$/.test(v)) {
+    PropertiesService.getScriptProperties().deleteProperty(REEL_HERO_KEY);
+    return '好，短劇主角改回預設（由軍師照主題自己安排）。';
+  }
+  setProp_(REEL_HERO_KEY, v);
+  return '好，短劇主角設定好了：\n' + v + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+}
 // 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
+  const hero = reelHero_();
   const sys = [
     '你是短影音編劇，幫彥彬寫一支「AI 生成的一分鐘短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 60 秒直式短片（9:16）。',
-    base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案：\n標題：' + base.ptitle + '\n' + base.post
+    base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案；文案裡人物的性別和年紀照原文寫，不可以對調：\n標題：' + base.ptitle + '\n' + base.post
       : '【本次主題】' + stratGuide_(th),
+    hero ? '【主角（使用者指定，必須照寫）】' + hero + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
     '【劇情結構】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60：0 到 3 秒一定要有讓人停下來的衝突或反常畫面；中間是一個日常生活場景裡的小誤會或小反轉；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
     '【台詞與字幕】每一段都一定要有台詞，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；每段的字幕就是那段最重要的一句話。',
     '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
     '繁體台灣用語，不用簡體字。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
   const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }];
   let r = null;
