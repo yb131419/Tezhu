@@ -51,12 +51,17 @@ const MENU_CARDS = [
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
-// 回覆按鈕裡的整組常用選單換成精簡的 5 個（試算問題等專屬按鈕照留）
+// 回覆按鈕裡的整組常用選單換成精簡的 5 個（試算問題等專屬按鈕照留）；每組快速回覆都要有「💎 選單」，沒有就補一列
 function quick_(b) {
-  if (!b || b === QUICK) return b;
+  if (!b || !b.length || b === QUICK) return b;
   if (b === MENU) return QUICK;
+  if ([].concat.apply([], b).indexOf(MENU_BTN) >= 0) return b;
   const rest = b.filter(r => MENU.indexOf(r) < 0);
-  return rest.length === b.length ? b : rest.concat(QUICK);
+  return rest.length === b.length ? b.concat([[MENU_BTN]]) : rest.concat(QUICK);
+}
+// 超過上限（LINE 快速回覆最多 13 個、對話頁最多 16 個）時，先省掉前面的專屬按鈕，「💎 選單」一定留著
+function capMenu_(items, max) {
+  return items.length > max ? items.filter(t => t !== MENU_BTN).slice(0, max - 1).concat(MENU_BTN) : items;
 }
 function menuCard_() {
   const text = '💎 小乖功能選單\n' + MENU_CARDS.map(c => '\n【' + c.title + '】\n' + c.items.map(i => i[0] + '　' + i[1]).join('\n')).join('\n');
@@ -303,7 +308,7 @@ const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
-  ASK_BTNS_ = b && b !== QUICK ? [].concat.apply([], b).filter(t => t !== '🐾 對話頁').slice(0, 16) : [];
+  ASK_BTNS_ = b && b !== QUICK ? capMenu_([].concat.apply([], b).filter(t => t !== TALK_BTN), 16) : [];
 }
 
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
@@ -3366,17 +3371,20 @@ function reply_(replyToken, msg, extra, menu) {
     : { type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000) };
   // menu：私訊主人時附常用功能按鈕（精簡成 5 個，其他在「💎 選單」卡片裡）
   const buttons = rich && msg.flex && !msg.alt ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
-  if (buttons) {
-    m.quickReply = { items: [].concat.apply([], buttons).slice(0, 13)
-      .map(lineQuick_) };
-  }
+  const items = lineItems_(buttons);
+  if (items.length) m.quickReply = { items: items };
   lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
+}
+// LINE 快速回覆的按鈕列（已經過 quick_）轉成 items，最多 13 個
+function lineItems_(rows) {
+  return capMenu_([].concat.apply([], rows || []), 13).map(lineQuick_);
 }
 
 // 推播的最後一則也帶快速回覆按鈕（2026-10-16 使用者：「回覆訊息後維持快速回覆」）
 function withQuick_(msgs, buttons) {
   const last = msgs[msgs.length - 1];
-  if (last && !last.quickReply) last.quickReply = { items: [].concat.apply([], quick_(buttons || MENU)).slice(0, 13).map(lineQuick_) };
+  const items = lineItems_(quick_(buttons || MENU));
+  if (last && !last.quickReply && items.length) last.quickReply = { items: items };
   return msgs;
 }
 function push_(to, text) {
