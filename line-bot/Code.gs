@@ -690,6 +690,8 @@ function answer_(text) {
     return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。';
   }
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
+  if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
+  if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
@@ -807,6 +809,8 @@ function stratCat2_(k, cat) {
   return c.replace(/主題$/, '').slice(0, 2) || '軍師';
 }
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
+// AI 一分鐘短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
+const REEL_BTN = '🎭 短劇腳本';
 const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
 let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各自把它畫成圖卡送出
@@ -814,9 +818,24 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案，再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, AUTO_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附一分鐘短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
+}
+// 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
+function reelMenu_() {
+  const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
+  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [STRAT_SWITCH]] };
 }
 
+// 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
+function stratKey_(w) {
+  if (/判定|軍師|隨便|你決定|你選/.test(w)) return 'auto';
+  if (/火山|草本/.test(w)) return 'herb';
+  if (/健康/.test(w)) return 'health';
+  if (/觀念/.test(w)) return 'concept';
+  if (/經營|新手/.test(w)) return 'biz';
+  if (/網路|行銷|網銷/.test(w)) return 'net';
+  return null;
+}
 // 認得「健康主題」「智囊軍師 健康」「軍師判定」「再寫一篇」這些說法；不是就回 null
 function stratPick_(text) {
   // 主題按鈕（兩個字，前面有圖示）：照按鈕文字對應；單打「健康」「經營」這類字不會誤觸
@@ -825,18 +844,18 @@ function stratPick_(text) {
   if (hit) return hit.k;
   // 語音聽寫會帶標點，也常說「小乖寫文案」「幫我寫一篇火山草本的文案」：先去掉標點和稱呼
   const t = String(text || '').replace(/[\s，,。.！!？?、：:「」]+/g, '').replace(/^(嘿|欸|哈囉)?小乖/, '').replace(/^(幫我|請|請你|麻煩)/, '');
+  // 短劇腳本：「🎭 短劇腳本」「短影片 觀念」「寫一個健康短劇」「🎭 觀念短劇」→ 'reel' 或 'reel:主題'
+  const rt = t.replace(/^🎭/, '').replace(/^(?:來|寫|生|產生|生成|出)?(?:一支|一個|一部|一篇|個)?/, '').replace(/^(?:AI|ai)?(?:一分鐘)?/, '');
+  const rm = rt.match(/^(?:短劇|短影片|短影音)(?:腳本)?(?:的)?(.*)$/) || rt.match(/^(.+?)(?:主題)?(?:的)?(?:AI|ai)?(?:一分鐘)?(?:短劇|短影片|短影音)(?:腳本)?$/);
+  if (rm) {
+    const w = rm[1].replace(/主題$/, '');
+    if (!w) return 'reel';
+    const rk = stratKey_(w);
+    return rk ? 'reel:' + rk : 'reel';
+  }
   if (/^(來|寫|生|產生|生成|出)?(一篇|一則|個)?(文案|貼文)(吧)?$/.test(t)) return 'menu';
   const fw = t.match(/^(?:來|寫|生|產生|生成|出)(?:一篇|一則|個)?(?:關於|有關)?(.*?)(?:主題)?(?:的)?(?:文案|貼文)(?:吧)?$/);
-  if (fw) {   // 「寫一篇健康的文案」「寫火山草本文案」
-    const w = fw[1];
-    if (/判定|軍師|隨便|你決定|你選/.test(w)) return 'auto';
-    if (/火山|草本/.test(w)) return 'herb';
-    if (/健康/.test(w)) return 'health';
-    if (/觀念/.test(w)) return 'concept';
-    if (/經營|新手/.test(w)) return 'biz';
-    if (/網路|行銷|網銷/.test(w)) return 'net';
-    return 'menu';
-  }
+  if (fw) return stratKey_(fw[1]) || 'menu';   // 「寫一篇健康的文案」「寫火山草本文案」
   if (/^(智囊軍師|軍師|智囊|換主題|寫文案|軍師文案)$/.test(t)) return 'menu';
   if (/^(再寫一篇|再一篇|換一篇)$/.test(t)) return prop_('STRAT_LAST') || 'menu';
   let r = t.replace(/^(智囊軍師|軍師)(?=.)/, '');
@@ -848,6 +867,63 @@ function stratPick_(text) {
   return null;
 }
 
+// 四種寫作技巧（2026-10-18 使用者指定）：節奏、非共識、文風、場景化；安全底線一定要保留
+const WRITE_STYLE_ = [
+  '【寫作節奏】約一半句子 10 字以內，一半句子較長（最長 25 字）交錯排列，避免每句長度相仿；段落之間空一行。',
+  '【非共識視角】不寫大家都知道的常識性建議；改從反直覺的角度切入，只用能說清楚來源的具體案例或生活情境，不編造數據、不引用不存在的研究。',
+  '【文風】冷靜、觀察式的專欄口吻，像科技雜誌的專題記者寫生活：不激勵、不喊口號、不用感嘆號；可以有一點乾燥的諷刺，但只針對現象，不嘲諷人。',
+  '【場景化】禁止抽象形容詞與空泛結論，例如「效率極高」「革命性」「非常便利」「神奇」「奇蹟」「完美」「超級」「頂級」；改用具體畫面或工作、生活情境，寫「看到什麼、做了什麼」，不寫「所以很好」。',
+  '【九大寫作技巧】01 不用「起承轉合」的公式，直接講重點；02 善用逗號串起相關的想法，句號留給真正的停頓；03 把話說簡單，能用一句講清楚就不講兩句；04 能寫短就寫短，不為了篇幅拉長；05 字數取決於內容，該說的說完就停；06 善用破折號、頓號、冒號增加節奏，不濫用表情符號；07 段落簡短，每段只留一個重點；08 不推銷，不用「快來」「千萬不要錯過」這類催促語，讓內容自己說服人；09 價值為王，每一句都要給讀者一個觀察、資訊或可以今天就做的事，沒有就刪掉。',
+  '【禁止廢話與雞湯】不寫勵志口號和道理式結尾，禁用的說法包括：「相信自己」「你值得」「只要願意就一定」「人生就是」「勇敢面對」「給自己一個機會」「加油」「每一步都是」「學會放下就是」「你已經很棒了」；也不寫沒有資訊量的開場與鋪墊，例如「其實」「說真的」「你有沒有想過」後面接空話；心得只寫一個具體觀察或做法，不寫人生大道理；每一句都要讓讀者多知道一件事或多想到一件具體的事，寫不出來就刪掉。',
+  '【讓人有感覺】讀者會滑過大部分貼文，只有讓人停下來的才會看完。每篇都要做到：開場寫一個讀者自己也遇過的具體時刻（一個動作、一句話、一個場景），不寫抽象的處境；點出一種很具體的感覺（例如「明明很累還是打開手機」而不是「壓力很大」），讓讀者覺得「這說的就是我」；只講一個重點，不把好幾個觀念塞在同一篇；如果用問句結尾，要具體到讀者能用一句話回答（例如「上一次這樣，你在做什麼？」），不寫「你覺得呢？」「大家怎麼看？」這類無法回答的問題；寫不出讓人有感覺的內容，就不要發。',
+  '【真實感寫法】要用到的元素：① 一個具體場景（有時段、地點、物品或價格，讓人能想像畫面）；② 一個過去的具體例子（用數字或物品說明，不寫「我常常這樣」）；③ 一個改變的做法，只寫一個；④ 一句觀察，不寫道理；⑤ 今天就能做的動作，用具體動詞開頭（幾個、怎麼寫依【本篇寫法】）；⑥ 收尾（問句、動作或畫面，依【本篇寫法】）。元素的順序以【本篇寫法】為準，不要照固定順序寫。不寫具體日期或星期幾（例如「週三」「10 月 18 日」），時段可以用「晚上」「凌晨」「午休」。段落長短不一，不要每段都是整齊的三句；不要用警句收尾。',
+  '【禁用的固定句型】不要用這些說法開頭或收尾：「今天就可以試試」「今天就從一件小事開始」「你最近一次…是什麼時候」「真正的成長是」「水是重要的，但」「你是不是也曾經」「完美從來不存在」「值得在意的是」「我先是…接著…後來…」「這改變了我的…」「讓我不再感到…」；三個動作不要每次都是「先…」「想一想…」「隔天再…」的排法，也不要每次都是三點條列；有時用一段話交代、有時只給一個動作；結尾有時是問句，有時是一個畫面或一個動作，不要每篇都用問句收尾。',
+  '【安全底線】以上技巧不得用來誇大療效、承諾收入、勸人停止治療或取代醫療；非共識只能用在可查證、可負責的內容上。',
+].join('\n');
+// 輪播留存設計（2026-10-20）：依「滑動率、停留時間」的內容結構設計，封面要留懸念、內頁要短、結尾要能互動；健康與草本主題另加安全鉤子規則
+const RETENTION_RULES_ = [
+  '【輪播留存設計】第 1 張只給一半答案，讓人非看下一張不可（例如「多數人沒注意到的一件事」「它為什麼很少出現在市場」），不直接寫結論。',
+  '【輪播留存設計】第 2 張只講一個事實或一個做法，正文最多 3 行、每行最多 10 字，整張最多 36 字。',
+  '【輪播留存設計】最後一張給一個今天就能做的動作，結尾可以是一個能用一句話回答的留言問題；不引導私訊、不索取。',
+  '【健康與草本的安全鉤子】標題與鉤子不可暗示療效或用途，禁用詞包括「用途」「功效」「療效」「治」「改善」「排毒」「調理身體」「你可能想不到的好處」；改談植物本身的樣子、產地、傳統用法、料理方式，或它為什麼少見。',
+].join('\n');
+// 本篇寫法：每次隨機組合四個維度（元素順序、開場方式、動作寫法、結尾方式），避免每篇看起來都是同一個模板（2026-10-18）
+const STRUCTURE_VARIANTS_ = [
+  '場景 → 過去的例子 → 改變的做法 → 觀察 → 三個動作 → 問題',
+  '觀察 → 場景 → 過去的例子 → 三個動作 → 改變的做法 → 問題',
+  '場景 → 改變的做法 → 過去的例子當對照 → 觀察 → 三個動作 → 問題',
+  '過去的例子 → 場景 → 觀察 → 改變的做法 → 三個動作 → 問題',
+  '場景 → 觀察 → 過去的例子 → 三個動作 → 改變的做法 → 問題',
+  '三個動作（先給做法） → 場景 → 過去的例子 → 觀察 → 問題',
+  '一句反直覺的觀察 → 場景 → 改變的做法 → 過去的例子 → 問題',
+  '場景（對話或自言自語） → 觀察 → 三個動作 → 過去的例子 → 畫面收尾',
+];
+const OPENING_STYLES_ = [
+  '從一句對話或自言自語開始，讓人直接進入場景',
+  '從一個具體的物件或數字開始（例如一個價格、一個時間、一張收據）',
+  '從一個反直覺的結論開始，再用場景證明它',
+  '從一個正在做的動作開始，不交代前因後果',
+];
+const ACTION_STYLES_ = [
+  '三個動作，每個一行，條列',
+  '兩個動作，用一段話串起來，不條列',
+  '一個動作，寫得很具體（包含時間、數量或位置）',
+  '三個動作，其中一個用反向的說法（例如「先不要…」）',
+];
+const ENDING_STYLES_ = [
+  '一個能用一件事回答的問題',
+  '一個動作，不用問句',
+  '一個畫面，不下結論，不用問句',
+  '一句觀察，語氣平淡，不用問句',
+];
+function pickStructure_() {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  return '【本篇寫法】' + '元素順序：' + pick(STRUCTURE_VARIANTS_)
+    + '；開場：' + pick(OPENING_STYLES_)
+    + '；動作：' + pick(ACTION_STYLES_)
+    + '；結尾：' + pick(ENDING_STYLES_)
+    + '。照這些寫法寫，不要改成其他寫法；每個元素寫進內容裡，不要標出元素名稱。';
+}
 function strategist_(k) {
   const th = STRAT_THEMES.filter(t => t.k === k)[0];
   if (!th) return stratMenu_();
@@ -861,15 +937,18 @@ function stratWrite_(k, th) {
   try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
   const sys = [
     '你是「智囊軍師」，彥彬的社群文案高手，用《康園道》風格寫一篇可以直接貼到 Facebook、Instagram、LINE 的文案。',
-    '【康園道寫作風格】短句為主，每句獨立一行有節奏；先描述一個大家都有的現象，讓人對號入座；用反問引發思考（例如「你有沒有發現⋯⋯」「可是很奇怪⋯⋯」）；段落間留白；像朋友分享，不說教、不推銷；繁體台灣用語。',
+    '【康園道寫作風格】斷句長短交錯（約一半 10 字以內，其餘最長 25 字），一行一個意思；段落要清楚：每段 2 到 3 句、一段只講一件事，段落之間空一行；重點要先講：第一段就點出結論或反骨觀念，後面才解釋原因和做法；不說廢話、不繞圈；像朋友分享，不說教、不推銷；繁體台灣用語。',
+    WRITE_STYLE_,
+    pickStructure_(),
+    RETENTION_RULES_,
     '【本次主題】' + stratGuide_(th),
     STRAT_HOOK,
     '【要寫兩個版本，內容不能一樣】',
-    '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案。有自己的標題（post_title，15 字內，也要反骨）；第一行是一句反骨句，第二行起用一個具體生活場景或小故事接住，慢慢帶出道理，4 到 6 段，全文 220 到 320 字；結尾用一句問句收尾，讓人想一想；不要叫人留言或私訊（使用者 2026-10-16：圖卡文案不用引導留言）。',
+    '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案，包含下面這些元素，順序以【本篇寫法】為準：標題（post_title，15 字內，也要反骨）；一個具體場景（不寫抽象的處境）；一個改變的做法（只寫做法與觀念，不指向任何產品、草本或療法）；今天就能做的動作（幾個、怎麼寫依【本篇寫法】）；一句觀察；收尾（依【本篇寫法】）；全文 160 到 240 字，段落間空一行，長短句交錯；不要叫人留言或私訊（使用者 2026-10-16：圖卡文案不用引導留言）。',
     '②圖卡（cards）：要 3 張，放在圖片上的精簡版，不是貼文的節錄；固定順序：第 1 張封面（點出現象）→ 第 2 張翻轉觀念 → 第 3 張給一個做法，標題和內容都不能重複。',
     '每張圖卡只分三層：主標（title）只講一個重點；正文用短句；必要的條件或提醒才放補充。',
-    '第 1 張封面：title 主標 12 字內（可用 \\n 分兩行），跟貼文標題不同；主標要是反骨句；hook 一句鉤子 16 字內，接著反骨點製造懸念（例如「問題不在你，在順序」），讓人想往下滑；封面不寫 body、gold。',
-    '第 2、3 張：title 主標 12 字內，只講一個重點；body 正文 2 到 4 行、每行一句短句 14 字內；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
+    '第 1 張封面：title 主標每行最多四字、最多三行（用 \\n 分行），跟貼文標題不同；主標要是反骨句；hook 一句鉤子 16 字內，接著反骨點製造懸念（例如「問題不在你，在順序」），讓人想往下滑；封面不寫 body、gold。',
+    '第 2、3 張：title 主標每行最多四字、最多三行，只講一個重點；body 正文 2 到 3 行、每行一句短句 10 字內（整張最多 36 字）；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
@@ -909,7 +988,67 @@ function stratWrite_(k, th) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
-  return { text: stratText_(card), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
+  let reel = '';
+  try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+}
+
+// 只寫短劇腳本（不寫文案、不畫圖卡）
+function reelOnly_(k) {
+  const th = STRAT_THEMES.filter(t => t.k === k)[0];
+  if (!th) return reelMenu_();
+  if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫腳本。';
+  if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
+  try {
+    const r = reelWrite_(k, th, null);
+    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [STRAT_SWITCH]].concat(MENU) };
+  } catch (err) {
+    console.error('短劇腳本失敗：' + err.message);
+    return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
+  } finally { busyEnd_('STRAT_BUSY'); }
+}
+// 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
+function reelWrite_(k, th, base) {
+  const sys = [
+    '你是短影音編劇，幫彥彬寫一支「AI 生成的一分鐘短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 60 秒直式短片（9:16）。',
+    base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案：\n標題：' + base.ptitle + '\n' + base.post
+      : '【本次主題】' + stratGuide_(th),
+    '【劇情結構】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60：0 到 3 秒一定要有讓人停下來的衝突或反常畫面；中間是一個日常生活場景裡的小誤會或小反轉；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
+    '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
+    '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
+    '【台詞與字幕】台詞口語、短句，一句 15 字內；每段的字幕就是那段最重要的一句話；可以沒有台詞，只用畫面。',
+    '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
+    '繁體台灣用語。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"台詞（沒有就空字串）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
+  ].join('\n');
+  const out = callOpenAI_(sys, [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }], true, null, { maxTokens: 2000, temperature: 0.8 });
+  const r = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+  if (!Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
+  return r;
+}
+// 腳本排成好複製的文字
+function reelText_(r) {
+  const n = '①②③④⑤⑥⑦⑧⑨⑩';
+  const s = v => String(v || '').trim();
+  const out = ['🎭 一分鐘短劇腳本｜' + s(r.title)];
+  if (s(r.logline)) out.push('🎯 劇情：' + s(r.logline));
+  if (s(r.style)) out.push('🎨 畫面風格：' + s(r.style) + '（直式 9:16）');
+  const ch = (Array.isArray(r.characters) ? r.characters : []).filter(c => c && s(c.name));
+  if (ch.length) {
+    out.push('', '👥 角色（每段都貼同一段外型描述，AI 生成才會像同一個人）：');
+    ch.forEach(c => out.push('・' + s(c.name) + '：' + s(c.look)));
+  }
+  out.push('', '━━━━━━━━');
+  r.scenes.slice(0, 10).forEach((x, i) => {
+    out.push('', (n[i] || (i + 1) + '.') + ' ' + s(x.sec).replace(/-/g, '–') + ' 秒' + (s(x.shot) ? '｜' + s(x.shot) : ''));
+    if (s(x.visual)) out.push('畫面：' + s(x.visual));
+    if (s(x.line)) out.push('台詞：' + s(x.line));
+    if (s(x.sub)) out.push('字幕：' + s(x.sub));
+  });
+  out.push('', '━━━━━━━━');
+  if (s(r.music)) out.push('🎵 配樂：' + s(r.music));
+  if (s(r.end)) out.push('🎬 片尾字幕：' + s(r.end));
+  return out.join('\n');
 }
 
 // 使用者自訂：圖卡底部署名、文案最上面的標題（存在指令碼屬性，沒設定就用預設）
@@ -1142,27 +1281,40 @@ function stratText_(c) {
 }
 
 // 圖卡版面（直式 4:5，黑曜石＋香檳金，跟小乖頁面同一套風格）
-// 2026-10-16 使用者照「文字層級」重點改成三層：主標（一個重點）→ 正文（短句，金句當最後一句）→ 必要補充（小字）；
-// 第 1 張有 hook 就是封面（只放主標＋一句鉤子＋往右滑）；標籤只留在貼文，不印在圖卡上
+// 智囊軍師 3 張圖卡（2026-10-18 重排）：標題固定在上方、正文接在標題下面、金句固定在底部上方，三張版面位置一致
 function cardLayout_(c, minH) {
   const W = 540, X = 64, TW = 412;
   const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1), 0);
   const lines = (s, size, w) => String(s || '').split('\n')
     .reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor((w - 14) / size))), 0);
   const cover = c.idx === 1 && !!c.hook;
-  const H = Math.max(675, minH || 0), TOP = 92, BOT = c.note ? H - 112 : H - 92;
-  // 主標：封面 48、內頁 40；放不下就縮（最小 30）
-  let tf = cover ? 48 : 40;
-  while (tf > 30 && lines(c.title, tf, TW) > (cover ? 3 : 2)) tf -= 2;
-  const titleH = lines(c.title, tf, TW) * tf * 1.45;
-  const RULE = 54;   // 主標下的細金線（含上下留白）
-  // 正文 23 起，整塊放不下才縮（最小 17）
-  let bf = 23;
-  const blockH = f => cover
-    ? titleH + RULE + lines(c.hook, 25, TW) * 25 * 1.7 + 70
-    : titleH + RULE + (c.body ? lines(c.body, f, TW) * f * 1.85 : 0) + (c.gold ? 18 + lines(c.gold, f, TW) * f * 1.7 : 0);
-  while (!cover && bf > 17 && blockH(bf) > BOT - TOP) bf--;
-  const y0 = TOP + Math.max(0, Math.round((BOT - TOP - blockH(bf)) / 2));   // 整塊上下置中
+  // 逐行平均斷行：每一行若超過版面寬，平均分成兩行，避免只剩一兩個字（2026-10-18）
+  const balanceEach_ = (t, maxU) => String(t || '').split('\n').map(l => balanceLines_(l, maxU)).join('\n');
+  const body = balanceEach_(c.body, 13), gold = balanceEach_(c.gold, 13), hook = balanceEach_(c.hook, 12);
+  // 主標每行最多四字（2026-10-18）；太長排不進三行時，改成平均分三行，字級再往下縮
+  let title = balanceEach_(c.title, 4);
+  if (title.split('\n').length > 3) title = balanceLines_(c.title, Math.ceil(units(String(c.title).replace(/\n/g, '')) / 3));
+  const H = Math.max(675, minH || 0);
+  const FOOT = H - 72, NOTE_Y = H - 106;
+  const LIMIT = (c.note ? NOTE_Y : FOOT) - 26;   // 內容的下界
+  // 標題：固定從上方開始，字級放不下才縮
+  let tf = cover ? 64 : 60;
+  while (tf > 40 && lines(title, tf, TW) > 3) tf -= 2;
+
+  const TITLE_Y = 104;
+  const titleH = lines(title, tf, TW) * tf * 1.45;
+  const RULE_Y = TITLE_Y + titleH + 22;
+  const BODY_Y = RULE_Y + 30;
+  // 正文與金句：金句貼底，正文接在標題下，兩者都放不下才縮字
+  let bf = 30;
+  const bodyH = f => (body ? lines(body, f, TW) * f * 1.85 : 0);
+  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.7 : 0);
+  // 正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
+  if (!cover) while (bf > 26 && BODY_Y + bodyH(bf) + (gold ? 30 + goldH(bf) : 0) > LIMIT) bf--;
+  const GOLD_Y = LIMIT - goldH(bf);
+  // 封面鉤子：字級固定，放在標題下方
+  const hs = 32, hookH = cover ? lines(hook, hs, TW) * hs * 1.7 : 0;
+  const HOOK_Y = BODY_Y + Math.max(0, ((LIMIT - 40) - BODY_Y - hookH) / 2);   // 封面鉤子置中於標題與底部之間
 
   const build = slide => {
     const req = [];
@@ -1188,32 +1340,24 @@ function cardLayout_(c, minH) {
         foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } } } });
       req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment,lineSpacing',
         style: { alignment: o.align || 'CENTER', lineSpacing: o.ls || 100 } } });
-      req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: o.valign || 'MIDDLE' }, fields: 'contentAlignment' } });
+      req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: o.valign || 'TOP' }, fields: 'contentAlignment' } });
     };
     shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
     shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('生活筆記「' + (c.topic || c.label) + '」', X, 40, TW, 26, 14, '#B9A47A');   // 小字標示，不跟主標搶
-    let y = y0;
-    text(c.title, X, y, TW, titleH, tf, '#F1DFB4', { bold: true, serif: true, ls: 120 });   // ① 主標
-    y += titleH + 26;
-    shape('RECTANGLE', W / 2 - 30, y, 60, 1, '#C9A56A', null);
-    y += RULE - 26;
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 36, TW, 30, 16, '#B9A47A', { valign: 'MIDDLE' });   // 頂部標籤
+    text(title, X, TITLE_Y, TW, titleH, tf, '#F1DFB4', { bold: true, serif: true, ls: 120 });   // 標題
+    shape('RECTANGLE', W / 2 - 30, RULE_Y, 60, 1, '#C9A56A', null);               // 金線
     if (cover) {
-      const hh = lines(c.hook, 25, TW) * 25 * 1.7;
-      text(c.hook, X, y, TW, hh, 25, '#EDE6D6', { ls: 140 });   // ② 一句鉤子
-      text('往右滑 →', X, y + hh + 36, TW, 24, 15, '#C9A56A');
+      text(hook, X, HOOK_Y, TW, hookH, hs, '#EDE6D6', { ls: 140 });            // 封面鉤子
+      text('往右滑 →', X, LIMIT - 28, TW, 28, 18, '#C9A56A', { valign: 'MIDDLE' });
     } else {
-      if (c.body) {
-        const bh = lines(c.body, bf, TW) * bf * 1.85;
-        text(c.body, X, y, TW, bh, bf, '#EDE6D6', { ls: 150, valign: 'TOP' });   // ② 正文（短句置中）
-        y += bh;
-      }
-      if (c.gold) text(c.gold, X, y + 18, TW, lines(c.gold, bf, TW) * bf * 1.7, bf, '#E2C27A', { bold: true, serif: true, ls: 130 });   // 金句＝正文最後一句
+      if (body) text(body, X, BODY_Y, TW, bodyH(bf), bf, '#EDE6D6', { ls: 150 });   // 正文
+      if (gold) text(gold, X, GOLD_Y, TW, goldH(bf), bf, '#E2C27A', { bold: true, serif: true, ls: 130 });   // 金句貼底
     }
-    if (c.note) text(c.note, X, H - 104, TW, 22, 13, '#9C8F78');   // ③ 必要補充
-    shape('RECTANGLE', W / 2 - 70, H - 72, 140, 0.8, '#C9A56A', null);
-    text(cardBy_(), X, H - 66, TW, 28, 16, '#F1DFB4', { bold: true });
-    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 60, 82, 24, 14, '#C9A56A', { serif: true, align: 'END' });
+    if (c.note) text(c.note, X, NOTE_Y, TW, 26, 16, '#9C8F78', { valign: 'MIDDLE' });   // 補充
+    shape('RECTANGLE', W / 2 - 70, FOOT, 140, 0.8, '#C9A56A', null);             // 底部細線
+    text(cardBy_(), X, FOOT + 6, TW, 30, 18, '#F1DFB4', { bold: true, valign: 'MIDDLE' });   // 署名
+    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 60, 82, 26, 16, '#C9A56A', { serif: true, align: 'END', valign: 'MIDDLE' });
     return req;
   };
   return { W: W, H: H, build: build };
@@ -1406,7 +1550,11 @@ function kitWrite_(k) {
   const base = [
     '你是「智囊軍師」，彥彬的社群文案高手。這次要做一組「名單包」：一篇短貼文＋7 張 IG 輪播圖卡＋一份 PDF 實作手冊，講同一個主題。',
     '【三份內容不能一樣】（使用者 2026-10-16）貼文用一個生活故事帶出主題；圖卡只放重點和金句；PDF 是更完整的實作手冊（說明、示範句、練習、自我檢查）。三份不可以用同樣的句子，也不要互相照抄。',
-    '寫法：內容簡短，字少、好讀；短句、每句獨立一行、像朋友分享，不說教、不推銷；繁體台灣用語。',
+    '寫法：斷句長短交錯（約一半 10 字以內，其餘最長 25 字，一行一個意思）；段落要清楚（每段 2 到 3 句，只講一件事，段落間空一行）；重點要先講（第一句就是結論或反骨觀念，原因和做法放後面）；像朋友分享，不說教、不推銷；繁體台灣用語。',
+    WRITE_STYLE_,
+    pickStructure_(),
+    RETENTION_RULES_,
+    '【七張內容規則】第 1 張鉤子只給一半答案；動作頁每張正文最多 3 行、每行約 10 字，整張不超過 36 字；只談植物的樣子、產地、逛市場的觀察，不提用途、療效或功效；留言關鍵字用 2 個字的具體動作或特徵（例如「認葉」「看苞」），不用「草本」「火山」這類主題大詞；最後一張用一個留言問題收尾，不引導私訊。',
     '【本次主題】' + stratGuide_(th),
     '用 **字** 標出要強調的字，每段最多一處；換行用 \\n。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；「私訊」一律改說「留言」。',
@@ -1418,12 +1566,12 @@ function kitWrite_(k) {
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」；火山草本改成「認識○○的三件事」，○○是這次的植物）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人在最後一張留言索取 PDF。',
     '【關鍵字】keyword 要從這次的具體內容取（例如「熬夜」「早餐」「排便」「開口」），不可以用主題或分類名稱（火山草本、草本、健康、觀念、經營、行銷這類大詞），每次都要不一樣。' + (kws.length ? '最近用過：' + kws.join('、') + '，這次不可以再用。' : ''),
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
-    'cover：head 最多兩行、每行 8 字內、整體 14 字內，反骨鉤子（例如「約不到人，\\n不是你**不會說**。」）；sub 最多兩行、每行 20 字內（點出問題＋三個動作今天就用得上）。',
+    'cover：head 標題最多三行、每行 5 字內、整體 14 字內，反骨鉤子（例如「約不到人，\\n不是你\\n**不會說**」）；sub 副標最多兩行、每行 20 字內（點出問題＋三個動作今天就用得上）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
-    'cta：最後一張，head 三行（例如「三個動作加上\\n練習句型——\\n**《○○的三個動作》**。」），cta 寫「留言「**關鍵字**」」，sub 寫「我把 PDF 整理好傳給你。」（整組只有這張引導留言）',
-    '【貼文 post】post_title 15 字內；post 120 到 200 字，第一行一句反骨句，接著用生活場景，結尾用一句問句收尾，不要叫人留言、私訊或索取；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
+    'cta：最後一張（第 7 張），要讓人想留言拿資料：head 三行、每行 6 字內，直接寫讀者拿到的好處，不寫書名，不寫「三個動作加上練習句型」這種說明文（例如「三個動作\\n三句練習句\\n今天就用得上」或「照著做\\n不用再猜」）；cta 寫「留言「**關鍵字**」」；sub 一句 20 字內，點出能拿到什麼（例如「留言關鍵字，PDF 整理好傳給你。」）；不用「快來」「千萬不要錯過」等催促語；整組只有這張引導留言。',
+    '【貼文 post】post_title 15 字內；post 包含：具體場景、一個過去的例子、一個改變的做法（不指向任何產品、草本或療法）、一句觀察、今天就能做的事（幾件、怎麼寫依【本篇寫法】）、收尾（依【本篇寫法】），順序以【本篇寫法】為準；全文 120 到 180 字，段落間空一行，長短句交錯；不叫人留言、私訊或索取；tags 5 個主題標籤（不可以有「康園道」「分享」「大健康」）。',
     hist.length ? '【避免重複】最近做過：' + hist.join('、') + '，這次換一個不同的主題。' : '',
     '只輸出 JSON：{"cat":"分類","series":"","keyword":"","slides":[{"kind":"cover","label":"","head":"","sub":""},{"kind":"action","step":"動作一","head":"","body":""},{"kind":"action","step":"動作二","head":"","body":""},{"kind":"action","step":"動作三","head":"","body":""},{"kind":"reason","label":"","head":""},{"kind":"last","pre":"","head":""},{"kind":"cta","head":"","cta":"","sub":""}],"post_title":"","post":"","tags":[]}',
   ]).filter(Boolean).join('\n');
@@ -1599,10 +1747,28 @@ function kitText_(req, slide, id, box, paras, valign) {
   });
   req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: valign || 'MIDDLE' }, fields: 'contentAlignment' } });
 }
+// 底圖：網址讀不到（例如還沒上傳到 GitHub Pages，回 404）時改用純色底，不讓整組圖卡失敗
 function kitBg_(req, slide, file, W, H) {
-  req.push({ createImage: { objectId: slide + '_bg', url: kitUrl_(KIT_S_.d + file), elementProperties: { pageObjectId: slide,
+  const url = kitUrl_(KIT_S_.d + file);
+  if (!kitReachable_(url)) {
+    console.error('底圖讀不到，改用純色底：' + url);
+    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#F4EEE2') } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
+    return;
+  }
+  req.push({ createImage: { objectId: slide + '_bg', url: url, elementProperties: { pageObjectId: slide,
     size: { width: { magnitude: W, unit: 'PT' }, height: { magnitude: H, unit: 'PT' } },
     transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: 'PT' } } } });
+}
+// 檢查底圖網址能不能讀（結果快取 5 分鐘）
+function kitReachable_(url) {
+  try {
+    const cache = CacheService.getScriptCache(), k = 'rch_' + url.replace(/[^A-Za-z0-9]/g, '').slice(-200);
+    const hit = cache.get(k);
+    if (hit) return hit === '1';
+    const ok = UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getResponseCode() === 200;
+    cache.put(k, ok ? '1' : '0', 300);
+    return ok;
+  } catch (e) { return false; }
 }
 const KIT_ORN = '───────　◆　───────';
 
@@ -1627,33 +1793,47 @@ function kitFit_(t, width, max, min, maxH) {
 }
 const KIT_EN = ['ONE', 'TWO', 'THREE'];
 
-// 暖光生活筆記版面（2026-10-18 使用者給圖一）：左上金色直條小標＋英文、右上頁碼、大字標題左邊一條金線、下方細線＋系列名＋署名
+// 固定字級（2026-10-18 使用者指定：字體固定，不再依字數自動縮放）
+function kitFixed_(size) { return { size: size, h: size * 1.5 * 2 }; }
+// 暖光生活筆記版面（2026-10-18 依參考圖 IMG_0208／0209 重排）：雙層框、左上標籤＋短金線、右上頁碼與 SWIPE、字體固定、全部置左
 function kitWarm_(kit, s, i, N, W, H, lab, en, right, main) {
   const C = KIT_S_.c, num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
-  const sp = t => t.length <= 8 ? t.split('').join(' ') : t;   // 短小標字距拉開
+  const sp = t => String(t).replace(/\s+/g, '').split('').join(' ');   // 標籤一律拉開字距
   return { W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, i ? 'card_bg.jpg' : 'cover_bg.jpg', W, H);
-    kitRect_(req, slide, slide + '_lb', 48, 43, 3.5, 41, C.gold);
-    kitText_(req, slide, slide + '_lab', [60, 36, 300, 52], [
-      { t: sp(lab), size: 17, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'START' },
-      { t: en.split('').join(' '), size: 10, color: C.gold, font: 'Cormorant Garamond', align: 'START', above: 1 }], 'TOP');
-    kitRect_(req, slide, slide + '_ls', 66.5, 91, 65, 1.5, C.gold);
-    kitText_(req, slide, slide + '_no', [350, 66, 142, 28], [{ t: num, size: 20, color: C.gold, font: 'Cormorant Garamond', align: 'END' }], 'TOP');
+    kitFrame_(req, slide, slide + '_fo', 28, 28, W - 56, H - 56, C.gold, 1);     // 外框
+    kitFrame_(req, slide, slide + '_fi', 35, 35, W - 70, H - 70, C.gold, 0.5);   // 內框（細）
+    kitText_(req, slide, slide + '_lab', [82, 78, 320, 24], [
+      { t: sp(lab), size: 15, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'START' }], 'MIDDLE');
+    kitRect_(req, slide, slide + '_ls', 75, 118, 60, 1, C.gold);                 // 標籤下短金線
+    kitText_(req, slide, slide + '_no', [328, 82, 130, 24], [
+      { t: num, size: 18, color: C.gold, font: 'Cormorant Garamond', align: 'END' }], 'MIDDLE');
     main(req, slide);
-    kitRect_(req, slide, slide + '_fr', 80, 500, 380, 1, C.gold);
-    kitText_(req, slide, slide + '_ser', [74, 508, 290, 32], [{ t: kit.series, size: 19, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'START' }]);
-    kitText_(req, slide, slide + '_sw', [340, 508, 126, 32], [{ t: right, size: 18, color: C.gold, font: 'Cormorant Garamond', align: 'END' }]);
-    kitText_(req, slide, slide + '_by', [74, 543, 400, 30], [{ t: cardBy_(), size: 15, color: C.sub, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    kitRect_(req, slide, slide + '_fr', 75, 520, 390, 1, C.gold);               // 底部細線
+    kitText_(req, slide, slide + '_ser', [75, 531, 260, 28], [
+      { t: kit.series, size: 17, bold: true, color: C.ink, font: 'Noto Sans TC', align: 'START' }], 'MIDDLE');
+    kitText_(req, slide, slide + '_sw', [328, 531, 130, 28], [
+      { t: right, size: 17, color: C.gold, font: 'Cormorant Garamond', align: 'END' }], 'MIDDLE');
+    kitText_(req, slide, slide + '_by', [75, 586, 390, 24], [
+      { t: cardBy_(), size: 14, bold: true, color: C.ink, font: 'Noto Sans TC', align: 'START' }], 'MIDDLE');
     return req;
   } };
 }
-// 大標（左邊金色直條）＋下面幾段：top 起排，大標字級自動縮到放得下
+// 細框（2026-10-18 依參考圖：外框金色、內框細線；weight 可調）
+function kitFrame_(req, slide, id, x, y, w, h, color, weight) {
+  req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
+    size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+    transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: y, unit: 'PT' } } } });
+  req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
+    shapeBackgroundFill: { propertyState: 'NOT_RENDERED' },
+    outline: { outlineFill: { solidFill: { color: { rgbColor: rgb_(color) } } }, weight: { magnitude: weight || 0.8, unit: 'PT' } } } } });
+}
+// 大標與下面幾段：置左；top 起排，底部以 498 為界（底線在 520）
 function kitHeadBlock_(req, slide, head, fit, top, rest) {
   const C = KIT_S_.c;
-  kitRect_(req, slide, slide + '_hb', 48, top + 8, 4, Math.max(40, fit.h - fit.size * 0.45), C.gold);
-  kitText_(req, slide, slide + '_main', [72, top, 440, 492 - top], [
-    { t: head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START' }].concat(rest), 'TOP');
+  kitText_(req, slide, slide + '_main', [75, top, 420, 498 - top], [
+    { t: head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START' }].concat(rest || []), 'TOP');
 }
 
 // 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
@@ -1663,24 +1843,24 @@ function kitCardLayout_(kit, i) {
   if (s.kind === 'cover') return kitCoverLayout_(kit, s, ('01 — ') + ('0' + N).slice(-2), W, H);
   if (s.kind === 'action') {
     const n = Math.max(0, '一二三'.indexOf(String(s.step || '').slice(-1)));
-    const fit = kitFit_(s.head, 420, 52, 34, 170);
+    const fit = kitFixed_(52);
     return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
       kitHeadBlock_(req, slide, s.head, fit, 128, [body(s.body)]));
   }
   if (s.kind === 'reason') {
-    const fit = kitFit_(s.head, 420, 50, 30, 340);
+    const fit = kitFixed_(50);
     return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
       kitHeadBlock_(req, slide, s.head, fit, 136, []));
   }
   if (s.kind === 'last') {
-    const fit = kitFit_(s.head, 420, 52, 32, 220);
+    const fit = kitFixed_(52);
     return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
-      kitText_(req, slide, slide + '_pre', [72, 128, 440, 110], [body(s.pre, { above: 0 })], 'TOP');
+      kitText_(req, slide, slide + '_pre', [75, 128, 420, 110], [body(s.pre, { above: 0 })], 'TOP');
       kitHeadBlock_(req, slide, s.head, fit, 250, []);
     });
   }
   // 最後一張：整組只有這張引導留言（使用者 2026-10-16）
-  const fit = kitFit_(s.head, 420, 40, 26, 170);
+  const fit = kitFixed_(40);
   return kitWarm_(kit, s, i, N, W, H, '送你一份 PDF', 'FREE GUIDE', 'END', (req, slide) =>
     kitHeadBlock_(req, slide, s.head, fit, 128, [
       { t: '留 言 關 鍵 字', size: 16, bold: true, color: C.sub, font: 'Noto Sans TC', align: 'START', above: 24 },
@@ -1688,68 +1868,87 @@ function kitCardLayout_(kit, i) {
       body(s.sub, { size: 18, above: 6 })]));
 }
 
-// 封面：暖光生活筆記（2026-10-18 使用者給圖一）——大字標題靠左、左邊金色直條，不放領取 PDF
-// 2026-10-18 修正：標題高度上限依文字框實際高度（492 − 128 = 364）扣掉副標高度算，避免標題壓到副標和底部
+// 自動平均斷行：避免最後一行只剩一兩個字（例如「舒適」），每行約 maxU 個中文字寬；逗號、句號等標點不放在行首
+function balanceLines_(t, maxU) {
+  const chars = Array.from(String(t || '').replace(/\n/g, ''));
+  const w = ch => (/[\x20-\x7e]/.test(ch) ? 0.55 : 1);
+  const total = chars.reduce((a, ch) => a + w(ch), 0);
+  const n = Math.ceil(total / maxU);
+  if (n <= 1) return chars.join('');
+  const target = total / n;
+  const out = []; let cur = '', acc = 0;
+  chars.forEach(ch => {
+    cur += ch; acc += w(ch);
+    if (out.length < n - 1 && acc >= target * (out.length + 1)) { out.push(cur); cur = ''; }
+  });
+  out.push(cur);
+  for (let i = 1; i < out.length; i++) {
+    const m = out[i].match(/^[，。、！？；：,.!?;:」』）)》〉…—]+/);
+    if (m) { out[i - 1] += m[0]; out[i] = out[i].slice(m[0].length); }
+  }
+  return out.filter(l => l).join('\n');
+}
+// 封面（2026-10-18 依參考圖）：標題固定 72、副標 21；只有標題加副標會壓到底線時，標題才往下縮（最小 52）
 function kitCoverLayout_(kit, s, num, W, H) {
-  const cat = kit.cat || String(kit.theme || '').replace(/主題$/, ''), C = KIT_S_.c;
+  const cat = String(kit.cat || kit.theme || '').replace(/分享|主題/g, '').trim(), C = KIT_S_.c;
   const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1.05), 0);
-  const subLines = String(s.sub || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * 20 / 420)), 0);
-  const subH = subLines * 20 * 1.45;   // 副標：字級 20、行距 145%
-  const gap = 30;                       // 標題和副標之間的間距
-  const TEXT_BOX_H = 492 - 128;         // 標題＋副標共用的文字框高度（kitHeadBlock_ 的 top 是 128）
-  const maxH = TEXT_BOX_H - subH - gap - 10;   // 再留 10pt 安全邊距
-  const fit = kitFit_(s.head, 420, 60, 36, maxH);
-  return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記 · ' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) =>
-    kitHeadBlock_(req, slide, s.head, fit, 128, [{ t: s.sub, size: 20, color: C.sub, ls: 145, above: gap, align: 'START', em: C.gold }]));
+  const SUB = 21;
+  const sub = balanceLines_(s.sub, 18);
+  const subLines = sub.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * SUB / 420)), 0);
+  const subH = subLines * SUB * 1.5;
+  const gap = 36;
+  const TOP = 146, BOX_H = 498 - TOP;
+  const maxH = BOX_H - subH - gap - 10;
+  const fit = kitFit_(s.head, 420, 72, 52, maxH);
+  return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記・' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) =>
+    kitHeadBlock_(req, slide, s.head, fit, TOP, [{ t: sub, size: SUB, color: C.sub, ls: 150, above: gap, align: 'START', em: C.gold }]));
 }
 
-// PDF 實作手冊（A4 直式 595×842，內容跟圖卡、貼文不一樣；使用者 2026-10-16）
-function kitPdfLayouts_(kit) {   // 2026-10-16 使用者：PDF 字太小 → 字放大、版面拉寬、段落改成「標題＋內文」
-  const W = 595.28, H = 841.89, P = kit.pdf, X = 60, TW = 475;
-  const lbl = t => ({ t: '— ' + t, size: 15, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START', above: 24 });
-  const txt = (t, o) => Object.assign({ t: t, size: 18, color: KIT_S_.c.soft, align: 'START', ls: 160, above: 6, em: KIT_S_.c.gold }, o || {});
-  const lead = t => txt(t, { size: 20, color: KIT_S_.c.ink, ls: 155, above: 0 });
-  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: KIT_S_.c.ink })] : [];
+// PDF 實作手冊（A4 直式 595×842）
+// 2026-10-18 重排：封面字體放大、整體置中；內頁所有文字置中，標題與段落對齊同一中線
+function kitPdfLayouts_(kit) {
+  const W = 595.28, H = 841.89, P = kit.pdf, X = 60, TW = 475, MID = W / 2, C = KIT_S_.c;
+  const lbl = t => ({ t: '— ' + t, size: 16, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'CENTER', above: 26 });
+  const txt = (t, o) => Object.assign({ t: t, size: 19, color: C.soft, align: 'CENTER', ls: 165, above: 6, em: C.gold }, o || {});
+  const lead = t => txt(t, { size: 21, color: C.ink, ls: 160, above: 0 });
+  const note = n => n && (n.h || n.p) ? [lbl(n.h || '注意'), txt(n.p, { color: C.ink })] : [];
   const page = (n, small, title, paras) => ({ W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'pdf_page.jpg', W, H);
-    // 暖光版（2026-10-18）：左上金色直條小標、大標、短金線
-    kitRect_(req, slide, slide + '_lb', X, 52, 3.5, 24, KIT_S_.c.gold);
-    kitText_(req, slide, slide + '_sm', [X + 10, 50, TW - 10, 30], [{ t: small, size: 15, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
-    kitText_(req, slide, slide + '_hd', [X - 4, 82, TW + 4, 84], [{ t: title, size: 34, bold: true, color: KIT_S_.c.ink, align: 'START', ls: 120 }], 'BOTTOM');
-    kitRect_(req, slide, slide + '_rule', X + 2, 172, 90, 1.5, KIT_S_.c.gold);
-    kitText_(req, slide, slide + '_bd', [X, 184, TW, 598], paras, 'TOP');
-    kitText_(req, slide, slide + '_ft', [X, 786, TW, 24], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 11, color: KIT_S_.c.mute, font: 'Noto Sans TC', align: 'END' }], 'TOP');
+    kitText_(req, slide, slide + '_sm', [X, 54, TW, 26], [{ t: small, size: 16, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'CENTER' }], 'MIDDLE');
+    kitText_(req, slide, slide + '_hd', [X, 84, TW, 84], [{ t: title, size: 36, bold: true, color: C.ink, align: 'CENTER', ls: 120 }], 'MIDDLE');
+    kitRect_(req, slide, slide + '_rule', MID - 45, 176, 90, 1.5, C.gold);
+    kitText_(req, slide, slide + '_bd', [X, 196, TW, 586], paras, 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 788, TW, 24], [{ t: cardBy_() + '　　' + ('0' + n).slice(-2), size: 11, color: C.mute, font: 'Noto Sans TC', align: 'CENTER' }], 'MIDDLE');
     return req;
   } });
   const pts = list => [].concat.apply([], (list || []).map((x, i) => [
-    { t: '0' + (i + 1) + '　' + (x.h || ''), size: 20, bold: true, color: KIT_S_.c.ink, align: 'START', above: 18 }, txt(x.p, { ls: 150, above: 4 })]));
+    { t: '0' + (i + 1) + '　' + (x.h || ''), size: 21, bold: true, color: C.ink, align: 'CENTER', above: 20 }, txt(x.p, { ls: 155, above: 4 })]));
   const L = [];
-  L.push({ W: W, H: H, build: slide => {   // 封面
+  // 封面：字體放大（標題最大 92），整頁置中
+  L.push({ W: W, H: H, build: slide => {
     const req = [];
     kitBg_(req, slide, 'pdf_cover.jpg', W, H);
-    // 暖光版封面（2026-10-18）：靠左大字、左邊金色直條
-    const fit = kitFit_(P.title + '。', 440, 58, 36, 260);
-    kitRect_(req, slide, slide + '_lb', X, 92, 3.5, 30, KIT_S_.c.gold);
-    kitText_(req, slide, slide + '_kick', [X + 12, 88, TW, 40], [{ t: P.kicker, size: 17, bold: true, color: KIT_S_.c.gold, font: 'Noto Sans TC', align: 'START' }], 'TOP');
-    kitRect_(req, slide, slide + '_hb', X, 196, 4, Math.max(40, fit.h - fit.size * 0.45), KIT_S_.c.gold);
-    kitText_(req, slide, slide + '_main', [X + 22, 186, TW - 10, 560], [
-      { t: P.title + '。', size: fit.size, bold: true, color: KIT_S_.c.ink, ls: 125, align: 'START' },
-      { t: P.intro, size: 20, color: KIT_S_.c.soft, ls: 170, above: 34, align: 'START' }], 'TOP');
-    kitText_(req, slide, slide + '_ft', [X, 690, TW, 26], [{ t: cardBy_(), size: 13, color: KIT_S_.c.soft, font: 'Noto Sans TC', align: 'START' }], 'TOP');
+    const fit = kitFit_(P.title + '。', 470, 92, 48, 380);
+    kitText_(req, slide, slide + '_kick', [X, 150, TW, 34], [{ t: P.kicker, size: 20, bold: true, color: C.gold, font: 'Noto Sans TC', align: 'CENTER' }], 'MIDDLE');
+    kitRect_(req, slide, slide + '_rule', MID - 45, 196, 90, 1.5, C.gold);
+    kitText_(req, slide, slide + '_main', [X, 218, TW, 380], [
+      { t: P.title + '。', size: fit.size, bold: true, color: C.ink, ls: 125, align: 'CENTER' }], 'MIDDLE');
+    kitText_(req, slide, slide + '_intro', [X, 606, TW, 90], [{ t: P.intro, size: 22, color: C.soft, ls: 170, align: 'CENTER' }], 'TOP');
+    kitText_(req, slide, slide + '_ft', [X, 740, TW, 26], [{ t: cardBy_(), size: 14, color: C.soft, font: 'Noto Sans TC', align: 'CENTER' }], 'MIDDLE');
     return req;
   } });
   const B = P.before;
   L.push(page(2, '開始之前', B.title || '真正的原因', [lead(B.lead)].concat(pts(B.points), note(B.note))));
   P.actions.forEach((a, i) => L.push(page(3 + i, a.step || ('動作' + '一二三'[i]), a.title, [lead(a.lead),
-    lbl('示範'), txt((a.demo || []).join('\n'), { color: KIT_S_.c.ink, size: 18 }), txt(a.demoNote),
+    lbl('示範'), txt((a.demo || []).join('\n'), { color: C.ink, size: 19 }), txt(a.demoNote),
     lbl('為什麼有用'), txt(a.why), lbl('練習'), txt(a.practice)].concat(note(a.warn)))));
-  const C = P.check;
-  L.push(page(6, '自查', C.title, [lead(C.lead)].concat((C.items || []).slice(0, 6).map((t, i) =>
-    ({ t: '☐　' + t, size: 19, bold: true, color: KIT_S_.c.ink, align: 'START', above: 22, ls: 150 })), note(C.note))));
+  const CK = P.check;
+  L.push(page(6, '自查', CK.title, [lead(CK.lead)].concat((CK.items || []).slice(0, 6).map((t, i) =>
+    ({ t: '☐　' + t, size: 20, bold: true, color: C.ink, align: 'CENTER', above: 22, ls: 155 })), note(CK.note))));
   const F = P.final;
-  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: '──────', size: 12, color: KIT_S_.c.gold, align: 'START', above: 34 },
-    { t: F.close, size: 30, bold: true, color: KIT_S_.c.ink, ls: 150, above: 14, align: 'START' }])));
+  L.push(page(7, '最後', F.title, pts(F.steps).concat([{ t: '──────', size: 12, color: C.gold, align: 'CENTER', above: 34 },
+    { t: F.close, size: 30, bold: true, color: C.ink, ls: 150, above: 14, align: 'CENTER' }])));
   return L;
 }
 
@@ -1787,9 +1986,9 @@ function kitMake_(kit) {
   return { pngs: pngs, files: files, pdf: pdf, pdfUrl: pdfUrl, err: pngs.length && pdf ? '' : REPORT_ERR_ || '簡報畫圖失敗' };
 }
 function kitDoneText_(kit, r) {
-  return ['📕 《' + kit.series + '》做好了', '',
-    r.pngs.length ? '🖼️ 7 張輪播圖卡：長按存到相簿，照順序發 IG。' : '🖼️ 圖卡這次沒畫出來：' + r.err,
-    r.pdfUrl ? '📄 PDF：' + r.pdfUrl + '\n有人留言「' + kit.keyword + '」，就把這個連結傳給他。' : '📄 PDF 這次沒做出來：' + r.err].join('\n');
+  return ['📕 《' + kit.series + '》', '',
+    r.pngs.length ? '🖼️ 7 張圖卡在下面，長按存到相簿。' : '🖼️ 圖卡這次沒畫出來：' + r.err, '',
+    r.pdfUrl ? '📄 PDF 資料連結：' + r.pdfUrl + '\n有人留言「' + kit.keyword + '」，就傳這個連結給他。' : '📄 PDF 這次沒做出來：' + r.err].join('\n');
 }
 
 // 按了主題後真正開始做：寫內容（AI）→ 交給各平台畫圖、送出；寫失敗就回錯誤訊息
