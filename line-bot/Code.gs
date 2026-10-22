@@ -697,6 +697,9 @@ function answer_(text) {
   if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
   if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
+  // 專案：列出你的各個專案，或問某一個專案（只讀，不會改任何資料）
+  const pj = text.replace(/\s+/g, '').match(/^(?:我的)?專案(?:清單|列表)?(.*)$/);
+  if (pj) return projectInfo_(pj[1]);
   // 案例分類：列分類、看某一類、改剛存那筆的分類
   if (/^(案例分類|分類|案例庫)$/.test(text)) return caseCatsMenu_();
   const bc = text.match(/^(?:看分類\s*)?(.+?)（\d+）$/) || text.match(/^看分類\s*(.+)$/);
@@ -2501,6 +2504,26 @@ function findCases_(words) {
     .filter(x => x.n >= need)
     .sort((a, b) => b.n - a.n)
     .map(x => x.c);
+}
+
+// 你的專案（給語音和文字問）：這裡是寫死的清單，小乖只讀不寫；要增減請改這個陣列再部署
+// Shisuan 試算系統只讀，小乖不會改它
+const PROJECTS_ = [
+  { name: 'Tezhu', title: '小乖', repo: 'yb131419/Tezhu', sum: '小乖的程式與網頁：Assistant.html（主頁）、Talk.html（對話頁）、line-bot/（LINE、Telegram、Apps Script）。' },
+  { name: 'Shisuan', title: '試算系統', repo: 'yb131419/Shisuan', sum: '彥彬試算系統／康園試算報表。只讀，不改。' },
+  { name: 'asset', title: '資產', repo: 'yb131419/asset', sum: '資產相關專案。' },
+];
+
+// 「專案」列出全部；「專案 名稱」看一個（名稱或中文都可以）
+function projectInfo_(key) {
+  const k = String(key || '').replace(/^[\s的：:]+/, '').toLowerCase();
+  if (!k) {
+    return '📂 你的專案（共 ' + PROJECTS_.length + ' 個）\n\n' + PROJECTS_.map(p => '・' + p.title + '（' + p.name + '）').join('\n')
+      + '\n\n想問哪一個就說「專案 試算系統」或「專案 Shisuan」。';
+  }
+  const p = PROJECTS_.filter(x => x.name.toLowerCase() === k || x.title === k || x.title.indexOf(k) >= 0)[0];
+  if (!p) return '找不到「' + key + '」這個專案。打「專案」可以看全部。';
+  return '📂 ' + p.title + '（' + p.name + '）\n' + p.sum + '\nGitHub：https://github.com/' + p.repo;
 }
 
 // 「案例分類」：列出每個分類有幾筆，按了就看那個分類
