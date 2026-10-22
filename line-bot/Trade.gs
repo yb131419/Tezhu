@@ -150,6 +150,19 @@ function tradePositions_() {
 // TRADE_CFG 範例（在「指令碼屬性」新增一個屬性，值是下面這段 JSON）：
 // {"apiKey":"你的OANDA金鑰","account":"101-xxx-xxxxxxx-001","mode":"paper","env":"practice"}
 
+// 指令碼屬性超過 50 個時，「專案設定」頁面會變成唯讀，只能用程式寫入。
+// 步驟：把下面的 apiKey、account 改成你自己的值，在編輯器選「tradeSetCfgOnce_」按「執行」一次，
+// 跑完後馬上把 apiKey、account 改回 YOUR_ 開頭的預留字（程式碼裡不要留下真的金鑰）。
+// 已經有 TRADE_CFG 時不會覆寫，要改設定請先在指令碼屬性刪掉 TRADE_CFG。
+function tradeSetCfgOnce_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('TRADE_CFG')) { console.log('TRADE_CFG 已存在，沒有覆寫'); return; }
+  const cfg = { apiKey: 'YOUR_OANDA_API_KEY', account: 'YOUR_ACCOUNT_ID', mode: 'paper', env: 'practice' };
+  if (cfg.apiKey.indexOf('YOUR_') === 0) throw new Error('請先把 apiKey、account 改成你自己的值再執行');
+  props.setProperty('TRADE_CFG', JSON.stringify(cfg));
+  console.log('TRADE_CFG 已寫入（金鑰不顯示）');
+}
+
 function tradeCfg_() {
   try { return JSON.parse(prop_('TRADE_CFG') || '{}'); } catch (e) { return {}; }
 }
