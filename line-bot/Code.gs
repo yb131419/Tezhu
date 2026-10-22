@@ -36,11 +36,12 @@ const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今�
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程']];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文開關', '按一下開／關']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -76,7 +77,7 @@ function menuFlex_() {
     action: act(it[0]), contents: [
       { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: INK, flex: 0 },
       { type: 'text', text: it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開')
-        : it[0] === '🕗 自動發文開關' ? (prop_('AUTO_POST') === 'on' ? '開著・按一下關' : '關著・按一下開') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
+        : it[0] === '🕗 自動發文' ? (prop_('AUTO_POST') === 'on' ? '開著・看詳情' : '關著・看詳情') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
     ] });
   return { type: 'carousel', contents: MENU_CARDS.map((c, i) => ({
@@ -1017,13 +1018,25 @@ function reelWrite_(k, th, base) {
     '【劇情結構】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60：0 到 3 秒一定要有讓人停下來的衝突或反常畫面；中間是一個日常生活場景裡的小誤會或小反轉；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
-    '【台詞與字幕】台詞口語、短句，一句 15 字內；每段的字幕就是那段最重要的一句話；可以沒有台詞，只用畫面。',
+    '【台詞與字幕】每一段都一定要有台詞，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；每段的字幕就是那段最重要的一句話。',
     '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
-    '繁體台灣用語。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"台詞（沒有就空字串）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
+    '繁體台灣用語，不用簡體字。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].join('\n');
-  const out = callOpenAI_(sys, [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }], true, null, { maxTokens: 2000, temperature: 0.8 });
-  const r = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
-  if (!Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
+  // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
+  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }];
+  let r = null;
+  for (let i = 0; i < 3; i++) {
+    const out = callOpenAI_(sys, msgs, true, null, { maxTokens: 2000, temperature: 0.8 });
+    try { r = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1)); } catch (e) { r = null; continue; }
+    if (!r || !Array.isArray(r.scenes) || !r.scenes.length) continue;
+    const miss = r.scenes.map((x, j) => String(x && x.line || '').trim() ? 0 : j + 1).filter(Boolean);
+    if (!miss.length) return r;
+    msgs.push({ role: 'assistant', content: out },
+      { role: 'user', content: '第 ' + miss.join('、') + ' 段沒有台詞。每一段都要有台詞（角色名：說的話；沒人對話就用自言自語或旁白），其他照原本的寫，整份 JSON 重新輸出。' });
+  }
+  if (!r || !Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
+  // 重寫 3 次還是有段落沒台詞：用那段的字幕當旁白補上，保證每段都有台詞
+  r.scenes.forEach(x => { if (x && !String(x.line || '').trim()) x.line = '旁白：' + (String(x.sub || '').trim() || '……'); });
   return r;
 }
 // 腳本排成好複製的文字
@@ -5836,7 +5849,7 @@ function autoAsk_(t) {
   const m = k.match(/^(?:自動發文|自動發佈|自動發布|排程發文)(開|開啟|打開|關|關閉|停|停止|狀態|開關)?$/);
   if (!m) return null;
   let v = m[1] || '狀態';
-  if (v === '開關') v = prop_('AUTO_POST') === 'on' ? '關' : '開';   // 💎 選單「軍師」卡片上的「🕗 自動發文開關」：按一下切換
+  if (v === '開關') v = prop_('AUTO_POST') === 'on' ? '關' : '開';   // 快速回覆的「🕗 自動發文開關」：按一下切換
   if (/^(開|開啟|打開)$/.test(v)) {
     if (!socFor_({ items: [{ t: 'img' }] }).length) return { text: '🕗 要先設定好 IG 或 FB（「設定 IG金鑰」「設定 FB金鑰」），才能自動發文。', buttons: QUICK };
     autoArm_();
