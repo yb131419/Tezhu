@@ -1026,21 +1026,60 @@ function reelOnly_(k) {
   } finally { busyEnd_('STRAT_BUSY'); }
 }
 // 短劇主角（使用者自訂，存在指令碼屬性；沒設定就由軍師照主題自己安排）
+// 最多兩位主角，且一男一女：第一位存 REEL_HERO，第二位存 REEL_HERO2
 const REEL_HERO_KEY = 'REEL_HERO';
+const REEL_HERO2_KEY = 'REEL_HERO2';
 function reelHero_() { return prop_(REEL_HERO_KEY); }
-// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存起來；「設定主角 預設」清掉；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
+function reelHero2_() { return prop_(REEL_HERO2_KEY); }
+// 描述裡的性別：找到一段只寫「男生／女生」之類的就回「男」或「女」，找不到回空字串
+function heroGender_(t) {
+  const segs = String(t || '').split(/[，,、\s]+/);
+  for (const s of segs) {
+    if (/^女(生|性|孩子|孩|人|的)?$/.test(s)) return '女';
+    if (/^男(生|性|孩子|孩|人|的)?$/.test(s)) return '男';
+  }
+  return '';
+}
+// 存主角前檢查：有第二位（或要存第二位）時，兩位都要寫明性別，而且不能同性別；回 null 表示可以存
+function heroPairCheck_(slot, v) {
+  if (slot === 2 && !reelHero_()) return '請先設定第一位主角（打「設定主角 名字、性別、年齡、外型」），再設定第二位。';
+  const other = slot === 2 ? reelHero_() : reelHero2_();
+  if (!other) return null;
+  const g = heroGender_(v), og = heroGender_(other);
+  const otherNo = slot === 2 ? '第一位' : '第二位';
+  if (!g || !og) return '兩位主角要一男一女，請在描述裡寫明男生或女生，再設定一次。';
+  if (g === og) return '兩位主角不能都是' + g + '生（' + otherNo + '已經是' + og + '生），請重新設定：這一位改成' + (g === '男' ? '女生' : '男生') + '，或打「設定主角 預設」清掉兩位重來。';
+  return null;
+}
+// 查看：兩位都列出來
+function heroView_() {
+  const lines = ['第一位：' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）')];
+  if (reelHero2_()) lines.push('第二位：' + reelHero2_());
+  return '目前的短劇主角：\n' + lines.join('\n') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要加第二位（需一男一女）請打「設定第二主角 …」，例如：\n設定第二主角 阿凱，男生，28 歲，短髮、穿黑外套\n\n要恢復預設請打「設定主角 預設」（兩位都清除）。';
+}
+// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存第一位；「設定第二主角 …」存第二位；「設定主角 預設」兩位都清掉，「設定第二主角 預設」只清第二位；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
 function reelHeroSetting_(t) {
   const s = String(t || '').trim();
-  const m = s.match(/^(?:設定|修改|更改|改)主角[\s：:]*(.*)$/);
+  const m = s.match(/^(?:設定|修改|更改|改)(第二|第2)?主角[\s：:]*(.*)$/);
   if (!m && !/^(?:查看|看|目前)主角$/.test(s)) return null;
-  const v = m ? m[1].trim().slice(0, 300) : '';
-  if (!v) return '目前的短劇主角：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要恢復預設請打「設定主角 預設」。';
+  const slot = m && m[1] ? 2 : 1;
+  const v = m ? m[2].trim().slice(0, 300) : '';
+  if (!v) return heroView_();
   if (/^(預設|恢復預設|改回預設|清除|取消)$/.test(v)) {
+    if (slot === 2) { PropertiesService.getScriptProperties().deleteProperty(REEL_HERO2_KEY); return '好，第二位主角清掉了。\n\n' + heroView_(); }
     PropertiesService.getScriptProperties().deleteProperty(REEL_HERO_KEY);
-    return '好，短劇主角改回預設（由軍師照主題自己安排）。';
+    PropertiesService.getScriptProperties().deleteProperty(REEL_HERO2_KEY);
+    return '好，短劇主角兩位都改回預設（由軍師照主題自己安排）。';
   }
-  setProp_(REEL_HERO_KEY, v);
-  return '好，短劇主角設定好了：\n' + v + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+  const err = heroPairCheck_(slot, v);
+  if (err) return err;
+  setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, v);
+  return heroSavedText_(slot, v);
+}
+function heroSavedText_(slot, v) {
+  const head = slot === 2 ? '好，第二位主角設定好了：\n' : '好，短劇主角設定好了：\n';
+  const tail = reelHero2_() ? '\n\n現在兩位主角一男一女，之後寫的短劇腳本，兩位都照這樣寫，不會換性別或年齡。' : '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+  return head + v + tail;
 }
 // 按鈕流程：「👤 設定主角」一步步問名字、性別、年齡、外型（每一步都有按鈕，也可以直接打字）；做到哪一步存在 HERO_STEP
 const HERO_ORDER = ['name', 'gender', 'age', 'look'];
@@ -1053,15 +1092,20 @@ const HERO_STEPS = {
 function heroAsk_(step) {
   setProp_('HERO_STEP', step);
   setProp_('HERO_UNTIL', String(Date.now() + 10 * 60 * 1000));
-  return { text: '👤 設定短劇主角（' + (HERO_ORDER.indexOf(step) + 1) + '／4）\n' + HERO_STEPS[step].q, buttons: HERO_STEPS[step].btn };
+  const no = Number(prop_('HERO_SLOT')) === 2 ? '第二位' : '';
+  return { text: '👤 設定' + no + '短劇主角（' + (HERO_ORDER.indexOf(step) + 1) + '／4）\n' + HERO_STEPS[step].q, buttons: HERO_STEPS[step].btn };
 }
 function heroClear_() {
-  ['HERO_STEP', 'HERO_DRAFT', 'HERO_UNTIL'].forEach(k => setProp_(k, ''));
+  ['HERO_STEP', 'HERO_DRAFT', 'HERO_UNTIL', 'HERO_SLOT'].forEach(k => setProp_(k, ''));
 }
 // 回 null 表示不是這個流程的話，照常往下處理
 function heroWizard_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
-  if (/^(👤設定主角|設定主角|修改主角|更改主角|改主角)$/.test(flat)) {
+  const start = flat.match(/^(👤)?(設定|修改|更改|改)(第二)?主角$/);
+  if (start) {
+    const slot = start[3] ? 2 : 1;
+    if (slot === 2 && !reelHero_()) return { text: '請先設定第一位主角（按「' + HERO_BTN + '」），再設定第二位。', buttons: [[HERO_BTN]].concat(MENU) };
+    setProp_('HERO_SLOT', String(slot));
     setProp_('HERO_DRAFT', '{}');
     return heroAsk_('name');
   }
@@ -1078,20 +1122,26 @@ function heroWizard_(t, raw) {
     setProp_('HERO_DRAFT', JSON.stringify(draft));
     return heroAsk_(HERO_ORDER[i + 1]);
   }
+  const slot = Number(prop_('HERO_SLOT')) === 2 ? 2 : 1;
   heroClear_();
   const txt = HERO_ORDER.map(k => draft[k]).filter(Boolean).join('，');
-  if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）'), buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
-  setProp_(REEL_HERO_KEY, txt.slice(0, 300));
-  return { text: '好，短劇主角設定好了：\n' + txt + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
+  const back = [[REEL_BTN, HERO_BTN]].concat(MENU);
+  if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + heroView_(), buttons: back };
+  const err = heroPairCheck_(slot, txt);
+  if (err) return { text: err, buttons: back };
+  setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, txt.slice(0, 300));
+  const addSecond = slot === 1 && !reelHero2_() ? [['👤 設定第二主角']] : [];
+  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: addSecond.concat(back) };
 }
 // 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
-  const hero = reelHero_();
+  const heroes = [reelHero_(), reelHero2_()].filter(Boolean);
   const sys = [
     '你是短影音編劇，幫彥彬寫一支「AI 生成的一分鐘短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 60 秒直式短片（9:16）。',
     base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案；文案裡人物的性別和年紀照原文寫，不可以對調：\n標題：' + base.ptitle + '\n' + base.post
       : '【本次主題】' + stratGuide_(th),
-    hero ? '【主角（使用者指定，必須照寫）】' + hero + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
+    heroes.length === 2 ? '【兩位主角（使用者指定，一男一女，必須照寫）】\n主角一：' + heroes[0] + '\n主角二：' + heroes[1] + '\n兩位主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；兩位都要出現在劇情裡，characters 也要列出這兩位，每段畫面都用同一段外型描述，AI 生成時才會像同一個人；其他角色再自己設計。' : null,
+    heroes.length === 1 ? '【主角（使用者指定，必須照寫）】' + heroes[0] + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
     '【劇情結構（反過來設計）】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
