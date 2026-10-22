@@ -6087,6 +6087,18 @@ function oaMatch_(text) {
     || (OA_GENERIC.test(t) ? list[0] || null : null);
 }
 // 最近 20 位朋友編上號碼，主人打「官回 3 內容」就知道回誰
+// 官方 LINE 給客人的卡片：列出可以領取的 PDF 按鈕，點了就把關鍵字傳回來、自動給 PDF（只露出 PDF，不露出主人的功能）
+function oaCardMsg_() {
+  const pdfs = oaPdfs_();
+  if (!pdfs.length) return null;
+  const btn = x => ({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: x.kw.slice(0, 20), text: x.kw } });
+  return { type: 'flex', altText: '📄 可以領取的資料', contents: {
+    type: 'bubble',
+    body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+      { type: 'text', text: '📄 免費資料', weight: 'bold', size: 'lg' },
+      { type: 'text', text: '點下面的按鈕就會收到對應的 PDF', size: 'sm', wrap: true, color: '#888888' } ] },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: pdfs.slice(0, 12).map(btn) } } };
+}
 function oaPeers_() { try { return JSON.parse(prop_('OA_PEERS') || '[]'); } catch (e) { return []; } }
 function oaPeer_(id, name) {
   const list = oaPeers_(), old = list.filter(x => x.id === id)[0];
@@ -6114,7 +6126,7 @@ function oaHandle_(ev) {
   let sent = '';
   if (hit) {
     try {
-      oaApi_('post', 'message/reply', { replyToken: ev.replyToken, messages: [{ type: 'text', text: '📄 《' + hit.title + '》在這裡：\n' + hit.url + '\n\n有任何問題，直接在這裡傳訊息給我 😊' }] });
+      oaApi_('post', 'message/reply', { replyToken: ev.replyToken, messages: [{ type: 'text', text: '📄 《' + hit.title + '》在這裡：\n' + hit.url + '\n\n有任何問題，直接在這裡傳訊息給我 😊' }].concat(oaCardMsg_() || []) });
       sent = '\n✅ 已自動回 PDF《' + hit.title + '》';
     } catch (e) { sent = '\n⚠️ 自動回 PDF 失敗：' + e.message; }
   }
@@ -6151,7 +6163,7 @@ function oaAsk_(t, raw) {
   if (rep) {
     const p = oaPeers_().filter(x => String(x.n) === rep[1])[0];
     if (!p) return '找不到 #' + rep[1] + '，打「官方LINE」看最近的朋友編號。';
-    try { oaApi_('post', 'message/push', { to: p.id, messages: [{ type: 'text', text: rep[2].trim().slice(0, 5000) }] }); return '📮 已用官方 LINE 回給 ' + p.name + '（用掉 1 則每月推播額度）。'; }
+    try { oaApi_('post', 'message/push', { to: p.id, messages: [{ type: 'text', text: rep[2].trim().slice(0, 5000) }].concat(oaCardMsg_() || []) }); return '📮 已用官方 LINE 回給 ' + p.name + '（用掉 1 則每月推播額度）。'; }
     catch (e) { return '❌ 沒送出去：' + e.message + (/limit|quota|上限/i.test(e.message) ? '\n這個月的推播額度可能用完了，請到官方 LINE App 直接回他。' : ''); }
   }
   if (/^(官方LINE|官方line|官方LINE設定|官方LINE狀態|官方帳號)$/.test(k)) return oaStatus_();
