@@ -38,11 +38,12 @@ const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -1002,7 +1003,7 @@ function stratWrite_(k, th) {
   // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 只寫短劇腳本（不寫文案、不畫圖卡）
@@ -1037,7 +1038,6 @@ function reelHeroSetting_(t) {
   return '好，短劇主角設定好了：\n' + v + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
 }
 // 按鈕流程：「👤 設定主角」一步步問名字、性別、年齡、外型（每一步都有按鈕，也可以直接打字）；做到哪一步存在 HERO_STEP
-const HERO_BTN = '👤 設定主角';
 const HERO_ORDER = ['name', 'gender', 'age', 'look'];
 const HERO_STEPS = {
   name: { q: '請打主角的名字，例如：小美。\n（不想取名就按「略過」，由軍師取名）', btn: [['略過', '取消']] },
