@@ -39,11 +39,12 @@ const REELS_LONG_BTN = '🎞️ 剪大片';
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -840,7 +841,7 @@ function stratMenu_() {
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
+  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。\n要再加一位（一男一女）按「' + HERO2_BTN + '」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, HERO2_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1008,7 +1009,7 @@ function stratWrite_(k, th) {
   // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 只寫短劇腳本（不寫文案、不畫圖卡）
@@ -1019,7 +1020,7 @@ function reelOnly_(k) {
   if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
   try {
     const r = reelWrite_(k, th, null);
-    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, STRAT_SWITCH]].concat(MENU) };
+    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
   } catch (err) {
     console.error('短劇腳本失敗：' + err.message);
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
@@ -1113,7 +1114,7 @@ function heroWizard_(t, raw) {
   if (!step) return null;
   const menuWord = [].concat.apply([], MENU.concat(QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
   if (Number(prop_('HERO_UNTIL')) < Date.now() || menuWord) { heroClear_(); return null; }
-  if (flat === '取消') { heroClear_(); return { text: '好，不設定主角了。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) }; }
+  if (flat === '取消') { heroClear_(); return { text: '好，不設定主角了。', buttons: [[REEL_BTN, HERO_BTN, HERO2_BTN]].concat(MENU) }; }
   const v = String(raw || t).trim().replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕的圖示去掉：「👩 女生」→「女生」
   const draft = JSON.parse(prop_('HERO_DRAFT') || '{}');
   if (v && v !== '略過' && v !== '不指定') draft[step] = v.slice(0, step === 'look' ? 200 : 20);
@@ -1125,13 +1126,12 @@ function heroWizard_(t, raw) {
   const slot = Number(prop_('HERO_SLOT')) === 2 ? 2 : 1;
   heroClear_();
   const txt = HERO_ORDER.map(k => draft[k]).filter(Boolean).join('，');
-  const back = [[REEL_BTN, HERO_BTN]].concat(MENU);
+  const back = [[REEL_BTN, HERO_BTN, HERO2_BTN]].concat(MENU);
   if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + heroView_(), buttons: back };
   const err = heroPairCheck_(slot, txt);
   if (err) return { text: err, buttons: back };
   setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, txt.slice(0, 300));
-  const addSecond = slot === 1 && !reelHero2_() ? [['👤 設定第二主角']] : [];
-  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: addSecond.concat(back) };
+  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: back };
 }
 // 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
