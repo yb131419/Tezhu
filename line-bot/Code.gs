@@ -1017,13 +1017,25 @@ function reelWrite_(k, th, base) {
     '【劇情結構】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60：0 到 3 秒一定要有讓人停下來的衝突或反常畫面；中間是一個日常生活場景裡的小誤會或小反轉；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
-    '【台詞與字幕】台詞口語、短句，一句 15 字內；每段的字幕就是那段最重要的一句話；可以沒有台詞，只用畫面。',
+    '【台詞與字幕】每一段都一定要有台詞，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；每段的字幕就是那段最重要的一句話。',
     '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
-    '繁體台灣用語。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"台詞（沒有就空字串）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
+    '繁體台灣用語，不用簡體字。只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].join('\n');
-  const out = callOpenAI_(sys, [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }], true, null, { maxTokens: 2000, temperature: 0.8 });
-  const r = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
-  if (!Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
+  // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
+  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }];
+  let r = null;
+  for (let i = 0; i < 3; i++) {
+    const out = callOpenAI_(sys, msgs, true, null, { maxTokens: 2000, temperature: 0.8 });
+    try { r = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1)); } catch (e) { r = null; continue; }
+    if (!r || !Array.isArray(r.scenes) || !r.scenes.length) continue;
+    const miss = r.scenes.map((x, j) => String(x && x.line || '').trim() ? 0 : j + 1).filter(Boolean);
+    if (!miss.length) return r;
+    msgs.push({ role: 'assistant', content: out },
+      { role: 'user', content: '第 ' + miss.join('、') + ' 段沒有台詞。每一段都要有台詞（角色名：說的話；沒人對話就用自言自語或旁白），其他照原本的寫，整份 JSON 重新輸出。' });
+  }
+  if (!r || !Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
+  // 重寫 3 次還是有段落沒台詞：用那段的字幕當旁白補上，保證每段都有台詞
+  r.scenes.forEach(x => { if (x && !String(x.line || '').trim()) x.line = '旁白：' + (String(x.sub || '').trim() || '……'); });
   return r;
 }
 // 腳本排成好複製的文字
