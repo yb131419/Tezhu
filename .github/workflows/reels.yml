@@ -36,6 +36,10 @@ on:
         description: 種類（talk 口播／silent 靜音／auto 自動判斷）
         required: false
         default: 'auto'
+      timeline:
+        description: 上一版的時間軸（JSON，使用者調整過段落後照這個重剪；可空白）
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -81,4 +85,5 @@ jobs:
           MODE: ${{ inputs.mode }}
           MUSIC_FILE: ${{ inputs.music }}
           KIND: ${{ inputs.kind }}
+          TIMELINE: ${{ inputs.timeline }}
         run: python3 reels/reels.py --out "$RUNNER_TEMP/reels.mp4"

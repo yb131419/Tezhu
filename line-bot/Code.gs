@@ -3041,6 +3041,9 @@ function handleTelegram_(update) {
   // 配樂：按了剪片按鈕後傳音樂檔，或音樂說明寫「配樂」，就用這首當配樂
   const music = msg.audio || (msg.document && /^audio\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && music && (reelsPending_() || /配樂/.test(text))) return reelsMusic_(chatId, music);
+  // 時間軸：回覆小乖傳的「⏱ 第 N 版的剪法」檔案，說「第 3 段多留 1 秒」之類，就照調整後的段落重剪
+  if (owner && chatId === owner && !reelsVideo && !fileId && msg.reply_to_message && msg.reply_to_message.document && /^⏱ 第 \d+ 版/.test(msg.reply_to_message.caption || ''))
+    return reelsTimeline_(chatId, msg.reply_to_message.document, text);
   // 剪好之後：回覆那支影片說要改哪裡，或打「改影片 …」「重剪 Reels」，就照要求再剪一版
   if (owner && chatId === owner && !reelsVideo && !fileId) {
     const rv = reelsRevise_(msg, text);
@@ -5048,6 +5051,33 @@ function reelsGo_(chatId, kind) {
       ? '🎞️ 開始剪大片第 1 版：' + what + '，保留完整內容，' + how + '、配樂。影片越長要越久，剪好直接傳給你。'
       : '🎬 開始試剪第 1 版：' + what + '，' + how + '、配樂。大約 3～6 分鐘剪好直接傳給你。', q.mode, kind);
 }
+// 時間軸：「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」「第 1 段刪掉」，照調整後的段落重剪（不用重聽寫、不用重問 AI，字幕照原來的句子）
+function reelsTimeline_(chatId, doc, text) {
+  const m = String(text || '').replace(/\s+/g, '').match(/第(\d+)段(?:(多留|加長|延長|少留|縮短)(\d+(?:\.\d+)?)秒|(刪掉|刪除|拿掉|去掉))/);
+  if (!m) return tgSend_(chatId, '⏱ 時間軸可以這樣改：「第 3 段多留 1 秒」、「第 2 段少留 0.5 秒」、「第 1 段刪掉」。');
+  let tl;
+  try {
+    const info = JSON.parse(tgApi_('getFile', { file_id: doc.file_id }));
+    const res = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/' + info.result.file_path, { muteHttpExceptions: true });
+    tl = JSON.parse(res.getContentText());
+  } catch (err) { console.error(err); return tgSend_(chatId, '⏱ 這個時間軸檔打不開，請回覆最新一版的時間軸檔案再試一次。'); }
+  if (!tl || !tl.file_id || !tl.spans) return tgSend_(chatId, '⏱ 這個時間軸檔不能用（可能是多支影片接起來剪的），請直接說「改影片 …」重剪。');
+  const spans = tl.spans, i = Number(m[1]) - 1;
+  if (!spans[i]) return tgSend_(chatId, '⏱ 這一版只有 ' + spans.length + ' 段，沒有第 ' + m[1] + ' 段。');
+  const sec = Number(m[3]) || 0;
+  if (m[4]) {
+    if (spans.length === 1) return tgSend_(chatId, '⏱ 只剩一段了，不能再刪；要換內容請說「改影片 …」。');
+    spans.splice(i, 1);
+  } else if (m[2] === '少留' || m[2] === '縮短') {
+    spans[i][1] = Math.max(spans[i][0] + 1, spans[i][1] - sec);
+  } else {
+    spans[i][1] = Math.min(spans[i + 1] ? spans[i + 1][0] : tl.dur, spans[i][1] + sec);   // 不要碰到下一段
+  }
+  tl.spans = spans;
+  const ver = (Number(tl.ver) || 1) + 1;
+  const ack = '✂️ 收到，照你調整的段落（共 ' + spans.length + ' 段）剪第 ' + ver + ' 版，好了直接傳給你。';
+  return reelsRun_(chatId, tl.file_id, tl.note || '', ver, ack, tl.mode, 'talk', JSON.stringify(tl));
+}
 // 修改：回覆小乖傳的成品影片，或「改影片 …」「改 Reels …」；「重剪 Reels」用目前的風格重剪
 function reelsRevise_(msg, text) {
   const last = reelsLast_();
@@ -5062,7 +5092,7 @@ function reelsRevise_(msg, text) {
   return { fileId: last.fileId, ver: ver, mode: last.mode || 'reels', kind: last.kind || 'auto', note: (last.note ? last.note + '\n' : '') + '第 ' + ver + ' 版修改：' + ask,
     ack: '✂️ 收到，照你說的「' + ask.slice(0, 40) + '」剪第 ' + ver + ' 版，好了直接傳給你。' };
 }
-function reelsRun_(chatId, fileId, note, ver, ack, mode, kind) {
+function reelsRun_(chatId, fileId, note, ver, ack, mode, kind, timeline) {
   mode = mode === 'long' ? 'long' : 'reels';
   kind = kind === 'talk' || kind === 'silent' ? kind : 'auto';
   if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🎬 剪 Reels 還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（設定步驟在 README 的「剪 Reels」）。');
@@ -5073,7 +5103,7 @@ function reelsRun_(chatId, fileId, note, ver, ack, mode, kind) {
     headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
     payload: JSON.stringify({ ref: 'main', inputs: {
       chat_id: String(chatId), file_id: fileId, note: note, style: prop_('REELS_STYLE') || '', version: String(ver),
-      mode: mode, music: prop_('REELS_MUSIC') || '', kind: kind,
+      mode: mode, music: prop_('REELS_MUSIC') || '', kind: kind, timeline: timeline || '',
     } }),
   });
   const code = res.getResponseCode();
