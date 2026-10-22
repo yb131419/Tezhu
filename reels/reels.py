@@ -287,6 +287,19 @@ def tg_download(file_id, dest, what='影片'):
     urllib.request.urlretrieve(url, dest)
 
 
+def timeline_doc(info, src_id, ver='', note='', mode='reels'):
+    """時間軸檔：每段的時間、AI 挑的句子和字幕，加上來源影片編號；使用者回覆它就能照調整後的段落重剪。"""
+    return dict(info['timeline'], file_id=src_id, ver=ver, note=note, mode=mode, kind='talk')
+
+
+def tg_send_document(chat_id, path, caption):
+    cmd = ['curl', '-sS', '-F', 'chat_id=%s' % chat_id, '-F', 'document=@%s' % path, '-F', 'caption=%s' % caption[:1000],
+           'https://api.telegram.org/bot%s/sendDocument' % os.environ['TELEGRAM_BOT_TOKEN']]
+    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    if '"ok":true' not in out.replace(' ', ''):
+        log('sendDocument 失敗：', out[:300])   # 時間軸傳不回來不影響影片，只是不能回覆調整
+
+
 def tg_send_video(chat_id, path, caption, thumb=None):
     cmd = ['curl', '-sS', '-F', 'chat_id=%s' % chat_id, '-F', 'video=@%s' % path, '-F', 'supports_streaming=true',
            '-F', 'width=%d' % W, '-F', 'height=%d' % H, '-F', 'caption=%s' % caption[:1000]]
@@ -567,6 +580,17 @@ def drop_pauses(spans, sil, keep=.12):
                     nxt.append([s1, y])
             pieces = nxt
         out += pieces
+    return out
+
+
+def least_spans(spans, gap=.6):
+    """太短的一小段（不到 1 秒）又離前一段很近，就併到前一段，不然畫面會一閃一閃。"""
+    out = []
+    for a, b in spans:
+        if out and b - a < 1.0 and a - out[-1][1] <= gap:
+            out[-1][1] = b
+        else:
+            out.append([a, b])
     return out
 
 
@@ -1616,12 +1640,15 @@ def card_fx(joined, total, work):
     return out, '%s %d 張（第 %.1f～%.1f 秒）' % (name, min(len(pics), copt['n']), done[0], done[1])
 
 
-def make(src, out, note, transcript=None, style='', mode='reels', music_file='', kind='auto'):
+def make(src, out, note, transcript=None, style='', mode='reels', music_file='', kind='auto', timeline=None):
     global MODE, W, H, FRAME
     opt = apply_tweaks(apply_style(parse_note(note, mode, kind), style), note)
+    if timeline is not None:
+        opt['kind'] = 'talk'   # 時間軸只存口播剪的結果，重剪時不用再聽寫、不用再問 AI
     MODE = opt['mode']
     W, H = 1080, 1920
     FRAME = None
+    tl = None
     work = tempfile.mkdtemp(prefix='reels_')
     try:
         dur, has_audio, src_wh = probe(src)
@@ -1637,7 +1664,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             opt['kind'] = 'silent'   # 照片沒有人講話，一律靜音剪
         segs = []
         if opt['kind'] != 'silent':
-            if isinstance(transcript, list):
+            if timeline is not None:
+                segs = timeline['segs']
+            elif isinstance(transcript, list):
                 segs = transcript
             elif has_audio:
                 audio = os.path.join(work, 'audio.mp3')
@@ -1653,7 +1682,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
             log('靜音剪：原片 %.1f 秒 → %d 段、共 %.1f 秒、%d 句字幕（%s %dx%d）'
                 % (dur, len(spans), total, len(plan['caps_t']), MODE, W, H))
         else:
-            plan = plan_clips(segs, opt, note) if speech and os.environ.get('OPENAI_API_KEY') else None
+            plan = timeline['plan'] if timeline is not None else plan_clips(segs, opt, note) if speech and os.environ.get('OPENAI_API_KEY') else None
             if speech and plan is None and transcript is not None:   # 本機測試：沒有 AI 就全部保留、英文留空
                 plan = {'title': opt['title'] or '測試標題', 'post': '', 'tags': segs[0].get('tags') or ['字幕', '剪輯', '動畫', '字卡'],
                         'look': pick(segs[0].get('look'), LOOKS, 'clean'), 'sub_anim': pick(segs[0].get('sub_anim'), SUB_ANIMS, 'pop'),
@@ -1661,7 +1690,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
                         'sections': [{'i': i, 'name': s['sec']} for i, s in enumerate(segs) if s.get('sec')],
                         'keep': [{'i': i, 'fx': pick(s.get('fx'), SHOT_FX), 'lines': s.get('lines') or [{'zh': s['text'], 'en': s.get('en', '')}]}
                                  for i, s in enumerate(segs)]}
-            if plan and plan['keep']:
+            if timeline is not None:
+                spans = timeline['spans']   # 使用者調整過的剪法，照這個切
+            elif plan and plan['keep']:
                 spans = clips_from_plan(plan, segs, dur)
                 if opt['jumpcut'] and has_audio:
                     spans = drop_pauses(spans, silences(src)) or spans
@@ -1669,6 +1700,8 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
                 spans = [[0, dur]] if MODE == 'long' else clips_without_speech(dur, opt['target'])
                 if plan is None and opt['title']:
                     plan = {'title': opt['title'], 'keep': [], 'post': '', 'tags': [], 'pops': []}
+            spans = least_spans(spans)
+            tl = {'v': 1, 'dur': dur, 'segs': segs, 'plan': plan, 'spans': spans}   # 存下來，使用者可以回覆調整段落
             if MODE == 'long':
                 W, H = long_size(src_wh, sum(b - a for a, b in spans))
             log('口播剪：原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒（%s %dx%d）'
@@ -1704,7 +1737,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         if os.path.getsize(out) > TG_LIMIT:
             raise Oops('剪好的影片太大，傳不回 Telegram。請在說明寫短一點的秒數（例如「剪 Reels 30秒」）再試一次。')
         shutil.copy(thumb, out + '.jpg')
-        return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'],
+        return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'], 'timeline': tl,
                 'kind': opt['kind'], 'fx': opt['fx'], 'fx_desc': fx_desc,
                 'music': '你的配樂' if mine else os.path.basename(music or '')[:-4],
                 'credit': '' if mine else music_credit(music),
@@ -1724,6 +1757,7 @@ def main():
     ap.add_argument('--music-file', default=os.environ.get('MUSIC_FILE', ''))
     ap.add_argument('--kind', default=os.environ.get('KIND', '') or 'auto', help='talk 口播／silent 靜音／auto 自動')
     ap.add_argument('--selftest', action='store_true', help='字幕沒畫上去就失敗（GitHub 上測試用）')
+    ap.add_argument('--timeline-out', help='把剪法（時間軸）存到這個檔案（GitHub 上測試用）')
     a = ap.parse_args()
     resolve_font()
 
@@ -1756,7 +1790,13 @@ def main():
             log('照片 %d 張，每張 %.1f 秒' % (len(pics), sec))
         src = srcs[0] if len(srcs) == 1 else join_sources(srcs, tmp)
         tr = json.load(open(a.transcript, encoding='utf-8')) if a.transcript else None
-        info = make(src, a.out, a.note, tr, a.style, a.mode, a.music_file, a.kind)
+        tlo = json.loads(os.environ['TIMELINE']) if os.environ.get('TIMELINE') else None   # 小乖依使用者的調整重剪
+        if tlo:
+            a.note = tlo.get('note', a.note)
+        info = make(src, a.out, a.note, tr, a.style, a.mode, a.music_file, a.kind, timeline=tlo)
+        if a.timeline_out and info['timeline']:
+            with open(a.timeline_out, 'w', encoding='utf-8') as f:
+                json.dump(timeline_doc(info, src_id=''), f, ensure_ascii=False)
         log('完成：%.1f 秒、%d 段、%d 則字幕' % (info['seconds'], info['clips'], info['subs']))   # repo 公開，紀錄不寫內容
         if a.selftest and info['subs'] and (info['subs_diff'] or 0) < 1.5:
             log('自我測試失敗：字幕沒有畫上去')
@@ -1782,6 +1822,12 @@ def main():
                     '\n也可以先傳一首音樂給小乖當配樂。'
                     '\n也可以傳一張喜歡的影片截圖，說「我要這種風格」。')
             vid = tg_send_video(chat, a.out, cap, a.out + '.jpg')
+            if info['timeline'] and ',' not in (os.environ.get('FILE_ID') or ''):   # 只有一支影片才能照時間軸重剪
+                tl_path = os.path.join(tmp, 'timeline.json')
+                with open(tl_path, 'w', encoding='utf-8') as f:
+                    json.dump(timeline_doc(info, src_id=os.environ.get('FILE_ID', ''), ver=ver, note=a.note, mode=a.mode), f, ensure_ascii=False)
+                tg_send_document(chat, tl_path, '⏱ 第 %s 版的剪法（共 %d 段）。想調整：回覆這個檔案，例如「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」「第 1 段刪掉」。'
+                                 % (ver, info['clips']))
             post = info['post'] + ('\n\n' + info['credit'] if info.get('credit') else '')
             if post.strip():
                 txt = '📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip()
