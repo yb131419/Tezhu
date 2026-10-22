@@ -1280,7 +1280,7 @@ function stratText_(c) {
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 
-// 圖卡版面（直式 4:5，黑曜石＋香檳金，跟小乖頁面同一套風格）
+// 圖卡版面（直式 4:5）；2026-10-22 使用者：軍師圖卡都改淺色系、要有質感 → 用該主題配套款的暖光淺色底（kit/<款式>/card3_bg.jpg，沒有桌面）＋雙層金框，字用該款深色
 // 智囊軍師 3 張圖卡（2026-10-18 重排）：標題固定在上方、正文接在標題下面、金句固定在底部上方，三張版面位置一致
 function cardLayout_(c, minH) {
   const W = 540, X = 64, TW = 412;
@@ -1316,10 +1316,14 @@ function cardLayout_(c, minH) {
   const hs = 32, hookH = cover ? lines(hook, hs, TW) * hs * 1.7 : 0;
   const HOOK_Y = BODY_Y + Math.max(0, ((LIMIT - 40) - BODY_Y - hookH) / 2);   // 封面鉤子置中於標題與底部之間
 
+  const ck = Object.keys(STRAT_CAT2).filter(x => STRAT_CAT2[x] === c.cat2)[0];
+  const S = kitThemeStyle_(ck), C = S.c;   // 主題配套款（觀念暖米白、健康奶茶駝、草本鼠尾草、經營霧藍、行銷玫瑰）
   const build = slide => {
     const req = [];
     let k = 0;
-    req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#12100D') } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
+    req.push({ createImage: { objectId: 'xg_cb_' + slide, url: kitUrl_(S.d + 'card3_bg.jpg'), elementProperties: { pageObjectId: slide,
+      size: { width: { magnitude: W, unit: 'PT' }, height: { magnitude: H, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: 'PT' } } } });
     const place = (w, h, x, yy) => ({ pageObjectId: slide,
       size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
       transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
@@ -1342,22 +1346,22 @@ function cardLayout_(c, minH) {
         style: { alignment: o.align || 'CENTER', lineSpacing: o.ls || 100 } } });
       req.push({ updateShapeProperties: { objectId: id, shapeProperties: { contentAlignment: o.valign || 'TOP' }, fields: 'contentAlignment' } });
     };
-    shape('RECTANGLE', 16, 16, W - 32, H - 32, null, '#C9A56A');
-    shape('RECTANGLE', 22, 22, W - 44, H - 44, null, '#4A3F2C');
-    text('生活筆記「' + (c.topic || c.label) + '」', X, 36, TW, 30, 16, '#B9A47A', { valign: 'MIDDLE' });   // 頂部標籤
-    text(title, X, TITLE_Y, TW, titleH, tf, '#F1DFB4', { bold: true, serif: true, ls: 120 });   // 標題
-    shape('RECTANGLE', W / 2 - 30, RULE_Y, 60, 1, '#C9A56A', null);               // 金線
+    shape('RECTANGLE', 16, 16, W - 32, H - 32, null, C.gold);
+    shape('RECTANGLE', 22, 22, W - 44, H - 44, null, C.rule);
+    text('生活筆記「' + (c.topic || c.label) + '」', X, 36, TW, 30, 16, C.gold, { bold: true, valign: 'MIDDLE' });   // 頂部標籤
+    text(title, X, TITLE_Y, TW, titleH, tf, C.ink, { bold: true, serif: true, ls: 120 });   // 標題
+    shape('RECTANGLE', W / 2 - 30, RULE_Y, 60, 1, C.gold, null);               // 金線
     if (cover) {
-      text(hook, X, HOOK_Y, TW, hookH, hs, '#EDE6D6', { ls: 140 });            // 封面鉤子
-      text('往右滑 →', X, LIMIT - 28, TW, 28, 18, '#C9A56A', { valign: 'MIDDLE' });
+      text(hook, X, HOOK_Y, TW, hookH, hs, C.soft, { ls: 140 });            // 封面鉤子
+      text('往右滑 →', X, LIMIT - 28, TW, 28, 18, C.gold, { valign: 'MIDDLE' });
     } else {
-      if (body) text(body, X, BODY_Y, TW, bodyH(bf), bf, '#EDE6D6', { ls: 150 });   // 正文
-      if (gold) text(gold, X, GOLD_Y, TW, goldH(bf), bf, '#E2C27A', { bold: true, serif: true, ls: 130 });   // 金句貼底
+      if (body) text(body, X, BODY_Y, TW, bodyH(bf), bf, C.soft, { ls: 150 });   // 正文
+      if (gold) text(gold, X, GOLD_Y, TW, goldH(bf), bf, C.gold, { bold: true, serif: true, ls: 130 });   // 金句貼底
     }
-    if (c.note) text(c.note, X, NOTE_Y, TW, 26, 16, '#9C8F78', { valign: 'MIDDLE' });   // 補充
-    shape('RECTANGLE', W / 2 - 70, FOOT, 140, 0.8, '#C9A56A', null);             // 底部細線
-    text(cardBy_(), X, FOOT + 6, TW, 30, 18, '#F1DFB4', { bold: true, valign: 'MIDDLE' });   // 署名
-    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 60, 82, 26, 16, '#C9A56A', { serif: true, align: 'END', valign: 'MIDDLE' });
+    if (c.note) text(c.note, X, NOTE_Y, TW, 26, 16, C.mute, { valign: 'MIDDLE' });   // 補充
+    shape('RECTANGLE', W / 2 - 70, FOOT, 140, 0.8, C.gold, null);             // 底部細線
+    text(cardBy_(), X, FOOT + 6, TW, 30, 18, C.ink, { bold: true, valign: 'MIDDLE' });   // 署名
+    if (c.total > 1) text(c.idx + ' / ' + c.total, W - 120, H - 60, 82, 26, 16, C.gold, { serif: true, align: 'END', valign: 'MIDDLE' });
     return req;
   };
   return { W: W, H: H, build: build };
