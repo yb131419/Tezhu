@@ -684,6 +684,8 @@ function answer_(text) {
   }
   const cs = stratSetting_(t2);   // 「設定署名 …」「設定標題 …」
   if (cs) return cs;
+  const hw = heroWizard_(t2, raw);   // 「👤 設定主角」按鈕：一步步問名字、性別、年齡、外型
+  if (hw) return hw;
   const hs = reelHeroSetting_(t2);   // 「設定主角 …」「查看主角」（短劇的主角，使用者自訂）
   if (hs) return hs;
   // 智囊軍師：選主題就寫文案（圖卡由 LINE／Telegram／對話頁各自畫好送出）
@@ -832,7 +834,7 @@ function stratMenu_() {
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，打「設定主角 名字、性別、年齡、外型」，例如：設定主角 小美，女生，25 歲，短髮、穿白襯衫。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [STRAT_SWITCH]] };
+  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1011,7 +1013,7 @@ function reelOnly_(k) {
   if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
   try {
     const r = reelWrite_(k, th, null);
-    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [STRAT_SWITCH]].concat(MENU) };
+    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, STRAT_SWITCH]].concat(MENU) };
   } catch (err) {
     console.error('短劇腳本失敗：' + err.message);
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
@@ -1020,7 +1022,7 @@ function reelOnly_(k) {
 // 短劇主角（使用者自訂，存在指令碼屬性；沒設定就由軍師照主題自己安排）
 const REEL_HERO_KEY = 'REEL_HERO';
 function reelHero_() { return prop_(REEL_HERO_KEY); }
-// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存起來；「設定主角 預設」清掉；「查看主角」或「設定主角」單打就看目前的
+// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存起來；「設定主角 預設」清掉；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
 function reelHeroSetting_(t) {
   const s = String(t || '').trim();
   const m = s.match(/^(?:設定|修改|更改|改)主角[\s：:]*(.*)$/);
@@ -1033,6 +1035,49 @@ function reelHeroSetting_(t) {
   }
   setProp_(REEL_HERO_KEY, v);
   return '好，短劇主角設定好了：\n' + v + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+}
+// 按鈕流程：「👤 設定主角」一步步問名字、性別、年齡、外型（每一步都有按鈕，也可以直接打字）；做到哪一步存在 HERO_STEP
+const HERO_BTN = '👤 設定主角';
+const HERO_ORDER = ['name', 'gender', 'age', 'look'];
+const HERO_STEPS = {
+  name: { q: '請打主角的名字，例如：小美。\n（不想取名就按「略過」，由軍師取名）', btn: [['略過', '取消']] },
+  gender: { q: '主角是男生還是女生？', btn: [['👩 女生', '👨 男生'], ['🙂 不指定', '取消']] },
+  age: { q: '主角大約幾歲？', btn: [['18～24 歲', '25～34 歲'], ['35～44 歲', '45 歲以上'], ['略過', '取消']] },
+  look: { q: '描述一下外型和個性，例如：短髮、穿白襯衫、戴眼鏡、個性開朗。\n（可以一句話，或按「略過」）', btn: [['略過', '取消']] },
+};
+function heroAsk_(step) {
+  setProp_('HERO_STEP', step);
+  setProp_('HERO_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  return { text: '👤 設定短劇主角（' + (HERO_ORDER.indexOf(step) + 1) + '／4）\n' + HERO_STEPS[step].q, buttons: HERO_STEPS[step].btn };
+}
+function heroClear_() {
+  ['HERO_STEP', 'HERO_DRAFT', 'HERO_UNTIL'].forEach(k => setProp_(k, ''));
+}
+// 回 null 表示不是這個流程的話，照常往下處理
+function heroWizard_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  if (/^(👤設定主角|設定主角|修改主角|更改主角|改主角)$/.test(flat)) {
+    setProp_('HERO_DRAFT', '{}');
+    return heroAsk_('name');
+  }
+  const step = prop_('HERO_STEP');
+  if (!step) return null;
+  const menuWord = [].concat.apply([], MENU.concat(QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
+  if (Number(prop_('HERO_UNTIL')) < Date.now() || menuWord) { heroClear_(); return null; }
+  if (flat === '取消') { heroClear_(); return { text: '好，不設定主角了。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) }; }
+  const v = String(raw || t).trim().replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕的圖示去掉：「👩 女生」→「女生」
+  const draft = JSON.parse(prop_('HERO_DRAFT') || '{}');
+  if (v && v !== '略過' && v !== '不指定') draft[step] = v.slice(0, step === 'look' ? 200 : 20);
+  const i = HERO_ORDER.indexOf(step);
+  if (i < HERO_ORDER.length - 1) {
+    setProp_('HERO_DRAFT', JSON.stringify(draft));
+    return heroAsk_(HERO_ORDER[i + 1]);
+  }
+  heroClear_();
+  const txt = HERO_ORDER.map(k => draft[k]).filter(Boolean).join('，');
+  if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）'), buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
+  setProp_(REEL_HERO_KEY, txt.slice(0, 300));
+  return { text: '好，短劇主角設定好了：\n' + txt + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
 }
 // 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
