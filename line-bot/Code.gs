@@ -1837,6 +1837,14 @@ function kitWarm_(kit, s, i, N, W, H, lab, en, right, main) {
     return req;
   } };
 }
+// 圖片（封面插圖）：讀不到就不放，不影響其他文字
+function kitImg_(req, slide, id, file, x, y, w, h) {
+  const url = kitUrl_(file);
+  if (!kitReachable_(url)) { console.error('插圖讀不到，略過：' + url); return; }
+  req.push({ createImage: { objectId: id, url: url, elementProperties: { pageObjectId: slide,
+    size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+    transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: y, unit: 'PT' } } } });
+}
 // 細框（2026-10-18 依參考圖：外框金色、內框細線；weight 可調）
 function kitFrame_(req, slide, id, x, y, w, h, color, weight) {
   req.push({ createShape: { objectId: id, shapeType: 'RECTANGLE', elementProperties: { pageObjectId: slide,
@@ -1909,16 +1917,19 @@ function balanceLines_(t, maxU) {
 function kitCoverLayout_(kit, s, num, W, H) {
   const cat = String(kit.cat || kit.theme || '').replace(/分享|主題/g, '').trim(), C = KIT_S_.c;
   const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1.05), 0);
-  const SUB = 21;
+  const SUB = 18;
   const sub = balanceLines_(s.sub, 18);
   const subLines = sub.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * SUB / 420)), 0);
   const subH = subLines * SUB * 1.5;
-  const gap = 36;
-  const TOP = 146, BOX_H = 498 - TOP;
+  const gap = 24;
+  const IMG_Y = 110, IMG_H = 152, TOP = 282, BOX_H = 512 - TOP;   // 2026-10-22 使用者：封面要有圖片，上方放插圖，標題在下面
   const maxH = BOX_H - subH - gap - 10;
-  const fit = kitFit_(s.head, 420, 72, 52, maxH);
-  return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記・' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) =>
-    kitHeadBlock_(req, slide, s.head, fit, TOP, [{ t: sub, size: SUB, color: C.sub, ls: 150, above: gap, align: 'START', em: C.gold }]));
+  const fit = kitFit_(s.head, 420, 60, 30, maxH);
+  return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記・' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) => {
+    kitImg_(req, slide, slide + '_art', KIT_S_.d + 'cover_art.jpg', 75, IMG_Y, 390, IMG_H);
+    kitFrame_(req, slide, slide + '_af', 75, IMG_Y, 390, IMG_H, C.gold, 0.8);
+    kitHeadBlock_(req, slide, s.head, fit, TOP, [{ t: sub, size: SUB, color: C.sub, ls: 150, above: gap, align: 'START', em: C.gold }]);
+  });
 }
 
 // PDF 實作手冊（A4 直式 595×842）
