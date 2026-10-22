@@ -2,10 +2,11 @@
 // 這個檔案要跟 Code.gs 放在同一個 Apps Script 專案（在編輯器「+」新增一個檔案，名字隨意，例如 Trade，整份貼進去）。
 // 安全規則（使用者要求「要確認才下單」）：
 // 1. 沒有排程，AI 也不會下單：要先按「🛒 下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
-// 2. 預設 TRADE_MODE = paper（只記錄，不送 OANDA）。要到 OANDA 模擬帳戶送單改成 practice；
-//    真錢要 TRADE_MODE = live 且 OANDA_ENV = live，兩個都改才會動真錢。
-// 3. 金鑰只放在指令碼屬性（OANDA_API_KEY、OANDA_ACCOUNT），不寫在程式碼裡。
+// 2. 預設 mode = paper（只記錄，不送 OANDA）。要到 OANDA 模擬帳戶送單改成 practice；
+//    真錢要 mode = live 且 env = live，兩個都改才會動真錢。
+// 3. 金鑰只放在指令碼屬性 TRADE_CFG（一個 JSON），不寫在程式碼裡。
 // 4. 提案 5 分鐘內有效；確認時重抓報價，偏離太多就不下單；每日單數與同時持倉都有上限（同 Python 版 config.py）。
+// 指令碼屬性只用兩個：TRADE_CFG（設定，你自己填）與 TRADE_STATE（提案、每日計數、模擬紀錄，小乖自己寫）。
 
 const TRADE_ITEMS = {   // 同 Python 版 config.py：單位、停損停利（pips）、pip 大小、價格小數位（請用模擬帳戶確認 prec）
   '黃金': { id: 'XAU_USD', units: 10, sl: 150, tp: 300, pip: 0.01, prec: 3 },
@@ -55,7 +56,7 @@ function tradePickSide_(name) {
   return { text: '要買還是賣' + name + '？\n選好會先給你看提案，確認後才會下單。', buttons: rows, flex: tradeFlex_('🛒 ' + name, '要買還是賣？', rows), alt: '🛒 ' + name };
 }
 
-// 產生提案：只存在指令碼屬性裡，不會下單
+// 產生提案：只存在 TRADE_STATE 裡，不會下單
 function tradePropose_(name, side) {
   const it = TRADE_ITEMS[name];
   const price = tradeQuote_(it.id);
@@ -68,7 +69,7 @@ function tradePropose_(name, side) {
     expires: Date.now() + TRADE_TTL_MS, sig: sig.text,
     against: !!sig.signal && sig.signal !== side,
   };
-  setProp_('TRADE_PENDING', JSON.stringify(p));
+  tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
   const body = tradeProposalText_(p) + '\n\n5 分鐘內按「✅ 確認下單」才會送出；按「❌ 取消下單」就不做。';
   const rows = [['✅ 確認下單', '❌ 取消下單']];
   return { text: '🧾 下單提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('🧾 下單提案', body, rows), alt: '🧾 下單提案' };
@@ -90,14 +91,15 @@ function tradeConfirm_(token) {
     const p = tradePending_();
     if (!p) return '目前沒有待確認的下單。\n請先按「🛒 下單」選商品與方向。';
     if (token && token.toUpperCase() !== p.id) return '確認碼對不上，可能是舊的提案，沒有下單。\n請按最新那張卡片的「✅ 確認下單」。';
-    setProp_('TRADE_PENDING', '');   // 一次性：不管成不成功都先清掉，避免重複送單
+    tradeSaveState_(Object.assign(tradeState_(), { pending: null }));   // 一次性：不管成不成功都先清掉，避免重複送單
     if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 下單」。';
 
     const it = TRADE_ITEMS[p.name];
+    const cfg = tradeCfg_();
     const mode = tradeMode_();
-    const env = prop_('OANDA_ENV') === 'live' ? 'live' : 'practice';
-    if (mode === 'live' && env !== 'live') return '設定不一致：TRADE_MODE 是 live，但 OANDA_ENV 不是 live，沒有下單。';
-    if (mode === 'practice' && env === 'live') return '設定不一致：TRADE_MODE 是 practice，但 OANDA_ENV 是 live，沒有下單。';
+    const env = cfg.env === 'live' ? 'live' : 'practice';
+    if (mode === 'live' && env !== 'live') return '設定不一致：mode 是 live，但 env 不是 live，沒有下單。';
+    if (mode === 'practice' && env === 'live') return '設定不一致：mode 是 practice，但 env 是 live，沒有下單。';
 
     const now = tradeQuote_(it.id);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
@@ -129,7 +131,7 @@ function tradeConfirm_(token) {
 
 function tradeCancel_() {
   const had = tradePending_();
-  setProp_('TRADE_PENDING', '');
+  tradeSaveState_(Object.assign(tradeState_(), { pending: null }));
   return had ? '❌ 已取消，這張提案沒有送出。' : '目前沒有待確認的下單。';
 }
 
@@ -144,10 +146,16 @@ function tradePositions_() {
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
 }
 
-/* ---------- OANDA 連線（金鑰只從指令碼屬性讀） ---------- */
+/* ---------- 設定與 OANDA 連線（金鑰只從 TRADE_CFG 讀） ---------- */
+// TRADE_CFG 範例（在「指令碼屬性」新增一個屬性，值是下面這段 JSON）：
+// {"apiKey":"你的OANDA金鑰","account":"101-xxx-xxxxxxx-001","mode":"paper","env":"practice"}
+
+function tradeCfg_() {
+  try { return JSON.parse(prop_('TRADE_CFG') || '{}'); } catch (e) { return {}; }
+}
 
 function tradeMode_() {
-  const m = prop_('TRADE_MODE') || 'paper';
+  const m = tradeCfg_().mode || 'paper';
   return ['paper', 'practice', 'live'].indexOf(m) >= 0 ? m : 'paper';
 }
 
@@ -156,18 +164,19 @@ function tradeModeZh_() {
 }
 
 function tradeBase_() {
-  return prop_('OANDA_ENV') === 'live' ? 'https://api-fxtrade.oanda.com' : 'https://api-fxpractice.oanda.com';
+  return tradeCfg_().env === 'live' ? 'https://api-fxtrade.oanda.com' : 'https://api-fxpractice.oanda.com';
 }
 
-function tradeAcct_(sub) { return '/v3/accounts/' + prop_('OANDA_ACCOUNT') + sub; }
+function tradeAcct_(sub) { return '/v3/accounts/' + tradeCfg_().account + sub; }
 
 function tradeFetch_(method, path, body) {
-  if (!prop_('OANDA_API_KEY') || !prop_('OANDA_ACCOUNT')) {
-    throw new Error('還沒設定 OANDA 金鑰，請到 Apps Script「專案設定→指令碼屬性」新增 OANDA_API_KEY 與 OANDA_ACCOUNT');
+  const cfg = tradeCfg_();
+  if (!cfg.apiKey || !cfg.account) {
+    throw new Error('還沒設定 OANDA 金鑰，請到 Apps Script「專案設定→指令碼屬性」新增 TRADE_CFG（內容請看 Trade.gs 最上面的範例）');
   }
   const res = UrlFetchApp.fetch(tradeBase_() + path, {
     method: method, muteHttpExceptions: true, contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + prop_('OANDA_API_KEY') },
+    headers: { Authorization: 'Bearer ' + cfg.apiKey },
     payload: body ? JSON.stringify(body) : null,
   });
   const code = res.getResponseCode();
@@ -210,27 +219,35 @@ function tradeEma_(vals, period) {
 
 function tradeOpenCount_() { return (tradeFetch_('get', tradeAcct_('/openTrades')).trades || []).length; }
 
-/* ---------- 小工具：提案、每日計數、紀錄、卡片 ---------- */
+/* ---------- 狀態（TRADE_STATE：提案、每日計數、模擬紀錄） ---------- */
+
+function tradeState_() {
+  try { return JSON.parse(prop_('TRADE_STATE') || '{}'); } catch (e) { return {}; }
+}
+
+function tradeSaveState_(s) { setProp_('TRADE_STATE', JSON.stringify(s)); }
 
 function tradePending_() {
-  try { const p = JSON.parse(prop_('TRADE_PENDING') || 'null'); return p && p.id ? p : null; } catch (e) { return null; }
+  const p = tradeState_().pending;
+  return p && p.id ? p : null;
 }
 
 function tradeDay_() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-  let d = {};
-  try { d = JSON.parse(prop_('TRADE_DAY') || '{}'); } catch (e) { d = {}; }
+  const d = tradeState_().day || {};
   return d.date === today ? { date: today, n: Number(d.n) || 0 } : { date: today, n: 0 };
 }
 
-function tradeBump_(day) { setProp_('TRADE_DAY', JSON.stringify({ date: day.date, n: day.n + 1 })); }
+function tradeBump_(day) {
+  tradeSaveState_(Object.assign(tradeState_(), { day: { date: day.date, n: day.n + 1 } }));
+}
 
-function tradeLogList_() { try { return JSON.parse(prop_('TRADE_LOG') || '[]'); } catch (e) { return []; } }
+function tradeLogList_() { return tradeState_().log || []; }
 
 function tradeLog_(p, price, label) {
   const list = tradeLogList_();
   list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, units: p.units, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label });
-  setProp_('TRADE_LOG', JSON.stringify(list.slice(-20)));
+  tradeSaveState_(Object.assign(tradeState_(), { log: list.slice(-20) }));
 }
 
 function tradeNameOf_(instrument) {
