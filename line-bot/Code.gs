@@ -1868,17 +1868,18 @@ function kitCardLayout_(kit, i) {
   if (s.kind === 'cover') return kitCoverLayout_(kit, s, ('01 — ') + ('0' + N).slice(-2), W, H);
   if (s.kind === 'action') {
     const n = Math.max(0, '一二三'.indexOf(String(s.step || '').slice(-1)));
-    const fit = kitFixed_(52);
+    // 2026-10-22 使用者：內頁文字跑版 → 字級不再固定，依字數縮到放得下（上限 46）
+    const fit = kitFit_(s.head, 400, 46, 30, 170);
     return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
       kitHeadBlock_(req, slide, s.head, fit, 128, [body(s.body)]));
   }
   if (s.kind === 'reason') {
-    const fit = kitFixed_(50);
+    const fit = kitFit_(s.head, 400, 44, 28, 330);
     return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
       kitHeadBlock_(req, slide, s.head, fit, 136, []));
   }
   if (s.kind === 'last') {
-    const fit = kitFixed_(52);
+    const fit = kitFit_(s.head, 400, 46, 30, 210);
     return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
       kitText_(req, slide, slide + '_pre', [75, 128, 420, 110], [body(s.pre, { above: 0 })], 'TOP');
       kitHeadBlock_(req, slide, s.head, fit, 250, []);
