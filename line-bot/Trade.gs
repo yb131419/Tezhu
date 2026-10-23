@@ -328,7 +328,8 @@ function tradePositions_() {
   }).join('\n') + '\n\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。' : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
-  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
+  const lead = list.length ? tradePosFlex_(list).concat([{ type: 'separator', color: '#E8DCC4' }]) : [];
+  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利顯示「未設定」，代表 IG 沒有設定。\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
 }
 
 /* ---------- 設定與 IG 連線（登入資料只從 TRADE_CFG 讀） ---------- */
@@ -569,7 +570,7 @@ function tradeAdviceText_(rows) {
 function tradeAdviceFlex_(rows) {
   const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74';
   const line = r => ({
-    type: 'box', layout: 'horizontal', paddingAll: '10px', cornerRadius: '10px', backgroundColor: '#FFFFFF', contents: [
+    type: 'box', layout: 'horizontal', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
       { type: 'text', text: r.name, size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
       { type: 'text', text: tradeDirZh_(r.dir), size: 'xl', weight: 'bold', align: 'end', flex: 2, color: r.dir === 'buy' ? UP : r.dir === 'sell' ? DOWN : SOFT },
     ],
@@ -654,8 +655,38 @@ function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6
 
 // LINE 卡片（Flex）：每一顆按鈕都是「送出一句文字」，所以會走同一套 answer_ 指令，不會直接下單
 // 版面與小乖精品選單一致：象牙白底、金色漸層標題、每顆按鈕獨占一行
+// 持倉卡片：每筆一個小卡，商品與方向在上，開倉、現價、損益、停損、停利排成格子
+function tradePosFlex_(list) {
+  const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
+  const cell = (label, value, color) => ({
+    type: 'box', layout: 'vertical', flex: 1, contents: [
+      { type: 'text', text: label, size: 'xxs', color: SOFT },
+      { type: 'text', text: value, size: 'sm', weight: 'bold', color: color || INK, wrap: true },
+    ],
+  });
+  return list.map(x => {
+    const now = x.dir === 'buy' ? x.bid : x.offer;
+    const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
+    return {
+      type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
+        { type: 'box', layout: 'horizontal', contents: [
+          { type: 'text', text: x.name, size: 'md', weight: 'bold', color: INK, flex: 3 },
+          { type: 'text', text: x.dirZh + ' ' + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
+        ] },
+        { type: 'box', layout: 'horizontal', contents: [
+          cell('開倉', x.open.toFixed(x.prec)), cell('現價', now.toFixed(x.prec)), cell('損益（約）', upl.toFixed(2), upl >= 0 ? UP : DOWN),
+        ] },
+        { type: 'box', layout: 'horizontal', contents: [
+          cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
+        ] },
+      ],
+    };
+  });
+}
+
+// 精品質感卡片（與小乖主選單一致）：象牙白漸層標題、金色細線、象牙白內容區，按鈕第一顆金色、其餘白底
 function tradeFlex_(title, body, rows, lead) {
-  const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
+  const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4', GOLD = '#B08D57';
   const btn = (label, i) => ({
     type: 'box', layout: 'horizontal', alignItems: 'center', justifyContent: 'center', paddingAll: '13px', cornerRadius: '12px',
     borderWidth: '1px', borderColor: i ? LINE : '#C9A56A',
@@ -668,14 +699,16 @@ function tradeFlex_(title, body, rows, lead) {
   return {
     type: 'bubble', size: 'kilo',
     header: {
-      type: 'box', layout: 'vertical', paddingAll: '16px', background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
+      type: 'box', layout: 'vertical', paddingAll: '22px', paddingBottom: '18px',
+      background: { type: 'linearGradient', angle: '180deg', startColor: '#F4EAD6', endColor: '#FBF8F2' },
       contents: [
-        { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: '#5A4630' },
-        { type: 'text', text: title, size: 'xl', weight: 'bold', color: INK, wrap: true, margin: 'sm' },
+        { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: GOLD },
+        { type: 'text', text: title, size: 'xxl', weight: 'bold', color: INK, wrap: true, margin: 'sm' },
+        { type: 'box', layout: 'vertical', width: '28px', height: '2px', backgroundColor: '#C9A56A', margin: 'md', contents: [{ type: 'filler' }] },
       ],
     },
     body: {
-      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px', backgroundColor: '#FBF7EF', contents: (lead || []).concat([
+      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '22px', backgroundColor: '#FBF8F2', contents: (lead || []).concat([
         { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
         { type: 'separator', color: LINE },
       ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
