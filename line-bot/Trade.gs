@@ -440,15 +440,21 @@ function tradeQuote_(it) {
 function tradeSignal_(it) {
   tradeEpicCheck_(it);
   // 「分鐘數＋筆數」的寫法屬於 v2；要算 EMA200 需要至少 200 根，所以取 300 根
-  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/300', 2);
+  // 300 根抓不到時改抓 120 根（帳戶的歷史資料額度或筆數可能不夠）；兩次都失敗就回報第一次的原因
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/300', 2); }
+  catch (err) {
+    try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/120', 2); } catch (e2) { throw err; }
+  }
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 prices（欄位：' + Object.keys(data || {}).join(',') + '）');
   // 最後一根可能還沒收盤，判斷只用已收盤的 K 線；bar 是這根已收盤 K 線的時間，用來避免重複提醒
-  const all = data.prices || [];
+  const all = data.prices;
   const closed = all.slice(0, -1);
   const closes = closed.map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
   const n = closes.length;
   const barInfo = closed[n - 1] || {};
   const bar = barInfo.snapshotTimeUTC || barInfo.snapshotTime || '';
-  if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足，無法判斷' };
+  if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
   const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
@@ -551,9 +557,10 @@ function tradeTgCallback_(cq) {
 function tradeAdviceRows_() {
   return Object.keys(TRADE_ITEMS).map(name => {
     try {
-      return { name: name, dir: tradeSignal_(TRADE_ITEMS[name]).dir || '' };
+      const s = tradeSignal_(TRADE_ITEMS[name]);
+      return { name: name, dir: s.dir || '', err: s.dir ? '' : s.text };
     } catch (err) {
-      return { name: name, dir: '' };
+      return { name: name, dir: '', err: String((err && err.message) || err).slice(0, 120) };
     }
   });
 }
@@ -563,17 +570,19 @@ function tradeDirZh_(dir) {
 }
 
 function tradeAdviceText_(rows) {
-  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => r.name + '：' + tradeDirZh_(r.dir)).join('\n');
+  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => r.name + '：' + (r.dir ? tradeDirZh_(r.dir) : '讀取失敗') + (r.err ? '（' + r.err + '）' : '')).join('\n');
 }
 
 // 卡片最上面：每個商品一行，多單綠、空單紅，一眼就看得出來
 function tradeAdviceFlex_(rows) {
   const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74';
   const line = r => ({
-    type: 'box', layout: 'horizontal', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
-      { type: 'text', text: r.name, size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
-      { type: 'text', text: tradeDirZh_(r.dir), size: 'xl', weight: 'bold', align: 'end', flex: 2, color: r.dir === 'buy' ? UP : r.dir === 'sell' ? DOWN : SOFT },
-    ],
+    type: 'box', layout: 'vertical', spacing: 'xs', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
+      { type: 'box', layout: 'horizontal', contents: [
+        { type: 'text', text: r.name, size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
+        { type: 'text', text: r.dir ? tradeDirZh_(r.dir) : '讀取失敗', size: 'xl', weight: 'bold', align: 'end', flex: 2, color: r.dir === 'buy' ? UP : r.dir === 'sell' ? DOWN : SOFT },
+      ] },
+    ].concat(r.err ? [{ type: 'text', text: '原因：' + r.err, size: 'xxs', color: DOWN, wrap: true }] : []),
   });
   return [{ type: 'text', text: '方向參考（僅供參考，不保證獲利）', size: 'xs', color: SOFT, wrap: true }]
     .concat(rows.map(line))
