@@ -41,6 +41,11 @@ function tradeAsk_(t) {
     // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
+    if (s === '交易提醒') return tradeRemindStatus_('');
+    if (s === '開啟提醒' || s === '關閉提醒') {
+      tradeRemindSwitch_(s === '開啟提醒');
+      return tradeRemindStatus_(s === '開啟提醒' ? '已開啟，之後有 EMA 交叉會推送提案到 Telegram。' : '已關閉，之後不會再推送提醒。');
+    }
     return null;
   } catch (err) {
     console.error(err);
@@ -51,7 +56,7 @@ function tradeAsk_(t) {
 function tradeCard_() {
   const p = tradePending_();
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄', '🔔 交易提醒'], ['✅ 確認下單', '❌ 取消下單']];
   return { text: '📈 智能下單\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows), alt: '📈 智能下單卡片' };
 }
 
@@ -278,19 +283,26 @@ function tradeSignal_(it) {
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
 
-// 開始提醒（在編輯器執行一次）：建立每 5 分鐘的觸發器。需要授權「管理觸發條件」
-function tradeRemindOn() {
+// 開始提醒（在編輯器執行一次，或從卡片按「開啟提醒」）：建立每 5 分鐘的觸發器。需要授權「管理觸發條件」
+function tradeRemindOn() { tradeRemindSwitch_(true); }
+
+// 停止提醒（在編輯器執行一次，或從卡片按「關閉提醒」）：刪除觸發器。已推送的提案仍可手動取消
+function tradeRemindOff() { tradeRemindSwitch_(false); }
+
+// 開關共用：只改觸發器與 TRADE_REMIND 狀態，不動判斷與下單邏輯
+function tradeRemindSwitch_(on) {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tradeRemindTick_') ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('tradeRemindTick_').timeBased().everyMinutes(5).create();
-  setProp_('TRADE_REMIND', 'on');
-  console.log('提醒已開始，每 5 分鐘檢查一次');
+  if (on) ScriptApp.newTrigger('tradeRemindTick_').timeBased().everyMinutes(5).create();
+  setProp_('TRADE_REMIND', on ? 'on' : 'off');
+  console.log(on ? '提醒已開始，每 5 分鐘檢查一次' : '提醒已停止');
 }
 
-// 停止提醒（在編輯器執行一次）：刪除觸發器。之後不會再推送，已推送的提案仍可手動取消
-function tradeRemindOff() {
-  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tradeRemindTick_') ScriptApp.deleteTrigger(t); });
-  setProp_('TRADE_REMIND', 'off');
-  console.log('提醒已停止');
+// 卡片上的「交易提醒」：顯示目前狀態，並提供開啟與關閉按鈕（只控制提醒，不送單）
+function tradeRemindStatus_(note) {
+  const on = prop_('TRADE_REMIND') === 'on';
+  const rows = [on ? ['🔕 關閉提醒'] : ['🔔 開啟提醒'], ['📈 智能下單']];
+  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查 EMA 交叉，只推送提案，不會自動送單）' : '已關閉') + (note ? '\n' + note : '');
+  return { text: text, buttons: rows, flex: tradeFlex_('🔔 交易提醒', text, rows), alt: '🔔 交易提醒' };
 }
 
 // 觸發器每 5 分鐘呼叫一次：只推送提案，不送單
