@@ -25,7 +25,7 @@ const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉)/.test(s);
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s);
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -57,6 +57,11 @@ function tradeAsk_(t) {
     if (m) return tradeCloseConfirm_(m[1] || '');
     m = s.match(/^取消平倉([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeCloseCancel_(m[1] || '');
+    m = s.match(/^清除虛擬([A-Za-z0-9]{4,8})$/);
+    if (m) return tradeVirtClearAsk_(m[1].toUpperCase());
+    m = s.match(/^確認清除虛擬([A-Za-z0-9]{4,8})$/);
+    if (m) return tradeVirtClearConfirm_(m[1].toUpperCase());
+    if (s === '取消清除') return tradeVirtClearCancel_();
     if (s === '交易提醒') return tradeRemindStatus_('');
     if (s === '開啟提醒' || s === '關閉提醒') {
       tradeRemindSwitch_(s === '開啟提醒');
@@ -164,6 +169,7 @@ function tradeConfirm_(token) {
 
     if (mode === 'paper') {
       tradeLog_(p, now, '模擬紀錄，沒有送到 IG', '');
+      tradeVirtAdd_(p, now);
       tradeBump_(day);
       return '📝 模擬下單完成（沒有送到 IG）\n' + tradeProposalText_(p);
     }
@@ -310,26 +316,101 @@ function tradeRecords_() {
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
 
+// 查看持倉分兩區：真實倉位（IG 帳戶的持倉，紙上模式不查）、虛擬倉位（紙上模式記下的模擬單，損益用目前報價估算）
 function tradePositions_() {
-  const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']];
-  if (tradeMode_() === 'paper') {
-    // 紙上模式不連 IG 持倉，只看模擬紀錄
-    const logs = tradeLogList_().slice(-5);
-    const text = '📝 紙上模式不查 IG 持倉，只顯示模擬紀錄，也不能平倉。' + (logs.length ? '\n\n' + logs.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n') : '\n\n還沒有模擬紀錄。');
-    return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
-  }
-  // 損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）；停損停利用 IG 的 stopLevel、limitLevel，沒有就顯示未設定
-  const list = tradeOpenPositions_();
-  let text = list.length ? '📊 目前持倉（' + list.length + ' 筆）\n' + list.map(x => {
-    const now = x.dir === 'buy' ? x.bid : x.offer;
-    const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
-    return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) + '，現價 ' + now.toFixed(x.prec) +
-      '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + upl.toFixed(2);
-  }).join('\n') + '\n\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。' : '📊 目前沒有持倉。';
-  const log = tradeLogList_().slice(-3);
-  if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
-  const lead = list.length ? tradePosFlex_(list).concat([{ type: 'separator', color: '#E8DCC4' }]) : [];
-  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n📉 平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
+  const paper = tradeMode_() === 'paper';
+  const real = paper ? [] : tradeOpenPositions_();
+  const virt = tradeVirtOpen_();
+  const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]));
+  const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
+  const realText = real.length ? real.map(x => tradePosLine_(x)).join('\n') : realNote;
+  const virtText = virt.length ? virt.map(v => tradePosLine_(v)).join('\n') : '目前沒有。';
+  const text = '【真實倉位】IG 模擬帳戶\n' + realText + '\n\n【虛擬倉位】紙上模式記錄，損益依目前報價估算\n' + virtText +
+    '\n\n📉 平倉只對真實倉位有效。虛擬倉位可按「🗑 清除虛擬」移除紀錄，不會送出任何單。';
+  const lead = [tradeSectionFlex_('真實倉位', 'IG 模擬帳戶')]
+    .concat(real.length ? tradePosFlex_(real) : [tradeNoteFlex_(realNote)])
+    .concat([{ type: 'separator', color: '#E8DCC4' }, tradeSectionFlex_('虛擬倉位', '紙上記錄，損益依目前報價估算')])
+    .concat(virt.length ? tradePosFlex_(virt) : [tradeNoteFlex_('目前沒有。')])
+    .concat([{ type: 'separator', color: '#E8DCC4' }]);
+  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
+}
+
+// 一筆持倉的文字行（真實與虛擬共用）
+function tradePosLine_(x) {
+  const now = x.dir === 'buy' ? x.bid : x.offer;
+  const ok = isFinite(now);
+  const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
+  return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
+    '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
+    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + (ok ? upl.toFixed(2) : '未取得');
+}
+
+function tradeSectionFlex_(title, sub) {
+  return { type: 'box', layout: 'vertical', spacing: 'xs', contents: [
+    { type: 'text', text: title, size: 'sm', weight: 'bold', color: '#2A2118' },
+    { type: 'text', text: sub, size: 'xxs', color: '#9A8B74', wrap: true },
+  ] };
+}
+
+function tradeNoteFlex_(t) {
+  return { type: 'text', text: t, size: 'xs', color: '#9A8B74', wrap: true };
+}
+
+/* ---------- 虛擬倉位：紙上模式確認的模擬單，只存在 TRADE_STATE.virt，不會送到 IG ---------- */
+
+function tradeVirtList_() { return tradeState_().virt || []; }
+
+// 紙上模式確認時呼叫：記下一筆虛擬倉位（最多保留 10 筆）
+function tradeVirtAdd_(p, price) {
+  const list = tradeVirtList_().concat([{
+    id: tradeToken_(), name: p.name, side: p.side, size: p.size, price: Number(price), sl: p.sl, tp: p.tp,
+    at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'),
+  }]).slice(-10);
+  tradeSaveState_(Object.assign(tradeState_(), { virt: list }));
+}
+
+// 轉成和真實倉位一樣的格式顯示；報價取不到（例如沒有 IG 登入資料）就顯示「未取得」
+function tradeVirtOpen_() {
+  return tradeVirtList_().map(v => {
+    const it = TRADE_ITEMS[v.name];
+    let now = NaN;
+    try { now = tradeQuote_(it); } catch (e) { now = NaN; }
+    const buy = v.side === 'buy';
+    return {
+      id: v.id, name: v.name + '・虛擬', epic: it.epic, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
+      size: v.size, open: v.price, sl: v.sl, tp: v.tp, bid: now, offer: now, prec: it.prec,
+    };
+  });
+}
+
+// 清除虛擬倉位要按兩次：先出確認卡，再按「✅ 確認清除」才刪紀錄；不送任何單
+function tradeVirtClearAsk_(id) {
+  const v = tradeVirtList_().filter(x => x.id === id)[0];
+  if (!v) return { text: '找不到這筆虛擬倉位，可能已經清除了。', buttons: [['📊 查看持倉']] };
+  tradeSaveState_(Object.assign(tradeState_(), { vclear: { id: id, expires: Date.now() + TRADE_TTL_MS } }));
+  const body = '要清除這筆虛擬倉位的紀錄嗎？\n' + v.name + ' ' + (v.side === 'buy' ? '買進' : '賣出') + ' ' + v.size + ' 單位 @ ' + v.price +
+    '\n清除只會刪掉紀錄，不會送出任何單。5 分鐘內有效。';
+  const rows = [['✅ 確認清除虛擬' + id, '❌ 取消清除']];
+  return { text: '🗑 清除虛擬倉位\n' + body, buttons: rows, flex: tradeFlex_('🗑 清除虛擬倉位', body, rows), alt: '🗑 清除虛擬倉位' };
+}
+
+function tradeVirtClearConfirm_(id) {
+  return withLock_(() => {
+    const c = tradeState_().vclear;
+    tradeSaveState_(Object.assign(tradeState_(), { vclear: null }));   // 一次性
+    if (!c || c.id !== id) return '這個清除要求已經失效，沒有清除。\n請重新按「📊 查看持倉」。';
+    if (Date.now() > c.expires) return '清除要求已超過 5 分鐘，沒有清除。';
+    const list = tradeVirtList_();
+    const next = list.filter(x => x.id !== id);
+    if (next.length === list.length) return '找不到這筆虛擬倉位，可能已經清除了。';
+    tradeSaveState_(Object.assign(tradeState_(), { virt: next }));
+    return '🗑 已清除虛擬倉位紀錄（沒有送出任何單）。';
+  });
+}
+
+function tradeVirtClearCancel_() {
+  tradeSaveState_(Object.assign(tradeState_(), { vclear: null }));
+  return '❌ 已取消，虛擬倉位沒有清除。';
 }
 
 /* ---------- 設定與 IG 連線（登入資料只從 TRADE_CFG 讀） ---------- */
@@ -683,13 +764,13 @@ function tradePosFlex_(list) {
           { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位', size: 'xs', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('開倉', x.open.toFixed(x.prec)), cell('現價', now.toFixed(x.prec)),
+          cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
           cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('未實現損益（約）', upl.toFixed(2), upl >= 0 ? UP : DOWN),
+          cell('未實現損益（約）', isFinite(upl) ? upl.toFixed(2) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
       ],
     };
