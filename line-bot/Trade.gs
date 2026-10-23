@@ -44,7 +44,7 @@ function tradeAsk_(t) {
     if (s === '交易提醒') return tradeRemindStatus_('');
     if (s === '開啟提醒' || s === '關閉提醒') {
       tradeRemindSwitch_(s === '開啟提醒');
-      return tradeRemindStatus_(s === '開啟提醒' ? '已開啟，之後有 EMA 交叉會推送提案到 Telegram。' : '已關閉，之後不會再推送提醒。');
+      return tradeRemindStatus_(s === '開啟提醒' ? '已開啟，之後有交易訊號會推送提案到 Telegram。' : '已關閉，之後不會再推送提醒。');
     }
     return null;
   } catch (err) {
@@ -55,9 +55,10 @@ function tradeAsk_(t) {
 
 function tradeCard_() {
   const p = tradePending_();
-  const body = tradeAdvice_() + '\n\n模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  const adv = tradeAdviceRows_();
+  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
-  return { text: '📈 智能下單\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows), alt: '📈 智能下單卡片' };
+  return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
 function tradePickItem_() {
@@ -98,7 +99,7 @@ function tradeProposalText_(p) {
     '參考價：' + p.price.toFixed(it.prec) + '\n' +
     '停損：' + p.sl.toFixed(it.prec) + '（' + it.sl + ' 點）\n' +
     '停利：' + p.tp.toFixed(it.prec) + '（' + it.tp + ' 點）\n' +
-    p.sig + (p.against ? '\n⚠️ 這根 K 線的 EMA 交叉方向跟你選的相反' : '') +
+    p.sig + (p.against ? '\n⚠️ 這根 K 線的 EMA 方向跟你選的相反' : '') +
     '\n提案代碼：' + p.id;
 }
 
@@ -274,12 +275,12 @@ function tradeSignal_(it) {
   const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
-  const trend = fast[n - 1] > slow[n - 1] ? '多頭（快線在慢線上方）' : '空頭（快線在慢線下方）';
+  const trend = fast[n - 1] > slow[n - 1] ? '多頭' : '空頭';
   const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
-  const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => 'EMA' + p + ' ' + tradeEma_(closes, p)[n - 1].toFixed(it.prec));
-  return { signal: cross, bar: bar, dir: dir, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
-    '\n參考：' + refs.join('、') };
+  const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
+  return { signal: cross, bar: bar, dir: dir, text: 'EMA 趨勢：' + trend + (cross ? '（這根剛交叉）' : '') +
+    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') };
 }
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
@@ -302,7 +303,7 @@ function tradeRemindSwitch_(on) {
 function tradeRemindStatus_(note) {
   const on = prop_('TRADE_REMIND') === 'on';
   const rows = [on ? ['🔕 關閉提醒'] : ['🔔 開啟提醒'], ['📈 智能下單']];
-  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查 EMA 交叉，只推送提案，不會自動送單）' : '已關閉') + (note ? '\n' + note : '');
+  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查一次，只推送提案，不會自動送單）' : '已關閉') + (note ? '\n' + note : '');
   return { text: text, buttons: rows, flex: tradeFlex_('🔔 交易提醒', text, rows), alt: '🔔 交易提醒' };
 }
 
@@ -332,7 +333,7 @@ function tradeRemindTick_() {
 // LINE 推播會計入官方帳號每月 200 則額度；可在 TRADE_CFG 的 notify.remindLine 設為 false 關掉
 function tradeRemindSend_(name, side) {
   const res = tradePropose_(name, side);
-  const head = '🔔 智能下單提醒（EMA 交叉）\n' + res.text;
+  const head = '🔔 智能下單提醒\n' + res.text;
   const chat = prop_('TG_OWNER_CHAT_ID');
   if (chat) {
     tgApi_('sendMessage', {
@@ -370,17 +371,36 @@ function tradeTgCallback_(cq) {
 }
 
 // 智能下單頁面最上面的方向參考：依 EMA 趨勢，只是參考，方向仍由使用者自己選，不會自動下單
-function tradeAdvice_() {
-  const lines = Object.keys(TRADE_ITEMS).map(name => {
+function tradeAdviceRows_() {
+  return Object.keys(TRADE_ITEMS).map(name => {
     try {
-      const s = tradeSignal_(TRADE_ITEMS[name]);
-      if (!s.dir) return '・' + name + '：K 線不足，無法參考';
-      return '・' + name + '：參考' + (s.dir === 'buy' ? '多單' : '空單') + '（' + (s.dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）';
+      return { name: name, dir: tradeSignal_(TRADE_ITEMS[name]).dir || '' };
     } catch (err) {
-      return '・' + name + '：讀取失敗';
+      return { name: name, dir: '' };
     }
   });
-  return '📌 方向參考（依 EMA 9／21 趨勢，不保證獲利，方向請自己選）\n' + lines.join('\n');
+}
+
+function tradeDirZh_(dir) {
+  return dir === 'buy' ? '多單' : dir === 'sell' ? '空單' : '暫無資料';
+}
+
+function tradeAdviceText_(rows) {
+  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => r.name + '：' + tradeDirZh_(r.dir)).join('\n');
+}
+
+// 卡片最上面：每個商品一行，多單綠、空單紅，一眼就看得出來
+function tradeAdviceFlex_(rows) {
+  const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74';
+  const line = r => ({
+    type: 'box', layout: 'horizontal', paddingAll: '10px', cornerRadius: '10px', backgroundColor: '#FFFFFF', contents: [
+      { type: 'text', text: r.name, size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
+      { type: 'text', text: tradeDirZh_(r.dir), size: 'xl', weight: 'bold', align: 'end', flex: 2, color: r.dir === 'buy' ? UP : r.dir === 'sell' ? DOWN : SOFT },
+    ],
+  });
+  return [{ type: 'text', text: '方向參考（僅供參考，不保證獲利）', size: 'xs', color: SOFT, wrap: true }]
+    .concat(rows.map(line))
+    .concat([{ type: 'separator', color: '#E8DCC4' }]);
 }
 
 function tradeEma_(vals, period) {
@@ -452,7 +472,7 @@ function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6
 
 // LINE 卡片（Flex）：每一顆按鈕都是「送出一句文字」，所以會走同一套 answer_ 指令，不會直接下單
 // 版面與小乖精品選單一致：象牙白底、金色漸層標題、每顆按鈕獨占一行
-function tradeFlex_(title, body, rows) {
+function tradeFlex_(title, body, rows, lead) {
   const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const btn = (label, i) => ({
     type: 'box', layout: 'horizontal', alignItems: 'center', justifyContent: 'center', paddingAll: '13px', cornerRadius: '12px',
@@ -473,10 +493,10 @@ function tradeFlex_(title, body, rows) {
       ],
     },
     body: {
-      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px', backgroundColor: '#FBF7EF', contents: [
+      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px', backgroundColor: '#FBF7EF', contents: (lead || []).concat([
         { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
         { type: 'separator', color: LINE },
-      ].concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
+      ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
     },
   };
 }
