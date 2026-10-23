@@ -39,16 +39,16 @@ const REELS_LONG_BTN = '🎞️ 剪大片';
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'TRADE', title: '智能下單', sub: '看持倉、下單，要按確認才送出', items: [['📈 智能下單', '卡片・查看持倉・下單']] },
+  { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
-  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
+  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
@@ -159,7 +159,7 @@ const HELP_MORE = [
   '',
   '【📅 行程】',
   '・按「➕ 新增行程」（或快速回覆的「📋 貼上行程」）→ 直接打或貼上行程，小乖自動排好，一次可以排好幾筆',
-  '・今天行程、近期行程：照日期時間排好，已經過了的不顯示',
+  '・今天行程、行程：照日期時間排好，已經過了的不顯示',
   '・按「🗑️ 刪除行程」點一筆就刪，刪錯可以按「↩️ 復原」；也可以說「刪除 名稱」',
   '・過了日期的行程會自動刪掉',
   '',
@@ -239,7 +239,7 @@ function doGet(e) {
   // 「嘿 Siri，小乖」：iPhone 捷徑把聽到的話用 ?key=同步密碼&ask=… 傳進來，小乖回一段可以直接念出來的文字
   if (p.ask !== undefined) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
-    return ContentService.createTextOutput(askByVoice_(String(p.ask)));
+    return ContentService.createTextOutput(askByVoice_(String(p.ask), '', true));
   }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
@@ -285,7 +285,17 @@ function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE
 function wallLink_() { return '🔎 見證庫網頁：\n' + wallUrl_() + '\n\n① 打關鍵字或點分類找見證\n② 點縮圖看影片／圖片\n③ 按「分享到 LINE」選要傳給誰\n\n常用的按 ⭐ 會排在最前面。第一次打開要輸入同步密碼。'; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
-function talk(key, q, image, voice, audio64, audioType) {
+// 對話頁（TALK_HTML，google.script.run）先只轉文字，再用 talk(..., spoken) 送出去執行
+function talkHeard(key, audio64, audioType) {
+  if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) throw new Error('同步密碼不對');
+  return { heard: transcribeAudio_(audio64, audioType) };
+}
+function transcribeAudio_(audio64, audioType) {
+  const mt = String(audioType || 'audio/mp4');
+  const ext = /webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a';
+  return transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + ext), 'voice.' + ext);
+}
+function talk(key, q, image, voice, audio64, audioType, spoken) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
   ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_CASES_ = []; TALK_MODE_ = true;
   let heard = '';
@@ -297,7 +307,7 @@ function talk(key, q, image, voice, audio64, audioType) {
     if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
     q = heard;
   }
-  const say = askByVoice_(String(q || ''), image || '');
+  const say = askByVoice_(String(q || ''), image || '', !!audio64 || !!spoken);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
   let audio = '';
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
@@ -305,6 +315,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_, cases: TALK_CASES_ };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
+let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -315,7 +326,8 @@ function askButtons_(ans) {
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
 function voiceText_(t) { return String(t || '').trim().replace(/[\s。．.！!？?，,、；;~～…]+$/u, ''); }
 
-function askByVoice_(q, image) {
+function askByVoice_(q, image, spoken) {
+  VOICE_IN_ = !!spoken;
   q = voiceText_(q);
   if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
@@ -417,16 +429,23 @@ function doPost(e) {
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
+  // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
+  if (body.action === 'transcribe') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return json_({ heard: '', say: '同步密碼不對。' });
+    try { return json_({ heard: transcribeAudio_(body.audio, body.audioType) }); }
+    catch (err) { console.error(err); return json_({ heard: '' }); }
+  }
+
   // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
   if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
-    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType)); }
+    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType, body.spoken)); }
     catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
   }
 
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return text_('同步密碼不對，請檢查捷徑裡的設定。');
-    return text_(askByVoice_(String(body.ask || ''), body.image || ''));
+    return text_(askByVoice_(String(body.ask || ''), body.image || '', true));
   }
 
   // 「嘿 小乖 寫文案」捷徑：POST JSON { action:'card', key, ask:'火山草本' } → { text: 可直接貼的文案, img: 圖卡 PNG 的 base64 }
@@ -537,6 +556,7 @@ function handleLineGroup_(ev, gid, type) {
   const answering = st && !called && text.length <= 15 && (/^(取消|改|加|刪|删)/.test(text) || Object.keys(quoteOpts_(text)).length);
   if (!called && !answering) return;
   if (!text) return reply_(ev.replyToken, '主人叫我嗎？在「小乖」後面接著打要我做的事喔。');
+  if (tradeAskWord_(text)) return;   // 交易指令不在群組執行，避免持倉、下單內容被群組其他人看到
   const ans = answer_(text);
   const rp = reportLine_();
   reply_(ev.replyToken, rp.short || ans, rp.msgs);
@@ -550,10 +570,8 @@ function handleLine_(ev) {
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
   const owner = prop_('OWNER_USER_ID');
-  if (ev.type === 'follow') {
-    if (!owner) reply_(ev.replyToken, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
-    return;
-  }
+  // 陌生人加好友、傳訊息一律不回應（不回提示，避免洩漏資訊）；只有主人本人的訊息才會進到指令
+  if (ev.type === 'follow') return;
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image' || ev.message.type === 'video') {
     if (!owner || uid !== owner) return;
@@ -576,6 +594,7 @@ function handleLine_(ev) {
     let said = '';
     try { said = transcribe_(lineContent_(ev.message.id), 'voice.m4a'); } catch (err) { console.error(err); }
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, true);
@@ -600,7 +619,7 @@ function handleLine_(ev) {
     setProp_('OWNER_USER_ID', uid);
     return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。', null, true);
   }
-  if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;          // 還沒綁定時也不回提示：主人直接傳「綁定 同步密碼」即可
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
@@ -638,6 +657,7 @@ function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
+  if (/^語音快捷指令$/.test(text.replace(/\s+/g, ''))) return { text: '🎙️ 語音快捷指令\n到對話頁按「🎙️ 語音快捷指令」，照一步一步的說明做，就能一鍵複製網址。\n做好後到「設定 → 輔助使用 → 語音快捷指令」綁定「嘿 小乖」。', buttons: QUICK };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
@@ -1269,7 +1289,7 @@ function pasteEv_(t, raw) {
   logChat_('user', '貼上行程：' + added.length + ' 筆'); logChat_('assistant', '🗓️ 已加入 ' + added.length + ' 筆行程');
   const lines = added.slice().sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')))
     .map(x => '・' + evMd_(x.date) + evWk_(x.date) + ' ' + (x.time || '整天') + '　' + x.title + (x.place ? '（' + x.place + '）' : ''));
-  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 近期行程', PASTE_EV_BTN]].concat(MENU) };
+  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 行程', PASTE_EV_BTN]].concat(MENU) };
 }
 // 交給 AI 整理成 [{date, time, title, place}]；日期、時間格式不對的丟掉，最多 30 筆
 function pasteEvParse_(text) {
@@ -1339,7 +1359,7 @@ function evFlow_(t, raw) {
     withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); evRemind_(d, x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
-  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 近期行程']].concat(MENU) }; }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 行程']].concat(MENU) }; }
   if (flat === '刪掉剛剛這筆') {
     const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
     const x = id && readAll_().events.find(e => e.id === id);
@@ -2990,7 +3010,7 @@ function transcribe_(blob, filename) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
-    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、近期行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
+    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
   });
   if (res.getResponseCode() !== 200) throw new Error('語音辨識失敗（' + res.getResponseCode() + '）');
   return voiceText_(JSON.parse(res.getContentText()).text);
@@ -3124,6 +3144,12 @@ function handleTelegram_(update) {
     setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
   }
 
+  // 智能下單提醒的按鈕（Trade.gs）：只有主人的按鈕會處理
+  if (update.callback_query) {
+    if (typeof tradeTgCallback_ === 'function') tradeTgCallback_(update.callback_query);
+    return;
+  }
+
   const msg = update.message;
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
   const chatId = String(msg.chat.id);
@@ -3205,6 +3231,7 @@ function handleTelegram_(update) {
       said = transcribe_(blob, msg.voice ? 'voice.ogg' : (voice.file_name || 'audio.m4a'));
     } catch (err) { console.error(err); return tgSend_(chatId, '語音聽不清楚，再說一次或改打字看看。'); }
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       tgSend_(chatId, '🎤 「' + said + '」\n\n' + ans);
@@ -3235,7 +3262,7 @@ function handleTelegram_(update) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
-  if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
+  // 陌生人（還沒綁定或不是主人）傳任何訊息都不回應
   const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
   if (bind) {
     if (owner && owner !== chatId) return;   // 已經有主人：別人一律不回
@@ -3243,7 +3270,7 @@ function handleTelegram_(update) {
     setProp_('TG_OWNER_CHAT_ID', chatId);
     return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
-  if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;             // 還沒綁定時也不回提示
   if (chatId !== owner) return;   // 只回主人，其他人不回應
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
@@ -3406,7 +3433,7 @@ function listDays_(a, b, label) {
 function dayAsk_(flat) {
   const t = flat.replace(/[，,。.！!？?]/g, '');
   if (/刪|取消|移除|記|加|新增|安排一|提醒我|排/.test(t.replace(/安排$/, ''))) return null;
-  const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);
+  const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)?(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);   // 「行程」「📅 行程」快速回覆按鈕＝近期行程
   if (near) return [0, 13, '近期'];
   const m = t.match(/^(?:我)?(今天|今日|明天|明日|後天|大後天|這週|這禮拜|這星期|本週|下週|下禮拜|下星期|(?:這|下)?(?:週|星期|禮拜)[一二三四五六日天]|\d{1,2}[月\/]\d{1,2}[日號]?)(?:的|有)?(?:什麼|哪些)?(?:行程|安排|事情?)(?:嗎|呢)?$/);
   if (!m) return null;
@@ -4989,7 +5016,7 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
 #pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
 .sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
-#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -5011,8 +5038,9 @@ $('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{local
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+const MENU=['💎 選單', '📋 試算', '🛒 下單', '🪶 智囊軍師', '⏰ 今天行程', '✅ 我的待辦', '📝 我的筆記', '📊 查看持倉', '📉 平倉', '📜 下單紀錄', '🔔 交易提醒', '🎬 剪 Reels', '🎞️ 剪大片', '📕 7張＋PDF', '🗂️ 案例分類', '💬 見證案例', '🔍 查詢案例', '📁 本機找', '🌐 上網找', '➕ 新增行程', '🗑️ 刪除行程', '👤 設定主角', '💬 自動留言', '🎤 換聲音', '⚙️ 圖卡設定', '🎙️ 語音快捷指令', '❓ 說明'];
+const SHORT={'💎 選單': '💎選單', '📋 試算': '📋試算', '🪶 智囊軍師': '🪶軍師', '⏰ 今天行程': '⏰行程', '✅ 我的待辦': '✅待辦', '📝 我的筆記': '📝筆記', '🛒 下單': '📈下單', '📊 查看持倉': '📊持倉', '📉 平倉': '📉平倉', '📜 下單紀錄': '📜紀錄', '🔔 交易提醒': '🔔提醒', '🎬 剪 Reels': '🎬剪輯', '🎞️ 剪大片': '🎞️大片', '📕 7張＋PDF': '📕名單', '🗂️ 案例分類': '🗂️案例', '💬 見證案例': '💬見證', '🔍 查詢案例': '🔍查詢', '📁 本機找': '📁本機', '🌐 上網找': '🌐上網', '➕ 新增行程': '➕加行', '🗑️ 刪除行程': '🗑️刪行', '👤 設定主角': '👤主角', '💬 自動留言': '💬留言', '🎤 換聲音': '🎤換聲', '⚙️ 圖卡設定': '⚙️圖卡', '🎙️ 語音快捷指令': '🎙️語音', '❓ 說明': '❓說明'};
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=ask?t:(SHORT[t]||t);
  b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
@@ -5034,7 +5062,10 @@ function next(){if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(con
 function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
 function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,aud?aud.b64:'',aud?aud.mime:'');}
+ const show=r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);};
+ const fail=e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;};
+ if(!aud){google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,'','');return;}
+ google.script.run.withFailureHandler(fail).withSuccessHandler(t=>{const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h)return show({say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]});google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,h,'',$('spk').checked,'','',true);}).talkHeard(KEY,aud.b64,aud.mime);}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
 let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null;

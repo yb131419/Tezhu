@@ -4,7 +4,7 @@
 function tradeSetCfgOnce() {
   try {
     console.log('步驟 1：準備設定內容');
-    const cfg = { apiKey: 'YOUR_IG_API_KEY', identifier: 'YOUR_IG_USERNAME', password: 'YOUR_IG_PASSWORD', mode: 'paper', env: 'demo', notify: { telegram: true, line: false } };
+    const cfg = { apiKey: 'YOUR_IG_API_KEY', identifier: 'YOUR_IG_USERNAME', password: 'YOUR_IG_PASSWORD', mode: 'practice', env: 'demo', notify: { telegram: true, line: false } };
     if (cfg.apiKey.indexOf('YOUR_') === 0) {
       console.log('停止：apiKey 還是 YOUR_ 預留字，請先改成你自己的值');
       return;
