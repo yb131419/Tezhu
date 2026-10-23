@@ -39,7 +39,7 @@ const REELS_LONG_BTN = '🎞️ 剪大片';
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
@@ -48,7 +48,7 @@ const MENU_CARDS = [
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
-  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
+  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
@@ -159,7 +159,7 @@ const HELP_MORE = [
   '',
   '【📅 行程】',
   '・按「➕ 新增行程」（或快速回覆的「📋 貼上行程」）→ 直接打或貼上行程，小乖自動排好，一次可以排好幾筆',
-  '・今天行程、近期行程：照日期時間排好，已經過了的不顯示',
+  '・今天行程、行程：照日期時間排好，已經過了的不顯示',
   '・按「🗑️ 刪除行程」點一筆就刪，刪錯可以按「↩️ 復原」；也可以說「刪除 名稱」',
   '・過了日期的行程會自動刪掉',
   '',
@@ -1268,7 +1268,7 @@ function pasteEv_(t, raw) {
   logChat_('user', '貼上行程：' + added.length + ' 筆'); logChat_('assistant', '🗓️ 已加入 ' + added.length + ' 筆行程');
   const lines = added.slice().sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')))
     .map(x => '・' + evMd_(x.date) + evWk_(x.date) + ' ' + (x.time || '整天') + '　' + x.title + (x.place ? '（' + x.place + '）' : ''));
-  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 近期行程', PASTE_EV_BTN]].concat(MENU) };
+  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 行程', PASTE_EV_BTN]].concat(MENU) };
 }
 // 交給 AI 整理成 [{date, time, title, place}]；日期、時間格式不對的丟掉，最多 30 筆
 function pasteEvParse_(text) {
@@ -1338,7 +1338,7 @@ function evFlow_(t, raw) {
     withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); evRemind_(d, x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
-  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 近期行程']].concat(MENU) }; }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 行程']].concat(MENU) }; }
   if (flat === '刪掉剛剛這筆') {
     const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
     const x = id && readAll_().events.find(e => e.id === id);
@@ -2989,7 +2989,7 @@ function transcribe_(blob, filename) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
-    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、近期行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
+    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
   });
   if (res.getResponseCode() !== 200) throw new Error('語音辨識失敗（' + res.getResponseCode() + '）');
   return voiceText_(JSON.parse(res.getContentText()).text);
@@ -3411,6 +3411,7 @@ function listDays_(a, b, label) {
 function dayAsk_(flat) {
   const t = flat.replace(/[，,。.！!？?]/g, '');
   if (/刪|取消|移除|記|加|新增|安排一|提醒我|排/.test(t.replace(/安排$/, ''))) return null;
+  if (t === '行程') return [0, 13, '近期'];   // 「📅 行程」按鈕：列接下來兩週
   const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);
   if (near) return [0, 13, '近期'];
   const m = t.match(/^(?:我)?(今天|今日|明天|明日|後天|大後天|這週|這禮拜|這星期|本週|下週|下禮拜|下星期|(?:這|下)?(?:週|星期|禮拜)[一二三四五六日天]|\d{1,2}[月\/]\d{1,2}[日號]?)(?:的|有)?(?:什麼|哪些)?(?:行程|安排|事情?)(?:嗎|呢)?$/);
