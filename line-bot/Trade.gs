@@ -237,7 +237,8 @@ function tradeQuote_(it) {
 // 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
 function tradeSignal_(it) {
   tradeEpicCheck_(it);
-  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/100', 2);   // 「分鐘數＋筆數」的寫法屬於 v2
+  // 「分鐘數＋筆數」的寫法屬於 v2；要算 EMA200 需要至少 200 根，所以取 300 根
+  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/300', 2);
   const closes = (data.prices || []).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
   const n = closes.length;
   if (n < 30) return { signal: '', text: 'EMA：K 線不足，無法判斷' };
@@ -245,7 +246,10 @@ function tradeSignal_(it) {
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
   const trend = fast[n - 1] > slow[n - 1] ? '多頭（快線在慢線上方）' : '空頭（快線在慢線下方）';
-  return { signal: cross, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') };
+  // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
+  const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => 'EMA' + p + ' ' + tradeEma_(closes, p)[n - 1].toFixed(it.prec));
+  return { signal: cross, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
+    '\n參考：' + refs.join('、') };
 }
 
 function tradeEma_(vals, period) {
