@@ -55,8 +55,8 @@ function tradeAsk_(t) {
 
 function tradeCard_() {
   const p = tradePending_();
-  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄', '🔔 交易提醒'], ['✅ 確認下單', '❌ 取消下單']];
+  const body = tradeAdvice_() + '\n\n模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
   return { text: '📈 智能下單\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows), alt: '📈 智能下單卡片' };
 }
 
@@ -275,9 +275,10 @@ function tradeSignal_(it) {
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
   const trend = fast[n - 1] > slow[n - 1] ? '多頭（快線在慢線上方）' : '空頭（快線在慢線下方）';
+  const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => 'EMA' + p + ' ' + tradeEma_(closes, p)[n - 1].toFixed(it.prec));
-  return { signal: cross, bar: bar, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
+  return { signal: cross, bar: bar, dir: dir, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
     '\n參考：' + refs.join('、') };
 }
 
@@ -348,6 +349,20 @@ function tradeTgCallback_(cq) {
   else return;
   tgApi_('answerCallbackQuery', { callback_query_id: cq.id, text: '已處理' });
   tgApi_('sendMessage', { chat_id: owner, text: reply });
+}
+
+// 智能下單頁面最上面的方向參考：依 EMA 趨勢，只是參考，方向仍由使用者自己選，不會自動下單
+function tradeAdvice_() {
+  const lines = Object.keys(TRADE_ITEMS).map(name => {
+    try {
+      const s = tradeSignal_(TRADE_ITEMS[name]);
+      if (!s.dir) return '・' + name + '：K 線不足，無法參考';
+      return '・' + name + '：參考' + (s.dir === 'buy' ? '多單' : '空單') + '（' + (s.dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）';
+    } catch (err) {
+      return '・' + name + '：讀取失敗';
+    }
+  });
+  return '📌 方向參考（依 EMA 9／21 趨勢，不保證獲利，方向請自己選）\n' + lines.join('\n');
 }
 
 function tradeEma_(vals, period) {
