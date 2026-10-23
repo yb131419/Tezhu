@@ -77,14 +77,26 @@ function tradeCard_() {
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
+// 趨勢參考：依 EMA 趨勢標示目前較有利的方向。只是參考，按鈕都能按，不會自動下單，也不寫勝率
+function tradeFavorText_(dir) {
+  return dir === 'buy' ? '多單有利' : dir === 'sell' ? '空單有利' : '暫無資料';
+}
+
 function tradePickItem_() {
+  const adv = tradeAdviceRows_();
+  const note = '依趨勢參考，不保證獲利，方向請自己決定：\n' + adv.map(r => '・' + r.name + '：' + tradeFavorText_(r.dir)).join('\n') + '\n\n選好商品之後，再選買進或賣出。';
   const rows = [Object.keys(TRADE_ITEMS).map(n => '下單' + n), ['📊 查看持倉', '❌ 取消下單']];
-  return { text: '要下單哪一個？', buttons: rows, flex: tradeFlex_('🛒 選商品', '選好之後，再選買進或賣出。', rows), alt: '🛒 選商品' };
+  return { text: '要下單哪一個？\n' + note, buttons: rows, flex: tradeFlex_('🛒 選商品', note, rows), alt: '🛒 選商品' };
 }
 
 function tradePickSide_(name) {
-  const rows = [['🟢 買進' + name, '🔴 賣出' + name], ['❌ 取消下單']];
-  return { text: '要買還是賣' + name + '？\n選好會先給你看提案，確認後才會下單。', buttons: rows, flex: tradeFlex_('🛒 ' + name, '要買還是賣？', rows), alt: '🛒 ' + name };
+  let dir = '';
+  try { dir = tradeSignal_(TRADE_ITEMS[name]).dir || ''; } catch (err) { dir = ''; }
+  const buy = ['🟢 買進' + name], sell = ['🔴 賣出' + name];
+  const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
+  const note = '依趨勢參考，不保證獲利，方向請自己決定。\n目前：' + tradeFavorText_(dir) +
+    (dir ? '（' + (dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）' : '') + '\n選好會先給你看提案，確認後才會下單。';
+  return { text: '要買還是賣' + name + '？\n' + note, buttons: rows, flex: tradeFlex_('🛒 ' + name, note, rows), alt: '🛒 ' + name };
 }
 
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
