@@ -254,11 +254,12 @@ function tradeOpenPositions_() {
 
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD（+0.07%）」；幣別未知就標示
 // 百分比 = 未實現損益 ÷ 實際投入金額（保證金）。保證金取不到就標示「保證金未知」，不拿開倉價值代替
-function tradePnlText_(x, upl) {
+function tradePnlText_(x, upl, sep) {
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
-  if (!(x.margin > 0)) return '約 ' + upl.toFixed(2) + cur + '（保證金未知）';
+  const head = '約 ' + upl.toFixed(2) + cur;
+  if (!(x.margin > 0)) return head + (sep || '') + '（保證金未知）';
   const pct = upl / x.margin * 100;
-  return '約 ' + upl.toFixed(2) + cur + '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）';
+  return head + (sep || '') + '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）';
 }
 
 // 實際投入金額（保證金）= 數量 × 價格 × 保證金比例（IG 的 marginFactor，單位 PERCENTAGE）
@@ -974,7 +975,7 @@ function tradePosFlex_(list) {
         ] },
         { type: 'box', layout: 'vertical', spacing: 'xs', contents: [
           { type: 'text', text: '未實現損益', size: 'xs', color: SOFT },
-          { type: 'text', text: isFinite(upl) ? tradePnlText_(x, upl) : '未取得', size: 'md', weight: 'bold', color: upl >= 0 ? UP : DOWN, wrap: true },
+          { type: 'text', text: isFinite(upl) ? tradePnlText_(x, upl, '\n') : '未取得', size: 'md', weight: 'bold', color: upl >= 0 ? UP : DOWN, wrap: true },
           { type: 'text', text: x.margin > 0 ? '投入成本 約 ' + x.margin.toFixed(2) + (x.cur ? ' ' + x.cur : '') : '投入成本 未知', size: 'xs', color: SOFT, wrap: true },
         ] },
       ],
