@@ -12,7 +12,7 @@
 // sl／tp 是 IG 的「點數距離」，size 是 IG 的下單大小，兩者都要在模擬帳戶確認過再用。
 const TRADE_ITEMS = {
   '黃金': { label: '黃金', epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
-  '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 0.2, min: 0.2, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
+  '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, drift: 25, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
   '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
 const TRADE_MAX_DAILY_DEFAULT = 5;    // 每日下單上限的預設值（全商品合計）；使用者可在「⚙️ 下單上限」改，存在 TRADE_DAILY_CAP
@@ -175,10 +175,11 @@ function tradeConfirm_(token) {
 
     const now = tradeQuote_(it);
     const info = tradeMarketInfo_(it.epic);
-    if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
+    const allow = it.drift || it.sl * it.pip * TRADE_DRIFT;   // 允許的報價變動（價格單位）：商品有設 drift 就用它，沒有就用停損距離 × TRADE_DRIFT
+    if (Math.abs(now - p.price) > allow) {
       // 報價在提案後跳動超過允許範圍：不下單，改用最新報價重新出提案，仍要再按一次確認
-      const moved = Math.abs(now - p.price).toFixed(it.prec), allow = (it.sl * it.pip * TRADE_DRIFT).toFixed(it.prec);
-      const notice = '報價在你按確認前變動了 ' + moved + '（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），超過允許的 ' + allow + '，所以沒有下單。\n已依最新報價重新出提案，請確認後再按一次。';
+      const moved = Math.abs(now - p.price).toFixed(it.prec);
+      const notice = '報價在你按確認前變動了 ' + moved + '（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），超過允許的 ' + allow.toFixed(it.prec) + '，所以沒有下單。\n已依最新報價重新出提案，請確認後再按一次。';
       return tradePropose_(p.name, p.side, String(p.size), notice);
     }
     const day = tradeDay_();
