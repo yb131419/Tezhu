@@ -285,7 +285,17 @@ function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE
 function wallLink_() { return '🔎 見證庫網頁：\n' + wallUrl_() + '\n\n① 打關鍵字或點分類找見證\n② 點縮圖看影片／圖片\n③ 按「分享到 LINE」選要傳給誰\n\n常用的按 ⭐ 會排在最前面。第一次打開要輸入同步密碼。'; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
-function talk(key, q, image, voice, audio64, audioType) {
+// 對話頁（TALK_HTML，google.script.run）先只轉文字，再用 talk(..., spoken) 送出去執行
+function talkHeard(key, audio64, audioType) {
+  if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) throw new Error('同步密碼不對');
+  return { heard: transcribeAudio_(audio64, audioType) };
+}
+function transcribeAudio_(audio64, audioType) {
+  const mt = String(audioType || 'audio/mp4');
+  const ext = /webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a';
+  return transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + ext), 'voice.' + ext);
+}
+function talk(key, q, image, voice, audio64, audioType, spoken) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
   ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_CASES_ = []; TALK_MODE_ = true;
   let heard = '';
@@ -297,7 +307,7 @@ function talk(key, q, image, voice, audio64, audioType) {
     if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
     q = heard;
   }
-  const say = askByVoice_(String(q || ''), image || '', !!audio64);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
+  const say = askByVoice_(String(q || ''), image || '', !!audio64 || !!spoken);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
   let audio = '';
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
@@ -419,9 +429,16 @@ function doPost(e) {
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
+  // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
+  if (body.action === 'transcribe') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return json_({ heard: '', say: '同步密碼不對。' });
+    try { return json_({ heard: transcribeAudio_(body.audio, body.audioType) }); }
+    catch (err) { console.error(err); return json_({ heard: '' }); }
+  }
+
   // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
   if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
-    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType)); }
+    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType, body.spoken)); }
     catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
   }
 
@@ -640,6 +657,7 @@ function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
+  if (/^語音快捷指令$/.test(text.replace(/\s+/g, ''))) return { text: '🎙️ 語音快捷指令\n到對話頁按「🎙️ 語音快捷指令」，照一步一步的說明做，就能一鍵複製網址。\n做好後到「設定 → 輔助使用 → 語音快捷指令」綁定「嘿 小乖」。', buttons: QUICK };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
@@ -5020,7 +5038,7 @@ $('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{local
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
+const MENU=['💎 選單','📋 試算','🪶 智囊軍師','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明'];
 function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
  b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
 chips();
@@ -5043,7 +5061,10 @@ function next(){if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(con
 function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
 function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,aud?aud.b64:'',aud?aud.mime:'');}
+ const show=r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);};
+ const fail=e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;};
+ if(!aud){google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,'','');return;}
+ google.script.run.withFailureHandler(fail).withSuccessHandler(t=>{const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h)return show({say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]});google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,h,'',$('spk').checked,'','',true);}).talkHeard(KEY,aud.b64,aud.mime);}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
 let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null;
