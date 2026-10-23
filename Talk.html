@@ -40,7 +40,7 @@ body.conv #endc{display:block}
 #pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
 #pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
 .sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
-#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -238,10 +238,11 @@ function optSave(){$('real').disabled=!$('spk').checked;try{localStorage.setItem
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['💎 選單','📋 試算','📈 交易','🛒 下單','📉 平倉','🪶 智囊軍師','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明'];
+const MENU=['💎 選單', '📋 試算', '🛒 下單', '🪶 智囊軍師', '⏰ 今天行程', '✅ 我的待辦', '📝 我的筆記', '📊 查看持倉', '📉 平倉', '📜 下單紀錄', '🔔 交易提醒', '🎬 剪 Reels', '🎞️ 剪大片', '📕 7張＋PDF', '🗂️ 案例分類', '💬 見證案例', '🔍 查詢案例', '📁 本機找', '🌐 上網找', '➕ 新增行程', '🗑️ 刪除行程', '👤 設定主角', '💬 自動留言', '🎤 換聲音', '⚙️ 圖卡設定', '🎙️ 語音快捷指令', '❓ 說明'];
+const SHORT={'💎 選單': '💎選單', '📋 試算': '📋試算', '🪶 智囊軍師': '🪶軍師', '⏰ 今天行程': '⏰行程', '✅ 我的待辦': '✅待辦', '📝 我的筆記': '📝筆記', '🛒 下單': '📈下單', '📊 查看持倉': '📊持倉', '📉 平倉': '📉平倉', '📜 下單紀錄': '📜紀錄', '🔔 交易提醒': '🔔提醒', '🎬 剪 Reels': '🎬剪輯', '🎞️ 剪大片': '🎞️大片', '📕 7張＋PDF': '📕名單', '🗂️ 案例分類': '🗂️案例', '💬 見證案例': '💬見證', '🔍 查詢案例': '🔍查詢', '📁 本機找': '📁本機', '🌐 上網找': '🌐上網', '➕ 新增行程': '➕加行', '🗑️ 刪除行程': '🗑️刪行', '👤 設定主角': '👤主角', '💬 自動留言': '💬留言', '🎤 換聲音': '🎤換聲', '⚙️ 圖卡設定': '⚙️圖卡', '🎙️ 語音快捷指令': '🎙️語音', '❓ 說明': '❓說明'};
 // 「⚡ 最新一張」：網頁讀不到相簿，改叫 iPhone 捷徑「試算報表」自動抓最新照片
 const LATEST='⚡ 最新一張';
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask&&list.indexOf('📷 選照片')>=0&&list.indexOf(LATEST)<0)list=[LATEST].concat(list);(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask&&list.indexOf('📷 選照片')>=0&&list.indexOf(LATEST)<0)list=[LATEST].concat(list);(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=ask?t:(SHORT[t]||t);
  b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';pickPhoto(false);return;}if(t===LATEST){location.href='shortcuts://run-shortcut?name='+encodeURIComponent('試算報表');return;}if(t==='📷 選照片'){pickPhoto(false);return;}if(t==='📸 拍照'){pickPhoto(true);return;}if(t==='🎙️ 語音快捷指令'){vsOpen();return;}send(t);};c.appendChild(b);});}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
@@ -303,11 +304,12 @@ function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel(
 const APPS=[['LINE','line://',/^(line|賴|萊恩)$/i],['Telegram','tg://',/^(telegram|tg|電報|紙飛機)$/i],['YouTube','youtube://',/^(youtube|油管|優兔)$/i],['IG','instagram://',/^(ig|instagram|哀居)$/i],['FB','fb://',/^(fb|facebook|臉書)$/i]];
 function appOf(t){const m=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'').match(/^(?:幫我|請|小乖)?(?:打開|開啟|開|啟動|進入)(.+?)(?:app|應用程式)?$/i);return m?APPS.find(a=>a[2].test(m[1]))||null:null;}
 function openApp(a,w){w=w||add('','xg');w.textContent='好，幫你打開 '+a[0]+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟 '+a[0];b.onclick=()=>{location.href=a[1];};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a[1];},300);}
+function P(b){return fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;
  if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}}busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
- fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:aud?aud.b64:'',audioType:aud?aud.mime:''})})
- .then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}}).then(r=>{busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
+ P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h){busy=false;return {say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]};}const ap=appOf(h);if(ap){busy=false;w.textContent='';openApp(ap,w);return null;}return P({action:'talk',key:KEY,ask:h,image:'',voice:$('spk').checked&&$('real').checked,spoken:true});})
+ .then(r=>{if(!r)return;busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
