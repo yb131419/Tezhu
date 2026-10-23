@@ -328,15 +328,33 @@ function tradeRemindTick_() {
   }
 }
 
+// 同一張提案同時推到 Telegram（按鈕＋文字）與 LINE（快速回覆按鈕＋文字）。
+// LINE 推播會計入官方帳號每月 200 則額度；可在 TRADE_CFG 的 notify.remindLine 設為 false 關掉
 function tradeRemindSend_(name, side) {
-  const chat = prop_('TG_OWNER_CHAT_ID');
-  if (!chat) return;
   const res = tradePropose_(name, side);
-  tgApi_('sendMessage', {
-    chat_id: chat,
-    text: '🔔 智能下單提醒（EMA 交叉）\n' + res.text + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
-    reply_markup: { inline_keyboard: [[{ text: '✅ 確認下單', callback_data: 'trade_ok' }, { text: '❌ 否', callback_data: 'trade_no' }]] },
-  });
+  const head = '🔔 智能下單提醒（EMA 交叉）\n' + res.text;
+  const chat = prop_('TG_OWNER_CHAT_ID');
+  if (chat) {
+    tgApi_('sendMessage', {
+      chat_id: chat,
+      text: head + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
+      reply_markup: { inline_keyboard: [[{ text: '✅ 確認下單', callback_data: 'trade_ok' }, { text: '❌ 否', callback_data: 'trade_no' }]] },
+    });
+  }
+  const notify = tradeCfg_().notify || {};
+  if (notify.remindLine !== false && prop_('OWNER_USER_ID')) {
+    try {
+      lineApi_('push', { to: prop_('OWNER_USER_ID'), messages: [{
+        type: 'text', text: head + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
+        quickReply: { items: [
+          { type: 'action', action: { type: 'message', label: '✅ 確認下單', text: '確認下單' } },
+          { type: 'action', action: { type: 'message', label: '❌ 否', text: '否' } },
+        ] },
+      }] });
+    } catch (err) {
+      console.error('LINE 提醒推送失敗：' + err);
+    }
+  }
 }
 
 // Telegram 按鈕（Code.gs 的 handleTelegram_ 會把 callback_query 交給這裡）：只接受主人的按鈕
