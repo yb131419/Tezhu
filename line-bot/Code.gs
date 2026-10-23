@@ -43,7 +43,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'TRADE', title: '智能下單', sub: '看持倉、下單，要按確認才送出', items: [['📈 智能下單', '卡片・查看持倉・下單']] },
+  { en: 'TRADE', title: '尋找下單', sub: '看持倉、下單，要按確認才送出', items: [['📈 尋找下單', '卡片・查看持倉・下單']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
@@ -676,7 +676,7 @@ function answer_(text) {
   if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
   if (rl) return rl;
-  const tr = typeof tradeAsk_ === 'function' ? tradeAsk_(t2) : null;   // 「📈 智能下單」卡片：要按「✅ 確認下單」才送單（Trade.gs，確定性指令，AI 不會觸發）
+  const tr = typeof tradeAsk_ === 'function' ? tradeAsk_(t2) : null;   // 「📈 尋找下單」卡片：要按「✅ 確認下單」才送單（Trade.gs，確定性指令，AI 不會觸發）
   if (tr) return tr;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
   if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
