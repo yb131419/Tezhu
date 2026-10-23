@@ -23,6 +23,8 @@ const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
 function tradeAsk_(t) {
   try {
+    const q = String(t || '').match(/^查代碼\s*(.+)$/);
+    if (q) return tradeEpicSearch_(q[1].trim());
     const s = String(t || '').replace(/\s+/g, '');
     if (/^(智能下單|自動下單|下單卡片|交易|交易卡片)$/.test(s)) return tradeCard_();
     if (s === '下單') return tradePickItem_();
@@ -202,8 +204,17 @@ function tradeFetch_(method, path, version, body) {
   const text = res.getContentText();
   let json = {};
   try { json = JSON.parse(text); } catch (e) { /* 不是 JSON 就用原文 */ }
-  if (code >= 400) throw new Error('IG ' + code + '：' + (json.errorCode || text.slice(0, 200)));
+  if (code >= 400) throw new Error('IG ' + code + '（' + method.toUpperCase() + ' ' + path.split('?')[0] + '）：' + (json.errorCode || text.slice(0, 200)));
   return json;
+}
+
+// 查代碼：只讀，用 IG 的市場搜尋找 epic，不下單
+function tradeEpicSearch_(term) {
+  const res = tradeFetch_('get', '/markets?searchTerm=' + encodeURIComponent(term), 1);
+  const list = (res.markets || []).slice(0, 10);
+  if (!list.length) return '🔎 找不到「' + term + '」，換個關鍵字再試。（只讀，沒有下單）';
+  return '🔎 「' + term + '」的搜尋結果（最多 10 筆，只讀，沒有下單）：\n' +
+    list.map(m => '・' + m.instrumentName + (m.expiry ? '（' + m.expiry + '）' : '') + '\n  ' + m.epic).join('\n');
 }
 
 function tradeEpicCheck_(it) {
