@@ -797,10 +797,8 @@ function tradePosFlex_(list) {
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
     return {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
-        { type: 'box', layout: 'horizontal', contents: [
-          { type: 'text', text: x.name, size: 'lg', weight: 'bold', color: INK, flex: 3, wrap: true },
-          { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
-        ] },
+        { type: 'text', text: x.name, size: 'lg', weight: 'bold', color: INK, wrap: true },
+        { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈' : ' 📉') + '　' + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, wrap: true },
         { type: 'box', layout: 'horizontal', contents: [
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
         ] },
