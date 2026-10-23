@@ -930,13 +930,22 @@ function tradeReconcile_(cur) {
     let kind = '';
     if (p.sl !== null && (buy ? p.now <= p.sl : p.now >= p.sl)) kind = '停損';
     else if (p.tp !== null && (buy ? p.now >= p.tp : p.now <= p.tp)) kind = '停利';
-    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, size: p.size, trigger: kind, price: p.now, prec: p.prec });
+    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: p.now, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
   });
   const snap = cur.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
-    return { dealId: x.dealId, name: x.name, dir: x.dir, dirZh: x.dirZh, size: x.size, sl: x.sl === null || x.sl === undefined || x.sl === '' ? null : Number(x.sl), tp: x.tp === null || x.tp === undefined || x.tp === '' ? null : Number(x.tp), now: isFinite(now) ? now : 0, prec: x.prec };
+    return { dealId: x.dealId, name: x.name, dir: x.dir, dirZh: x.dirZh, size: x.size, sl: x.sl === null || x.sl === undefined || x.sl === '' ? null : Number(x.sl), tp: x.tp === null || x.tp === undefined || x.tp === '' ? null : Number(x.tp), open: x.open > 0 ? x.open : null, margin: x.margin > 0 ? x.margin : null, cur: x.cur || '', now: isFinite(now) ? now : 0, prec: x.prec };
   });
   tradeSaveState_(Object.assign(tradeState_(), { snap: snap, stops: stops.slice(-20) }));
+}
+
+// 一筆停損停利紀錄：投入成本、損益（損益 = (觸發價 − 開倉價) × 數量，空單反向）。舊紀錄沒有開倉價就顯示資料不足
+function tradeStopLine_(x) {
+  const head = '・' + x.at + ' ' + tradeLabelOf_(x.name) + ' ' + x.dirZh + ' ' + x.size + ' 單位，' + x.trigger + '，觸發價約 ' + Number(x.price).toFixed(x.prec);
+  if (!(x.open > 0)) return head + '\n  資料不足（舊紀錄沒有開倉價）';
+  const upl = (x.dir === 'buy' ? x.price - x.open : x.open - x.price) * x.size;
+  const cost = x.margin > 0 ? '約 ' + x.margin.toFixed(2) + ' USD' : '未知';
+  return head + '\n  開倉 ' + Number(x.open).toFixed(x.prec) + '，投入成本 ' + cost + '\n  損益 ' + tradePnlText_({ cur: x.cur, margin: x.margin }, upl, ' ');
 }
 
 // 「📋 停損停利紀錄」：最近 10 筆，只讀
@@ -944,7 +953,7 @@ function tradeStopsAsk_() {
   const list = (tradeState_().stops || []).slice(-10).reverse();
   const rows = [['📊 查看持倉'], ['📈 智能下單']];
   const text = list.length
-    ? '📋 停損停利紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x => '・' + x.at + ' ' + tradeLabelOf_(x.name) + ' ' + x.dirZh + ' ' + x.size + ' 單位，' + x.trigger + '，觸發價約 ' + Number(x.price).toFixed(x.prec)).join('\n') +
+    ? '📋 停損停利紀錄（最近 ' + list.length + ' 筆）\n' + list.map(tradeStopLine_).join('\n') +
       '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。'
     : '📋 目前沒有停損停利紀錄。\n查看持倉或提醒開啟時，會比對持倉被停損或停利平掉的情況並記下。';
   return { text: text, buttons: rows, flex: tradeFlex_('📋 停損停利紀錄', text, rows), alt: '📋 停損停利紀錄' };
