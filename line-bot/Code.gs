@@ -5016,7 +5016,7 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
 #pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
 .sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
-#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -5038,8 +5038,9 @@ $('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{local
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['💎 選單','📋 試算','🪶 智囊軍師','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明'];
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+const MENU=['💎 選單', '📋 試算', '🪶 智囊軍師', '⏰ 今天行程', '✅ 我的待辦', '📝 我的筆記', '🛒 下單', '📊 查看持倉', '📉 平倉', '📜 下單紀錄', '🔔 交易提醒', '🎬 剪 Reels', '🎞️ 剪大片', '📕 7張＋PDF', '🗂️ 案例分類', '💬 見證案例', '🔍 查詢案例', '📁 本機找', '🌐 上網找', '➕ 新增行程', '🗑️ 刪除行程', '👤 設定主角', '💬 自動留言', '🎤 換聲音', '⚙️ 圖卡設定', '🎙️ 語音快捷指令', '❓ 說明'];
+const SHORT={'💎 選單': '💎選單', '📋 試算': '📋試算', '🪶 智囊軍師': '🪶軍師', '⏰ 今天行程': '⏰行程', '✅ 我的待辦': '✅待辦', '📝 我的筆記': '📝筆記', '🛒 下單': '📈下單', '📊 查看持倉': '📊持倉', '📉 平倉': '📉平倉', '📜 下單紀錄': '📜紀錄', '🔔 交易提醒': '🔔提醒', '🎬 剪 Reels': '🎬剪輯', '🎞️ 剪大片': '🎞️大片', '📕 7張＋PDF': '📕名單', '🗂️ 案例分類': '🗂️案例', '💬 見證案例': '💬見證', '🔍 查詢案例': '🔍查詢', '📁 本機找': '📁本機', '🌐 上網找': '🌐上網', '➕ 新增行程': '➕加行', '🗑️ 刪除行程': '🗑️刪行', '👤 設定主角': '👤主角', '💬 自動留言': '💬留言', '🎤 換聲音': '🎤換聲', '⚙️ 圖卡設定': '⚙️圖卡', '🎙️ 語音快捷指令': '🎙️語音', '❓ 說明': '❓說明'};
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=ask?t:(SHORT[t]||t);
  b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
