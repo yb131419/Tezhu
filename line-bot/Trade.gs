@@ -81,18 +81,9 @@ function tradeAsk_(t) {
 function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
-  const help = '📖 用法\n' +
-    '・🛒 下單：選商品與方向，先給你看提案\n' +
-    '・數量：在指令後面加數字，例如「買進納指 2」，最多 5 單位，不加就用預設 1 單位\n' +
-    '・確認：提案 5 分鐘內有效，按鈕帶提案代碼；過期或報價偏離太多就不下單\n' +
-    '・📊 查看持倉：看停損、停利、損益；按 📉 平倉 會先出提案，確認後才平倉\n' +
-    '・📜 下單紀錄：最近 10 筆\n' +
-    '・🔔 交易提醒：有交易訊號時推送提案到 LINE 與 Telegram，只推提案，不會自動下單\n' +
-    '・下單自檢：只讀檢查點數換算，不下單';
-  // 用法放在最底部、小字淺色；上面只留方向參考、模式、待確認提案與按鈕
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
-  return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body + '\n\n' + help, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv), help), alt: '📈 智能下單卡片' };
+  return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
 // 趨勢參考：依 EMA 趨勢標示目前較有利的方向。只是參考，按鈕都能按，不會自動下單，也不寫勝率
