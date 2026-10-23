@@ -56,9 +56,13 @@ function tradeAsk_(t) {
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
     if (s === '平倉') return tradeCloseAsk_();
+    if (s === '平倉一筆') return tradeCloseMenu_(1);
+    if (s === '平倉兩筆') return tradeCloseMenu_(2);
     if (/^全部平倉(（\d+筆）)?$/.test(s)) return tradeCloseAllPropose_();
     m = s.match(/^平倉(黃金|原油|納指)(多|空)$/);
     if (m) return tradeClosePropose_(m[1], m[2]);
+    m = s.match(/^平倉(黃金|原油|納指)(多|空)\+(黃金|原油|納指)(多|空)$/);
+    if (m) return tradeClosePair_(m[1], m[2], m[3], m[4]);
     m = s.match(/^確認平倉([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeCloseConfirm_(m[1] || '');
     m = s.match(/^取消平倉([A-Za-z0-9]{4,8})?$/);
@@ -284,11 +288,9 @@ function tradeCloseAsk_() {
   const list = tradeOpenPositions_();
   if (!list.length) return { text: '📊 目前沒有持倉可平。', buttons: [['📊 查看持倉']] };
   if (list.length === 1) return tradeClosePropose_(list[0].name, list[0].dirZh);
-  // 多筆：每一筆一顆按鈕，另外有「全部平倉」；選好會先給你看提案，確認後才平
-  const labels = [];
-  list.forEach(x => { const l = '平倉' + tradeLabelOf_(x.name) + x.dirZh; if (labels.indexOf(l) < 0) labels.push(l); });
-  const rows = labels.map(l => [l]).concat([['全部平倉（' + list.length + ' 筆）'], ['📊 查看持倉']]);
-  const note = '要平哪一筆？也可以全部平倉。\n選好會先給你看提案，確認後才會平倉。';
+  // 多筆：平倉一筆、平倉兩筆、全部平倉三個選項；選好會先給你看提案，確認後才平
+  const rows = [['平倉一筆'], ['平倉兩筆'], ['全部平倉（' + list.length + ' 筆）'], ['📊 查看持倉']];
+  const note = '要平幾筆？\n選好會先給你看提案，確認後才會平倉。';
   return { text: note, buttons: rows, flex: tradeFlex_('📉 選擇平倉', note, rows), alt: '📉 選擇平倉' };
 }
 
@@ -305,6 +307,35 @@ function tradeCloseAllPropose_() {
   const list = tradeOpenPositions_().filter(x => TRADE_ITEMS[x.name]);
   if (!list.length) return { text: '📊 目前沒有可平的持倉。', buttons: [['📊 查看持倉']] };
   return tradeCloseMake_(list);
+}
+
+// 「平倉一筆」「平倉兩筆」的子選單：一筆就每筆一顆；兩筆在剛好 2 筆持倉時直接出提案，多筆就列出每一組
+function tradeCloseMenu_(k) {
+  if (tradeMode_() === 'paper') return { text: '📝 紙上模式沒有真實持倉可平。', buttons: [['📊 查看持倉']] };
+  const list = tradeOpenPositions_();
+  if (list.length < k) return { text: '持倉不到 ' + k + ' 筆，請先按「📊 查看持倉」。', buttons: [['📊 查看持倉']] };
+  const labels = [];
+  const add = l => { if (labels.indexOf(l) < 0) labels.push(l); };
+  if (k === 1) {
+    list.forEach(x => add('平倉' + tradeLabelOf_(x.name) + x.dirZh));
+    const rows = labels.map(l => [l]).concat([['📊 查看持倉']]);
+    return { text: '要平哪一筆？\n選好會先給你看提案，確認後才會平倉。', buttons: rows, flex: tradeFlex_('📉 平倉一筆', '選好會先給你看提案，確認後才會平倉。', rows), alt: '📉 平倉一筆' };
+  }
+  if (list.length === 2) return tradeCloseMake_(list);
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    add('平倉' + tradeLabelOf_(list[i].name) + list[i].dirZh + '+' + tradeLabelOf_(list[j].name) + list[j].dirZh);
+  }
+  const rows = labels.map(l => [l]).concat([['📊 查看持倉']]);
+  return { text: '要平哪兩筆？\n選好會先給你看提案，確認後才會平倉。', buttons: rows, flex: tradeFlex_('📉 平倉兩筆', '選好會先給你看提案，確認後才會平倉。', rows), alt: '📉 平倉兩筆' };
+}
+
+// 成對平倉（持倉 3 筆以上時從「平倉兩筆」選）：兩筆都要在持倉裡，不會平到同一筆
+function tradeClosePair_(n1, d1, n2, d2) {
+  const list = tradeOpenPositions_();
+  const a = list.filter(x => x.name === n1 && x.dirZh === d1)[0];
+  const b = a && list.filter(x => x.dealId !== a.dealId && x.name === n2 && x.dirZh === d2)[0];
+  if (!a || !b) return { text: '找不到這兩筆持倉，可能已經平倉了。\n請先按「📊 查看持倉」。', buttons: [['📊 查看持倉']] };
+  return tradeCloseMake_([a, b]);
 }
 
 // 產生平倉提案（一筆或多筆）：只存在 TRADE_STATE.closePending，不會送單。價格用平倉方向（平多用買價，平空用賣價）
