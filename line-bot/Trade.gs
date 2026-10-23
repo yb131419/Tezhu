@@ -1,4 +1,4 @@
-/* ============ 尋找下單（IG Group）：卡片＋確認 ============ */
+/* ============ 智能下單（IG Group）：卡片＋確認 ============ */
 // 這個檔案要跟 Code.gs 放在同一個 Apps Script 專案（在編輯器「+」新增一個檔案，名字隨意，例如 Trade，整份貼進去）。
 // 安全規則（使用者要求「要確認才下單」）：
 // 1. 沒有排程，AI 也不會下單：要先按「🛒 下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
@@ -47,7 +47,7 @@ function tradeCard_() {
   const p = tradePending_();
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 下單'], ['✅ 確認下單', '❌ 取消下單']];
-  return { text: '📈 尋找下單\n' + body, buttons: rows, flex: tradeFlex_('📈 尋找下單', body, rows), alt: '📈 尋找下單卡片' };
+  return { text: '📈 智能下單\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows), alt: '📈 智能下單卡片' };
 }
 
 function tradePickItem_() {
