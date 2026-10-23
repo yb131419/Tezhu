@@ -549,34 +549,71 @@ function tradeQuote_(it) {
   return (Number(snap.bid) + Number(snap.offer)) / 2;
 }
 
-// 15 分鐘 K 線（已收盤）。IG 的歷史資料有帳戶額度，所以：
-// 1. 只抓 210 根（EMA200 需要約 200 根），不再用 300 根或 120 根的 fallback
-// 2. 同一個 15 分鐘區間內只向 IG 要一次，結果快取到下一根 K 線；智能下單與提醒共用
-// 3. 額度用完（exceeded-account-historical-data-allowance）就記住 1 小時，期間不再呼叫 IG
+// 15 分鐘 K 線（已收盤）。IG 的歷史資料有帳戶額度（用的是抓取的資料點數），所以：
+// 1. 第一次整段抓 210 根（EMA200 需要約 200 根），之後存在 PropertiesService（KB_ 開頭），每根 K 線只補 3 根，不再整段重抓
+// 2. 同一個 15 分鐘區間內只算一次，結果快取到下一根 K 線；智能下單、方向參考與提醒共用
+// 3. 中間缺了一段（補不上）就整段重抓一次；額度用完（exceeded-account-historical-data-allowance）就記住 1 小時，期間不再呼叫 IG
 function tradeCandles_(it) {
   const cache = CacheService.getScriptCache();
   const key = 'K15_' + it.epic + '_' + Math.floor(Date.now() / 900000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
+  const stored = tradeKlineState_(it);
+  let state = null;
+  if (stored) {
+    const fresh = tradePrices_(it, 3);
+    if (tradeContinues_(stored.last, fresh)) {
+      const add = fresh.filter(b => b.t > stored.last);
+      state = {
+        last: add.length ? add[add.length - 1].t : stored.last,
+        closes: stored.closes.concat(add.map(b => b.c)).slice(-TRADE_BARS),
+      };
+    }
+  }
+  if (!state) {
+    const full = tradePrices_(it, TRADE_BARS);
+    state = { last: full.length ? full[full.length - 1].t : '', closes: full.map(b => b.c).slice(-TRADE_BARS) };
+  }
+  setProp_(tradeKlineKey_(it), JSON.stringify(state));
+  const out = { closes: state.closes, bar: state.last };
+  cache.put(key, JSON.stringify(out), 900);
+  return out;
+}
+
+// 向 IG 要最近 n 根 K 線，丟掉還沒收盤的最後一根，回傳 [{ t: 收盤時間, c: 收盤中間價 }]（舊到新）
+function tradePrices_(it, n) {
   let data;
-  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/' + TRADE_BARS, 2); }
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/' + n, 2); }
   catch (err) {
     if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
-      cache.put('K15_QUOTA', '1', 3600);
+      CacheService.getScriptCache().put('K15_QUOTA', '1', 3600);
       throw new Error(TRADE_QUOTA_MSG);
     }
     throw err;
   }
   if (!data || !data.prices) throw new Error('IG 回傳沒有 prices（欄位：' + Object.keys(data || {}).join(',') + '）');
-  // 最後一根可能還沒收盤，所以丟掉
-  const closed = data.prices.slice(0, -1);
-  const out = {
-    closes: closed.map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2),
-    bar: closed.length ? (closed[closed.length - 1].snapshotTimeUTC || closed[closed.length - 1].snapshotTime || '') : '',
-  };
-  cache.put(key, JSON.stringify(out), 900);
-  return out;
+  return data.prices.slice(0, -1).map(c => ({
+    t: c.snapshotTimeUTC || '',
+    c: (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2,
+  }));
+}
+
+// 快取的 K 線：PropertiesService 存 { last: 最後一根收盤時間, closes: [...] }；沒有或壞掉就回傳 null
+function tradeKlineKey_(it) { return 'KB_' + it.epic.replace(/[^A-Za-z0-9]/g, '_'); }
+
+function tradeKlineState_(it) {
+  try {
+    const s = JSON.parse(prop_(tradeKlineKey_(it)) || 'null');
+    return s && s.closes && s.closes.length ? s : null;
+  } catch (e) { return null; }
+}
+
+// 新抓的 K 線能不能接上快取：最舊的一根不能晚於「快取最後一根的下一根」，中間才沒有缺
+function tradeContinues_(last, fresh) {
+  if (!last || !fresh.length || !fresh[0].t) return false;
+  const next = new Date(Date.parse(last + 'Z') + 900000).toISOString().slice(0, 19);
+  return fresh[0].t <= next;
 }
 
 // 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
