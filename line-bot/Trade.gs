@@ -94,7 +94,7 @@ function tradeFavorText_(dir) {
 
 function tradePickItem_() {
   const adv = tradeAdviceRows_();
-  const note = '依趨勢參考，不保證獲利，方向請自己決定：\n' + adv.map(r => '・' + tradeLabelOf_(r.name) + '：' + tradeFavorText_(r.dir)).join('\n') + '\n\n選好商品之後，再選買進或賣出。';
+  const note = '趨勢參考（不保證獲利）：\n' + adv.map(r => '・' + tradeLabelOf_(r.name) + '：' + tradeFavorText_(r.dir)).join('\n');
   const rows = [Object.keys(TRADE_ITEMS).map(n => '下單' + tradeLabelOf_(n)), ['📊 查看持倉', '❌ 取消下單']];
   return { text: '要下單哪一個？\n' + note, buttons: rows, flex: tradeFlex_('🛒 選商品', note, rows), alt: '🛒 選商品' };
 }
@@ -105,8 +105,7 @@ function tradePickSide_(name) {
   const label = tradeLabelOf_(name);
   const buy = ['🟢 買進' + label], sell = ['🔴 賣出' + label];
   const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
-  const note = '依趨勢參考，不保證獲利，方向請自己決定。\n目前：' + tradeFavorText_(dir) +
-    (dir ? '（' + (dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）' : '') + '\n選好會先給你看提案，確認後才會下單。' + (TRADE_ITEMS[name].min ? '\n數量：在指令後面加數字，最小 ' + TRADE_ITEMS[name].min + '，例如「買進' + tradeLabelOf_(name) + ' ' + TRADE_ITEMS[name].min * 2 + '」' : '');
+  const note = '趨勢參考：' + tradeFavorText_(dir) + '（不保證獲利）' + (TRADE_ITEMS[name].min ? '\n數量：在指令後面加數字，最小 ' + TRADE_ITEMS[name].min + '，例如「買進' + tradeLabelOf_(name) + ' ' + TRADE_ITEMS[name].min * 2 + '」' : '');
   return { text: '要買還是賣' + label + '？\n' + note, buttons: rows, flex: tradeFlex_('🛒 ' + label, note, rows), alt: '🛒 ' + label };
 }
 
@@ -116,7 +115,7 @@ function tradeMinDeal_(it) {
 }
 
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
-function tradePropose_(name, side, sizeText) {
+function tradePropose_(name, side, sizeText, notice) {
   const it = TRADE_ITEMS[name];
   // 數量以 min 為單位（納指 0.2，其他 1）：要在 min 到 TRADE_MAX_SIZE 之間，而且是 min 的整數倍
   const min = it.min || 1;
@@ -139,7 +138,7 @@ function tradePropose_(name, side, sizeText) {
     against: !!sig.signal && sig.signal !== side,
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
-  const body = tradeProposalText_(p) + '\n\n5 分鐘內按「✅ 確認下單」才會送出（按鈕已帶提案代碼）；按「❌ 取消下單」就不做。';
+  const body = (notice ? notice + '\n\n' : '') + tradeProposalText_(p) + '\n\n5 分鐘內按確認才會送出。';
   const rows = [['✅ 確認下單' + p.id, '❌ 取消下單' + p.id]];   // 按鈕帶提案代碼：舊卡片只能確認／取消它自己的那張
   return { text: '🧾 下單提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('🧾 下單提案', body, rows), alt: '🧾 下單提案' };
 }
@@ -172,7 +171,10 @@ function tradeConfirm_(token) {
     const now = tradeQuote_(it);
     const info = tradeMarketInfo_(it.epic);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
-      return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 下單」。';
+      // 報價在提案後跳動超過允許範圍：不下單，改用最新報價重新出提案，仍要再按一次確認
+      const moved = Math.abs(now - p.price).toFixed(it.prec), allow = (it.sl * it.pip * TRADE_DRIFT).toFixed(it.prec);
+      const notice = '報價在你按確認前變動了 ' + moved + '（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），超過允許的 ' + allow + '，所以沒有下單。\n已依最新報價重新出提案，請確認後再按一次。';
+      return tradePropose_(p.name, p.side, String(p.size), notice);
     }
     const day = tradeDay_();
     if (day.n >= TRADE_MAX_DAILY) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + TRADE_MAX_DAILY + '，沒有下單。';
@@ -299,7 +301,7 @@ function tradeClosePropose_(name, dirZh) {
     '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
     '目前價：' + price.toFixed(hit.prec) + '\n' +
     '未實現損益 ' + tradePnlText_(hit, upl) + '\n\n' +
-    '5 分鐘內按「✅ 確認平倉」才會送出；按「❌ 取消平倉」就不做。\n平倉提案代碼：' + p.id;
+    '5 分鐘內按確認才會送出。\n代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
   return { text: '📉 平倉提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('📉 平倉提案', body, rows), alt: '📉 平倉提案' };
 }
@@ -394,7 +396,7 @@ function tradePosLine_(x) {
 }
 
 function tradeNoteFlex_(t) {
-  return { type: 'text', text: t, size: 'xs', color: '#9A8B74', wrap: true };
+  return { type: 'text', text: t, size: 'xs', color: '#5C4E3C', wrap: true };
 }
 
 /* ---------- 虛擬倉位：紙上模式確認的模擬單，只存在 TRADE_STATE.virt，不會送到 IG ---------- */
@@ -731,7 +733,7 @@ function tradeTgCallback_(cq) {
   if (!m) return;
   const reply = m[1] === 'ok' ? tradeConfirm_(m[2] || '') : tradeCancel_(m[2] || '');
   tgApi_('answerCallbackQuery', { callback_query_id: cq.id, text: '已處理' });
-  tgApi_('sendMessage', { chat_id: owner, text: reply });
+  tgApi_('sendMessage', { chat_id: owner, text: typeof reply === 'string' ? reply : reply.text });
 }
 
 // 智能下單頁面最上面的方向參考：依 EMA 趨勢，只是參考，方向仍由使用者自己選，不會自動下單
@@ -751,12 +753,12 @@ function tradeDirZh_(dir) {
 }
 
 function tradeAdviceText_(rows) {
-  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => tradeLabelOf_(r.name) + '：' + (r.dir ? tradeDirZh_(r.dir) : '讀取失敗') + (r.err ? '（' + r.err + '）' : '')).join('\n');
+  return '方向參考（不保證獲利）\n' + rows.map(r => tradeLabelOf_(r.name) + '：' + (r.dir ? tradeDirZh_(r.dir) : '讀取失敗') + (r.err ? '（' + r.err + '）' : '')).join('\n');
 }
 
 // 卡片最上面：每個商品一行，多單綠、空單紅，一眼就看得出來
 function tradeAdviceFlex_(rows) {
-  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#9A8B74';
+  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#5C4E3C';
   const line = r => ({
     type: 'box', layout: 'vertical', spacing: 'xs', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
       { type: 'box', layout: 'horizontal', contents: [
@@ -765,7 +767,7 @@ function tradeAdviceFlex_(rows) {
       ] },
     ].concat(r.err ? [{ type: 'text', text: '原因：' + r.err, size: 'xxs', color: DOWN, wrap: true }] : []),
   });
-  return [{ type: 'text', text: '方向參考（僅供參考，不保證獲利）', size: 'xs', color: SOFT, wrap: true }]
+  return [{ type: 'text', text: '方向參考（不保證獲利）', size: 'xs', color: SOFT, wrap: true }]
     .concat(rows.map(line))
     .concat([{ type: 'separator', color: '#E8DCC4' }]);
 }
@@ -852,7 +854,7 @@ function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6
 // 版面與小乖精品選單一致：象牙白底、金色漸層標題、每顆按鈕獨占一行
 // 持倉卡片：每筆一個小卡，商品與方向在上，開倉、現價、損益、停損、停利排成格子
 function tradePosFlex_(list) {
-  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
+  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#5C4E3C', LINE = '#E8DCC4';
   const cell = (label, value, color) => ({
     type: 'box', layout: 'vertical', flex: 1, spacing: 'xs', contents: [
       { type: 'text', text: label, size: 'xs', color: SOFT },
@@ -884,7 +886,7 @@ function tradePosFlex_(list) {
 
 // 精品質感卡片（與小乖主選單一致）：象牙白漸層標題、金色細線、象牙白內容區，按鈕第一顆金色、其餘白底
 function tradeFlex_(title, body, rows, lead, foot) {
-  const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4', GOLD = '#B08D57';
+  const INK = '#2A2118', SOFT = '#5C4E3C', LINE = '#E8DCC4', GOLD = '#B08D57';
   const btn = (label, i) => ({
     type: 'box', layout: 'horizontal', alignItems: 'center', justifyContent: 'center', paddingAll: '13px', cornerRadius: '12px',
     borderWidth: '1px', borderColor: i ? LINE : '#C9A56A',
@@ -910,7 +912,7 @@ function tradeFlex_(title, body, rows, lead, foot) {
         { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
         { type: 'separator', color: LINE, margin: 'lg' },
       ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' })))
-        .concat(foot ? [{ type: 'separator', color: LINE, margin: 'lg' }, { type: 'text', text: foot, size: 'xxs', color: '#B5A88F', wrap: true, margin: 'md' }] : []),
+        .concat(foot ? [{ type: 'separator', color: LINE, margin: 'lg' }, { type: 'text', text: foot, size: 'xxs', color: '#5C4E3C', wrap: true, margin: 'md' }] : []),
     },
   };
 }
