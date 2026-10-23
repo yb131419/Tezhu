@@ -43,7 +43,7 @@ const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
-  { en: 'TRADE', title: '智能下單', sub: '看持倉、下單，要按確認才送出', items: [['📈 智能下單', '卡片・查看持倉・下單']] },
+  { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・選擇下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
@@ -539,6 +539,7 @@ function handleLineGroup_(ev, gid, type) {
   const answering = st && !called && text.length <= 15 && (/^(取消|改|加|刪|删)/.test(text) || Object.keys(quoteOpts_(text)).length);
   if (!called && !answering) return;
   if (!text) return reply_(ev.replyToken, '主人叫我嗎？在「小乖」後面接著打要我做的事喔。');
+  if (tradeAskWord_(text)) return;   // 交易指令不在群組執行，避免持倉、下單內容被群組其他人看到
   const ans = answer_(text);
   const rp = reportLine_();
   reply_(ev.replyToken, rp.short || ans, rp.msgs);
@@ -552,10 +553,8 @@ function handleLine_(ev) {
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
   const owner = prop_('OWNER_USER_ID');
-  if (ev.type === 'follow') {
-    if (!owner) reply_(ev.replyToken, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
-    return;
-  }
+  // 陌生人加好友、傳訊息一律不回應（不回提示，避免洩漏資訊）；只有主人本人的訊息才會進到指令
+  if (ev.type === 'follow') return;
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image' || ev.message.type === 'video') {
     if (!owner || uid !== owner) return;
@@ -603,7 +602,7 @@ function handleLine_(ev) {
     setProp_('OWNER_USER_ID', uid);
     return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。', null, true);
   }
-  if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;          // 還沒綁定時也不回提示：主人直接傳「綁定 同步密碼」即可
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
@@ -3127,6 +3126,12 @@ function handleTelegram_(update) {
     setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
   }
 
+  // 智能下單提醒的按鈕（Trade.gs）：只有主人的按鈕會處理
+  if (update.callback_query) {
+    if (typeof tradeTgCallback_ === 'function') tradeTgCallback_(update.callback_query);
+    return;
+  }
+
   const msg = update.message;
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
   const chatId = String(msg.chat.id);
@@ -3239,7 +3244,7 @@ function handleTelegram_(update) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
-  if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
+  // 陌生人（還沒綁定或不是主人）傳任何訊息都不回應
   const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
   if (bind) {
     if (owner && owner !== chatId) return;   // 已經有主人：別人一律不回
@@ -3247,7 +3252,7 @@ function handleTelegram_(update) {
     setProp_('TG_OWNER_CHAT_ID', chatId);
     return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
-  if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;             // 還沒綁定時也不回提示
   if (chatId !== owner) return;   // 只回主人，其他人不回應
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
