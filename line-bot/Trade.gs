@@ -13,7 +13,7 @@
 const TRADE_ITEMS = {
   '黃金': { label: '黃金', epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
   '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, drift: 50, sl: 50, tp: 100, pip: 1, prec: 2 },   // pip 1：停損停利以價格單位計（IG 的 stopDistance 也是價格單位，與持倉一致）   // 使用者提供，尚未用 IG 行情驗證
-  '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
+  '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 1, prec: 1 },   // pip 1：IG 的 stopDistance 200 = 200 個指數點（持倉停損 ±200、停利 ∓400 已驗證），提案與紀錄也用同一單位   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
 const TRADE_MAX_DAILY_DEFAULT = 5;    // 每日下單上限的預設值（全商品合計）；使用者可在「⚙️ 下單上限」改，存在 TRADE_DAILY_CAP
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
