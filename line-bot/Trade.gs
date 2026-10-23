@@ -207,9 +207,9 @@ function tradeConfirm_(token) {
     }
     const fillPrice = Number(conf.level);
     tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交', margin: tradeMarginRound_(tradeMarginOf_(fillPrice, p.size, info, '')) });
-    const done = '✅ 已送出（' + label + '）\n成交價：' + fillPrice.toFixed(it.prec) +
+    const done = '✅ 已送出（' + label + '）\n方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
-    tradeNotify_('📣 成交通知\n' + tradeLabelOf_(p.name) + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
+    tradeNotify_('📣 成交通知\n' + tradeLabelOf_(p.name) + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(2).join('\n'));
     return done;
   });
 }
