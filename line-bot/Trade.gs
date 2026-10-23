@@ -11,9 +11,9 @@
 // 商品對照。epic 必須從 IG 網站的市場頁面複製（見 PR 說明），沒填前會直接拒絕下單。
 // sl／tp 是 IG 的「點數距離」，size 是 IG 的下單大小，兩者都要在模擬帳戶確認過再用。
 const TRADE_ITEMS = {
-  '黃金': { epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
-  '原油': { epic: 'CC.D.LCO.UNC.IP', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
-  '納指': { epic: 'IX.D.NASDAQ.IFMM.IP', size: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
+  '黃金': { label: '黃金', epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
+  '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
+  '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
 const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
@@ -36,7 +36,8 @@ function tradeAsk_(t) {
   try {
     const q = String(t || '').match(/^查代碼\s*(.+)$/);
     if (q) return tradeEpicSearch_(q[1].trim());
-    const s = String(t || '').replace(/\s+/g, '');
+    // 卡片上顯示的完整名稱（納斯達克100指數、布倫特原油）也能打，先換回內部代號再比對
+    const s = String(t || '').replace(/\s+/g, '').replace(/納斯達克100指數/g, '納指').replace(/布倫特原油/g, '原油');
     if (/^(尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片)$/.test(s)) return tradeCard_();
     if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     // 語音只能打開卡片、查詢；買進、賣出、平倉、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
@@ -93,19 +94,20 @@ function tradeFavorText_(dir) {
 
 function tradePickItem_() {
   const adv = tradeAdviceRows_();
-  const note = '依趨勢參考，不保證獲利，方向請自己決定：\n' + adv.map(r => '・' + r.name + '：' + tradeFavorText_(r.dir)).join('\n') + '\n\n選好商品之後，再選買進或賣出。';
-  const rows = [Object.keys(TRADE_ITEMS).map(n => '下單' + n), ['📊 查看持倉', '❌ 取消下單']];
+  const note = '依趨勢參考，不保證獲利，方向請自己決定：\n' + adv.map(r => '・' + tradeLabelOf_(r.name) + '：' + tradeFavorText_(r.dir)).join('\n') + '\n\n選好商品之後，再選買進或賣出。';
+  const rows = [Object.keys(TRADE_ITEMS).map(n => '下單' + tradeLabelOf_(n)), ['📊 查看持倉', '❌ 取消下單']];
   return { text: '要下單哪一個？\n' + note, buttons: rows, flex: tradeFlex_('🛒 選商品', note, rows), alt: '🛒 選商品' };
 }
 
 function tradePickSide_(name) {
   let dir = '';
   try { dir = tradeSignal_(TRADE_ITEMS[name]).dir || ''; } catch (err) { dir = ''; }
-  const buy = ['🟢 買進' + name], sell = ['🔴 賣出' + name];
+  const label = tradeLabelOf_(name);
+  const buy = ['🟢 買進' + label], sell = ['🔴 賣出' + label];
   const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
   const note = '依趨勢參考，不保證獲利，方向請自己決定。\n目前：' + tradeFavorText_(dir) +
     (dir ? '（' + (dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）' : '') + '\n選好會先給你看提案，確認後才會下單。';
-  return { text: '要買還是賣' + name + '？\n' + note, buttons: rows, flex: tradeFlex_('🛒 ' + name, note, rows), alt: '🛒 ' + name };
+  return { text: '要買還是賣' + label + '？\n' + note, buttons: rows, flex: tradeFlex_('🛒 ' + label, note, rows), alt: '🛒 ' + label };
 }
 
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
@@ -133,7 +135,7 @@ function tradePropose_(name, side, sizeText) {
 
 function tradeProposalText_(p) {
   const it = TRADE_ITEMS[p.name];
-  return '商品：' + p.name + '（' + it.epic + '）\n' +
+  return '商品：' + tradeLabelOf_(p.name) + '（' + it.epic + '）\n' +
     '方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' +
     '參考價：' + p.price.toFixed(it.prec) + '\n' +
     '停損：' + p.sl.toFixed(it.prec) + '（' + it.sl + ' 點）\n' +
@@ -196,7 +198,7 @@ function tradeConfirm_(token) {
     tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交', margin: tradeMarginRound_(tradeMarginOf_(fillPrice, p.size, info, '')) });
     const done = '✅ 已送出（' + label + '）\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
-    tradeNotify_('📣 成交通知\n' + p.name + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
+    tradeNotify_('📣 成交通知\n' + tradeLabelOf_(p.name) + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
     return done;
   });
 }
@@ -268,7 +270,7 @@ function tradeCloseAsk_() {
   if (!list.length) return { text: '📊 目前沒有持倉可平。', buttons: [['📊 查看持倉']] };
   if (list.length === 1) return tradeClosePropose_(list[0].name, list[0].dirZh);
   const labels = [];
-  list.forEach(x => { const l = '平倉' + x.name + x.dirZh; if (labels.indexOf(l) < 0) labels.push(l); });
+  list.forEach(x => { const l = '平倉' + tradeLabelOf_(x.name) + x.dirZh; if (labels.indexOf(l) < 0) labels.push(l); });
   const rows = labels.map(l => [l]).concat([['📊 查看持倉']]);
   return { text: '要平哪一筆？\n選好會先給你看提案，確認後才會平倉。', buttons: rows, flex: tradeFlex_('📉 選擇平倉', '選好之後會先給你看提案，確認後才會平倉。', rows), alt: '📉 選擇平倉' };
 }
@@ -281,7 +283,7 @@ function tradeClosePropose_(name, dirZh) {
   const p = { id: tradeToken_(), dealId: hit.dealId, name: name, dir: hit.dir, dirZh: dirZh, size: hit.size, price: price, prec: hit.prec, expires: Date.now() + TRADE_TTL_MS };
   tradeSaveState_(Object.assign(tradeState_(), { closePending: p }));
   const upl = (hit.dir === 'buy' ? price - hit.open : hit.open - price) * hit.size;
-  const body = '商品：' + name + '（' + hit.epic + '）\n' +
+  const body = '商品：' + tradeLabelOf_(name) + '（' + hit.epic + '）\n' +
     '方向：平' + dirZh + '（' + (hit.dir === 'buy' ? '賣出' : '買進') + '）' + hit.size + ' 單位\n' +
     '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
     '目前價：' + price.toFixed(hit.prec) + '\n' +
@@ -324,8 +326,8 @@ function tradeCloseConfirm_(token) {
     }
     const fill = Number(conf.level).toFixed(hit.prec);
     tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
-    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
-    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill;
+    tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
+    return '✅ 已平倉（' + label + '）\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill;
   });
 }
 
@@ -343,7 +345,7 @@ function tradeRecords_() {
   const rows = [['📈 智能下單', '📊 查看持倉']];
   if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
   const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
-    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + (x.margin > 0 ? ' · 保證金 ' + x.margin.toFixed(2) + ' USD' : '') + '（' + x.label + '）').join('\n') +
+    '・' + x.at + ' ' + tradeLabelOf_(x.name) + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + (x.margin > 0 ? ' · 保證金 ' + x.margin.toFixed(2) + ' USD' : '') + '（' + x.label + '）').join('\n') +
     '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
@@ -375,7 +377,7 @@ function tradePosLine_(x) {
   const now = x.dir === 'buy' ? x.bid : x.offer;
   const ok = isFinite(now);
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
-  return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
+  return '・' + tradeLabelOf_(x.name) + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
     '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得');
 }
@@ -405,7 +407,7 @@ function tradeVirtOpen_() {
     try { now = tradeQuote_(it); } catch (e) { now = NaN; }
     const buy = v.side === 'buy';
     return {
-      id: v.id, name: v.name + '・虛擬', epic: it.epic, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
+      id: v.id, name: tradeLabelOf_(v.name) + '・虛擬', epic: it.epic, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
       size: v.size, open: v.price, sl: v.sl, tp: v.tp, bid: now, offer: now, prec: it.prec,
       margin: v.margin > 0 ? v.margin : NaN,
       cur: 'USD',   // 虛擬單和送出的訂單一樣用 USD 計價（見 tradeConfirm_ 的 currencyCode）
@@ -418,7 +420,7 @@ function tradeVirtClearAsk_(id) {
   const v = tradeVirtList_().filter(x => x.id === id)[0];
   if (!v) return { text: '找不到這筆虛擬倉位，可能已經清除了。', buttons: [['📊 查看持倉']] };
   tradeSaveState_(Object.assign(tradeState_(), { vclear: { id: id, expires: Date.now() + TRADE_TTL_MS } }));
-  const body = '要清除這筆虛擬倉位的紀錄嗎？\n' + v.name + ' ' + (v.side === 'buy' ? '買進' : '賣出') + ' ' + v.size + ' 單位 @ ' + v.price +
+  const body = '要清除這筆虛擬倉位的紀錄嗎？\n' + tradeLabelOf_(v.name) + ' ' + (v.side === 'buy' ? '買進' : '賣出') + ' ' + v.size + ' 單位 @ ' + v.price +
     '\n清除只會刪掉紀錄，不會送出任何單。5 分鐘內有效。';
   const rows = [['✅ 確認清除虛擬' + id, '❌ 取消清除']];
   return { text: '🗑 清除虛擬倉位\n' + body, buttons: rows, flex: tradeFlex_('🗑 清除虛擬倉位', body, rows), alt: '🗑 清除虛擬倉位' };
@@ -525,7 +527,7 @@ function tradeSelfTest_() {
       const pipMeans = (m.instrument || {}).onePipMeans || '（IG 未回傳）';
       const priceSl = it.sl * it.pip, priceTp = it.tp * it.pip;
       const minOk = rules.value === undefined || rules.unit !== 'POINTS' || (it.sl >= rules.value && it.tp >= rules.value);
-      return '・' + name + '：停損 ' + it.sl + ' 點 ＝ 價格 ' + priceSl.toFixed(it.prec) + '，停利 ' + it.tp + ' 點 ＝ 價格 ' + priceTp.toFixed(it.prec) +
+      return '・' + tradeLabelOf_(name) + '：停損 ' + it.sl + ' 點 ＝ 價格 ' + priceSl.toFixed(it.prec) + '，停利 ' + it.tp + ' 點 ＝ 價格 ' + priceTp.toFixed(it.prec) +
         '\n  IG 點值：' + pipMeans + '；最小停損／停利：' + (rules.value !== undefined ? rules.value + ' ' + rules.unit : '（IG 未回傳）') +
         '\n  結果：' + (minOk ? '✅ 通過' : '❌ 低於 IG 最小值，請調整');
     });
@@ -701,7 +703,7 @@ function tradeDirZh_(dir) {
 }
 
 function tradeAdviceText_(rows) {
-  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => r.name + '：' + (r.dir ? tradeDirZh_(r.dir) : '讀取失敗') + (r.err ? '（' + r.err + '）' : '')).join('\n');
+  return '方向參考（僅供參考，不保證獲利）\n' + rows.map(r => tradeLabelOf_(r.name) + '：' + (r.dir ? tradeDirZh_(r.dir) : '讀取失敗') + (r.err ? '（' + r.err + '）' : '')).join('\n');
 }
 
 // 卡片最上面：每個商品一行，多單綠、空單紅，一眼就看得出來
@@ -710,7 +712,7 @@ function tradeAdviceFlex_(rows) {
   const line = r => ({
     type: 'box', layout: 'vertical', spacing: 'xs', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
       { type: 'box', layout: 'horizontal', contents: [
-        { type: 'text', text: r.name, size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
+        { type: 'text', text: tradeLabelOf_(r.name), size: 'md', weight: 'bold', color: INK, flex: 3, gravity: 'center' },
         { type: 'text', text: r.dir ? tradeDirZh_(r.dir) : '讀取失敗', size: 'xl', weight: 'bold', align: 'end', flex: 2, color: r.dir === 'buy' ? UP : r.dir === 'sell' ? DOWN : SOFT },
       ] },
     ].concat(r.err ? [{ type: 'text', text: '原因：' + r.err, size: 'xxs', color: DOWN, wrap: true }] : []),
@@ -784,6 +786,11 @@ function tradeLogSet_(ref, patch) {
   tradeSaveState_(Object.assign(tradeState_(), { log: list }));
 }
 
+// 顯示用名稱：卡片、按鈕、說明用 label；內部代號（納指、原油…）仍用來比對與儲存
+function tradeLabelOf_(n) {
+  return (TRADE_ITEMS[n] && TRADE_ITEMS[n].label) || n;
+}
+
 function tradeNameOf_(epic) {
   const hit = Object.keys(TRADE_ITEMS).filter(n => TRADE_ITEMS[n].epic === epic)[0];
   return hit || epic;
@@ -809,7 +816,7 @@ function tradePosFlex_(list) {
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
     return {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
-        { type: 'text', text: x.name, size: 'lg', weight: 'bold', color: INK, wrap: true },
+        { type: 'text', text: tradeLabelOf_(x.name), size: 'lg', weight: 'bold', color: INK, wrap: true },
         { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈' : ' 📉') + '　' + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, wrap: true },
         { type: 'box', layout: 'horizontal', contents: [
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
