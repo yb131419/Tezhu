@@ -120,7 +120,7 @@ function tradeConfirm_(token) {
 
     // IG：先送單，拿 dealReference，再用 /confirms 確認是否成交
     const placed = tradeFetch_('post', '/positions/otc', 2, {
-      epic: it.epic, direction: p.side === 'buy' ? 'BUY' : 'SELL', size: p.size, orderType: 'MARKET',
+      epic: it.epic, expiry: '-', direction: p.side === 'buy' ? 'BUY' : 'SELL', size: p.size, orderType: 'MARKET',
       currencyCode: 'USD', forceOpen: true, guaranteedStop: false,
       stopDistance: it.sl, limitDistance: it.tp,
     });
