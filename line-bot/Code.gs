@@ -239,7 +239,7 @@ function doGet(e) {
   // 「嘿 Siri，小乖」：iPhone 捷徑把聽到的話用 ?key=同步密碼&ask=… 傳進來，小乖回一段可以直接念出來的文字
   if (p.ask !== undefined) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
-    return ContentService.createTextOutput(askByVoice_(String(p.ask)));
+    return ContentService.createTextOutput(askByVoice_(String(p.ask), '', true));
   }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
@@ -297,7 +297,7 @@ function talk(key, q, image, voice, audio64, audioType) {
     if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
     q = heard;
   }
-  const say = askByVoice_(String(q || ''), image || '');
+  const say = askByVoice_(String(q || ''), image || '', !!audio64);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
   let audio = '';
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
@@ -305,6 +305,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_, cases: TALK_CASES_ };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
+let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -315,7 +316,8 @@ function askButtons_(ans) {
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
 function voiceText_(t) { return String(t || '').trim().replace(/[\s。．.！!？?，,、；;~～…]+$/u, ''); }
 
-function askByVoice_(q, image) {
+function askByVoice_(q, image, spoken) {
+  VOICE_IN_ = !!spoken;
   q = voiceText_(q);
   if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
@@ -426,7 +428,7 @@ function doPost(e) {
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return text_('同步密碼不對，請檢查捷徑裡的設定。');
-    return text_(askByVoice_(String(body.ask || ''), body.image || ''));
+    return text_(askByVoice_(String(body.ask || ''), body.image || '', true));
   }
 
   // 「嘿 小乖 寫文案」捷徑：POST JSON { action:'card', key, ask:'火山草本' } → { text: 可直接貼的文案, img: 圖卡 PNG 的 base64 }
@@ -576,6 +578,7 @@ function handleLine_(ev) {
     let said = '';
     try { said = transcribe_(lineContent_(ev.message.id), 'voice.m4a'); } catch (err) { console.error(err); }
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, true);
@@ -3205,6 +3208,7 @@ function handleTelegram_(update) {
       said = transcribe_(blob, msg.voice ? 'voice.ogg' : (voice.file_name || 'audio.m4a'));
     } catch (err) { console.error(err); return tgSend_(chatId, '語音聽不清楚，再說一次或改打字看看。'); }
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       tgSend_(chatId, '🎤 「' + said + '」\n\n' + ans);

@@ -26,11 +26,13 @@ function tradeAsk_(t) {
     const s = String(t || '').replace(/\s+/g, '');
     if (/^(智能下單|自動下單|下單卡片|交易|交易卡片)$/.test(s)) return tradeCard_();
     if (s === '下單') return tradePickItem_();
+    // 語音只能打開卡片、查詢；買進、賣出、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
+    if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)$/.test(s) || /^確認下單/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)$/);
     if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell');
-    if (s === '查看持倉') return tradePositions_();
+    if (/^(查看持倉|查持倉|看持倉|持倉|我的持倉)$/.test(s)) return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
     if (s === '取消下單') return tradeCancel_();
