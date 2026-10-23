@@ -345,13 +345,17 @@ function tradePositions_() {
   const virt = tradeVirtOpen_();
   const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]));
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
-  const all = real.map(x => tradePosLine_(Object.assign({}, x, { name: x.name + '・IG 模擬' }))).concat(virt.map(v => tradePosLine_(v)));
+  // 真實倉位前面獨立一行標示「IG Group 模擬倉／真實倉」；虛擬倉位在商品名後面標示「虛擬」
+  const realTag = tradeMode_() === 'live' ? 'IG Group 真實倉' : 'IG Group 模擬倉';
+  const all = (real.length ? [realTag] : []).concat(real.map(x => tradePosLine_(x)), virt.map(v => tradePosLine_(v)));
   const text = (all.length ? '📊 持倉\n' + all.join('\n') : '📊 目前沒有持倉。' + (paper ? '\n' + realNote : '')) +
     '\n\n📉 平倉只對真實倉位有效。虛擬倉位可按「🗑 清除虛擬」移除紀錄，不會送出任何單。';
-  // 真實與虛擬合成同一個區塊：商品名後面標示「IG 模擬」或「虛擬」；沒有任何持倉就只顯示一句話
-  const cards = real.map(x => Object.assign({}, x, { name: x.name + '・IG 模擬' })).concat(virt);
-  const lead = (cards.length ? tradePosFlex_(cards) : [tradeNoteFlex_(paper ? realNote : '目前沒有持倉。')])
-    .concat([{ type: 'separator', color: '#E8DCC4' }]);
+  // 真實與虛擬仍在同一個區塊；真實倉位上方獨立一行標示，沒有任何持倉就只顯示一句話
+  const lead = [];
+  if (real.length) lead.push({ type: 'text', text: realTag, size: 'sm', weight: 'bold', color: '#2A2118' }, ...tradePosFlex_(real));
+  if (virt.length) lead.push(...tradePosFlex_(virt));
+  if (!real.length && !virt.length) lead.push(tradeNoteFlex_(paper ? realNote : '目前沒有持倉。'));
+  lead.push({ type: 'separator', color: '#E8DCC4' });
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
 }
 
