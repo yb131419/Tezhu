@@ -37,7 +37,9 @@ function tradeAsk_(t) {
     if (s === '查看持倉') return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
-    if (s === '取消下單') return tradeCancel_();
+    if (s === '下單自檢') return tradeSelfTest_();
+    m = s.match(/^取消下單([A-Za-z0-9]{4,8})?$/);
+    if (m) return tradeCancel_(m[1] || '');
     // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
@@ -57,7 +59,7 @@ function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
@@ -88,7 +90,7 @@ function tradePropose_(name, side, sizeText) {
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
   const body = tradeProposalText_(p) + '\n\n5 分鐘內按「✅ 確認下單」才會送出；按「❌ 取消下單」就不做。';
-  const rows = [['✅ 確認下單', '❌ 取消下單']];
+  const rows = [['✅ 確認下單' + p.id, '❌ 取消下單' + p.id]];   // 按鈕帶提案代碼：舊卡片只能確認／取消它自己的那張
   return { text: '🧾 下單提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('🧾 下單提案', body, rows), alt: '🧾 下單提案' };
 }
 
@@ -123,34 +125,46 @@ function tradeConfirm_(token) {
     }
     const day = tradeDay_();
     if (day.n >= TRADE_MAX_DAILY) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + TRADE_MAX_DAILY + '，沒有下單。';
-    if (tradeOpenCount_() >= TRADE_MAX_OPEN) return '同時持倉已達上限 ' + TRADE_MAX_OPEN + ' 筆，沒有下單。';
+    // 紙上模式不查 IG 持倉；IG 模式才檢查同時持倉上限
+    if (mode !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN) return '同時持倉已達上限 ' + TRADE_MAX_OPEN + ' 筆，沒有下單。';
 
     if (mode === 'paper') {
-      tradeLog_(p, now, '模擬紀錄，沒有送到 IG');
+      tradeLog_(p, now, '模擬紀錄，沒有送到 IG', '');
       tradeBump_(day);
       return '📝 模擬下單完成（沒有送到 IG）\n' + tradeProposalText_(p);
     }
 
-    // IG：先送單，拿 dealReference，再用 /confirms 確認是否成交
+    // IG：送單成功（拿到 dealReference）就先記錄與計數，之後再查成交結果；查詢失敗也不會漏記
+    const label = mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶';
     const placed = tradeFetch_('post', '/positions/otc', 2, {
       epic: it.epic, expiry: '-', direction: p.side === 'buy' ? 'BUY' : 'SELL', size: p.size, orderType: 'MARKET',
       currencyCode: 'USD', forceOpen: true, guaranteedStop: false,
       stopDistance: it.sl, limitDistance: it.tp,
     });
-    const conf = tradeFetch_('get', '/confirms/' + placed.dealReference, 1);
-    if (conf.dealStatus !== 'ACCEPTED') return '❌ 下單沒有成交：' + (conf.reason || conf.dealStatus || '未知原因');
-    const fillPrice = Number(conf.level);
+    const ref = placed.dealReference || '';
     tradeBump_(day);
-    tradeLog_(p, fillPrice, mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶');
-    const done = '✅ 已送出（' + (mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶') + '）\n成交價：' + fillPrice.toFixed(it.prec) +
+    tradeLog_(p, p.price, label + '，成交狀態待確認', ref);
+    if (!ref) return '⏳ 已送出，但 IG 沒有回傳單號，紀錄已標示「成交狀態待確認」，請按「📊 查看持倉」核對。';
+    let conf = null, checkErr = '';
+    try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
+    if (!conf) return '⏳ 已送出，但查詢成交結果失敗：' + checkErr + '\n紀錄已標示「成交狀態待確認」，請按「📊 查看持倉」核對。';
+    if (conf.dealStatus !== 'ACCEPTED') {
+      const reason = conf.reason || conf.dealStatus || '未知原因';
+      tradeLogSet_(ref, { label: label + '，未成交：' + reason });
+      return '❌ 下單沒有成交：' + reason + '\n（紀錄已更新）';
+    }
+    const fillPrice = Number(conf.level);
+    tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交' });
+    const done = '✅ 已送出（' + label + '）\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
     tradeNotify_('📣 成交通知\n' + p.name + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
     return done;
   });
 }
 
-function tradeCancel_() {
+function tradeCancel_(token) {
   const had = tradePending_();
+  if (token && had && token.toUpperCase() !== had.id) return '提案代碼對不上，可能是舊的提案，沒有取消。';
   tradeSaveState_(Object.assign(tradeState_(), { pending: null }));
   return had ? '❌ 已取消，這張提案沒有送出。' : '目前沒有待確認的下單。';
 }
@@ -166,8 +180,14 @@ function tradeRecords_() {
 }
 
 function tradePositions_() {
-  const positions = tradeFetch_('get', '/positions', 2).positions || [];
   const rows = [['📈 交易', '🛒 選擇下單']];
+  if (tradeMode_() === 'paper') {
+    // 紙上模式不連 IG 持倉，只看模擬紀錄
+    const logs = tradeLogList_().slice(-5);
+    const text = '📝 紙上模式不查 IG 持倉，只顯示模擬紀錄。' + (logs.length ? '\n\n' + logs.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n') : '\n\n還沒有模擬紀錄。');
+    return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
+  }
+  const positions = tradeFetch_('get', '/positions', 2).positions || [];
   // IG 的 /positions 回傳 position.size（數量）、position.level（開倉價），損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）
   let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x => {
     const buy = x.position.direction === 'BUY';
@@ -248,6 +268,33 @@ function tradeEpicSearch_(term) {
     list.map(m => '・' + m.instrumentName + (m.expiry ? '（' + m.expiry + '）' : '') + '\n  ' + m.epic).join('\n');
 }
 
+// 下單自檢（只讀，不下單）：把 sl／tp 點數換算成價格距離，並對照 IG 回報的點值與最小停損距離。
+// 實測步驟（由使用者手動做，程式不會自動下單）：
+// 1. 「下單自檢」看每個商品的換算與 IG 的 onePipMeans 是否一致、停損是否高於 IG 最小值。
+// 2. 在 practice 模式下按「🛒 選擇下單」→ 納指 → 買進納指 1，看提案的停損價是否約為參考價 ∓ 20.0。
+// 3. 按「✅ 確認下單＋代碼」送出 1 單，到 IG 模擬帳戶看該單的停損價與停利價，是否與提案一致。
+// 4. 用「📊 查看持倉」確認持倉數量與開倉價；確認後到 IG 網站手動平倉。
+function tradeSelfTest_() {
+  try {
+    const lines = Object.keys(TRADE_ITEMS).map(name => {
+      const it = TRADE_ITEMS[name];
+      tradeEpicCheck_(it);
+      const m = tradeFetch_('get', '/markets/' + it.epic, 3);
+      const rules = (m.dealingRules || {}).minStopOrProfitDistance || {};
+      const pipMeans = (m.instrument || {}).onePipMeans || '（IG 未回傳）';
+      const priceSl = it.sl * it.pip, priceTp = it.tp * it.pip;
+      const minOk = rules.value === undefined || rules.unit !== 'POINTS' || (it.sl >= rules.value && it.tp >= rules.value);
+      return '・' + name + '：停損 ' + it.sl + ' 點 ＝ 價格 ' + priceSl.toFixed(it.prec) + '，停利 ' + it.tp + ' 點 ＝ 價格 ' + priceTp.toFixed(it.prec) +
+        '\n  IG 點值：' + pipMeans + '；最小停損／停利：' + (rules.value !== undefined ? rules.value + ' ' + rules.unit : '（IG 未回傳）') +
+        '\n  結果：' + (minOk ? '✅ 通過' : '❌ 低於 IG 最小值，請調整');
+    });
+    return '🧪 下單自檢（只讀，沒有下單）\n' + lines.join('\n');
+  } catch (err) {
+    console.error(err);
+    return '下單自檢失敗：' + (err && err.message || err);
+  }
+}
+
 function tradeEpicCheck_(it) {
   if (!it.epic || it.epic.indexOf('FILL_IN') === 0) throw new Error('還沒填 Epic 代碼，請從 IG 市場頁面複製（見 PR 說明）');
 }
@@ -314,7 +361,7 @@ function tradeRemindTick_() {
     const cur = tradePending_();
     if (cur && cur.expires > Date.now()) return;   // 已有待確認的提案，不重複推送
     const day = tradeDay_();
-    if (day.n >= TRADE_MAX_DAILY || tradeOpenCount_() >= TRADE_MAX_OPEN) return;
+    if (day.n >= TRADE_MAX_DAILY || (tradeMode_() !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN)) return;
     const seen = tradeState_().alerts || {};
     for (const name of Object.keys(TRADE_ITEMS)) {
       const sig = tradeSignal_(TRADE_ITEMS[name]);
@@ -333,13 +380,14 @@ function tradeRemindTick_() {
 // LINE 推播會計入官方帳號每月 200 則額度；可在 TRADE_CFG 的 notify.remindLine 設為 false 關掉
 function tradeRemindSend_(name, side) {
   const res = tradePropose_(name, side);
+  const id = (tradePending_() || {}).id || '';   // 按鈕與快速回覆都帶提案代碼，只會作用在這一張
   const head = '🔔 智能下單提醒\n' + res.text;
   const chat = prop_('TG_OWNER_CHAT_ID');
   if (chat) {
     tgApi_('sendMessage', {
       chat_id: chat,
       text: head + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
-      reply_markup: { inline_keyboard: [[{ text: '✅ 確認下單', callback_data: 'trade_ok' }, { text: '❌ 否', callback_data: 'trade_no' }]] },
+      reply_markup: { inline_keyboard: [[{ text: '✅ 確認下單', callback_data: 'trade_ok:' + id }, { text: '❌ 否', callback_data: 'trade_no:' + id }]] },
     });
   }
   const notify = tradeCfg_().notify || {};
@@ -348,8 +396,8 @@ function tradeRemindSend_(name, side) {
       lineApi_('push', { to: prop_('OWNER_USER_ID'), messages: [{
         type: 'text', text: head + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
         quickReply: { items: [
-          { type: 'action', action: { type: 'message', label: '✅ 確認下單', text: '確認下單' } },
-          { type: 'action', action: { type: 'message', label: '❌ 否', text: '否' } },
+          { type: 'action', action: { type: 'message', label: '✅ 確認下單', text: '確認下單' + id } },
+          { type: 'action', action: { type: 'message', label: '❌ 否', text: '取消下單' + id } },
         ] },
       }] });
     } catch (err) {
@@ -362,10 +410,9 @@ function tradeRemindSend_(name, side) {
 function tradeTgCallback_(cq) {
   const owner = prop_('TG_OWNER_CHAT_ID');
   if (!owner || !cq.message || String(cq.message.chat.id) !== owner) return;
-  let reply = '';
-  if (cq.data === 'trade_ok') reply = tradeConfirm_('');
-  else if (cq.data === 'trade_no') reply = tradeCancel_();
-  else return;
+  const m = String(cq.data || '').match(/^trade_(ok|no)(?::([A-Za-z0-9]+))?$/);
+  if (!m) return;
+  const reply = m[1] === 'ok' ? tradeConfirm_(m[2] || '') : tradeCancel_(m[2] || '');
   tgApi_('answerCallbackQuery', { callback_query_id: cq.id, text: '已處理' });
   tgApi_('sendMessage', { chat_id: owner, text: reply });
 }
@@ -455,10 +502,16 @@ function tradeBump_(day) {
 
 function tradeLogList_() { return tradeState_().log || []; }
 
-function tradeLog_(p, price, label) {
+function tradeLog_(p, price, label, ref) {
   const list = tradeLogList_();
-  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, size: p.size, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label });
+  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, size: p.size, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label, ref: ref || '' });
   tradeSaveState_(Object.assign(tradeState_(), { log: list.slice(-20) }));
+}
+
+// 更新已記錄的那一筆（例如查到成交價或未成交原因），以 IG 的單號對應
+function tradeLogSet_(ref, patch) {
+  const list = tradeLogList_().map(x => x.ref === ref ? Object.assign(x, patch) : x);
+  tradeSaveState_(Object.assign(tradeState_(), { log: list }));
 }
 
 function tradeNameOf_(epic) {
