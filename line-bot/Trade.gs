@@ -87,9 +87,10 @@ function tradeCard_() {
     '・📜 下單紀錄：最近 10 筆\n' +
     '・🔔 交易提醒：有交易訊號時推送提案到 LINE 與 Telegram，只推提案，不會自動下單\n' +
     '・下單自檢：只讀檢查點數換算，不下單';
-  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。\n\n' + help + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  // 用法放在最底部、小字淺色；上面只留方向參考、模式、待確認提案與按鈕
+  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
-  return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
+  return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body + '\n\n' + help, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv), help), alt: '📈 智能下單卡片' };
 }
 
 // 趨勢參考：依 EMA 趨勢標示目前較有利的方向。只是參考，按鈕都能按，不會自動下單，也不寫勝率
@@ -344,14 +345,12 @@ function tradePositions_() {
   const virt = tradeVirtOpen_();
   const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]));
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
-  const realText = real.length ? real.map(x => tradePosLine_(x)).join('\n') : realNote;   // 幣別已在上一行補好
-  const virtText = virt.length ? virt.map(v => tradePosLine_(v)).join('\n') : '目前沒有。';
-  const text = '【真實倉位】IG 模擬帳戶\n' + realText + '\n\n【虛擬倉位】紙上模式記錄，損益依目前報價估算\n' + virtText +
+  const all = real.map(x => tradePosLine_(Object.assign({}, x, { name: x.name + '・IG 模擬' }))).concat(virt.map(v => tradePosLine_(v)));
+  const text = (all.length ? '📊 持倉\n' + all.join('\n') : '📊 目前沒有持倉。' + (paper ? '\n' + realNote : '')) +
     '\n\n📉 平倉只對真實倉位有效。虛擬倉位可按「🗑 清除虛擬」移除紀錄，不會送出任何單。';
-  const lead = [tradeSectionFlex_('真實倉位', 'IG 模擬帳戶')]
-    .concat(real.length ? tradePosFlex_(real) : [tradeNoteFlex_(realNote)])
-    .concat([{ type: 'separator', color: '#E8DCC4' }, tradeSectionFlex_('虛擬倉位', '紙上記錄，損益依目前報價估算')])
-    .concat(virt.length ? tradePosFlex_(virt) : [tradeNoteFlex_('目前沒有。')])
+  // 真實與虛擬合成同一個區塊：商品名後面標示「IG 模擬」或「虛擬」；沒有任何持倉就只顯示一句話
+  const cards = real.map(x => Object.assign({}, x, { name: x.name + '・IG 模擬' })).concat(virt);
+  const lead = (cards.length ? tradePosFlex_(cards) : [tradeNoteFlex_(paper ? realNote : '目前沒有持倉。')])
     .concat([{ type: 'separator', color: '#E8DCC4' }]);
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
 }
@@ -364,13 +363,6 @@ function tradePosLine_(x) {
   return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
     '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(upl, x.cur) : '未取得');
-}
-
-function tradeSectionFlex_(title, sub) {
-  return { type: 'box', layout: 'vertical', spacing: 'xs', contents: [
-    { type: 'text', text: title, size: 'sm', weight: 'bold', color: '#2A2118' },
-    { type: 'text', text: sub, size: 'xxs', color: '#9A8B74', wrap: true },
-  ] };
 }
 
 function tradeNoteFlex_(t) {
@@ -792,8 +784,8 @@ function tradePosFlex_(list) {
   const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const cell = (label, value, color) => ({
     type: 'box', layout: 'vertical', flex: 1, spacing: 'xs', contents: [
-      { type: 'text', text: label, size: 'xxs', color: SOFT },
-      { type: 'text', text: value, size: 'xs', weight: 'bold', color: color || INK },
+      { type: 'text', text: label, size: 'xs', color: SOFT },
+      { type: 'text', text: value, size: 'md', weight: 'bold', color: color || INK },
     ],
   });
   return list.map(x => {
@@ -802,8 +794,8 @@ function tradePosFlex_(list) {
     return {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
         { type: 'box', layout: 'horizontal', contents: [
-          { type: 'text', text: x.name, size: 'md', weight: 'bold', color: INK, flex: 3 },
-          { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位', size: 'xs', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
+          { type: 'text', text: x.name, size: 'lg', weight: 'bold', color: INK, flex: 3, wrap: true },
+          { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
         ] },
         { type: 'box', layout: 'horizontal', contents: [
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
@@ -820,7 +812,7 @@ function tradePosFlex_(list) {
 }
 
 // 精品質感卡片（與小乖主選單一致）：象牙白漸層標題、金色細線、象牙白內容區，按鈕第一顆金色、其餘白底
-function tradeFlex_(title, body, rows, lead) {
+function tradeFlex_(title, body, rows, lead, foot) {
   const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4', GOLD = '#B08D57';
   const btn = (label, i) => ({
     type: 'box', layout: 'horizontal', alignItems: 'center', justifyContent: 'center', paddingAll: '13px', cornerRadius: '12px',
@@ -846,7 +838,8 @@ function tradeFlex_(title, body, rows, lead) {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '22px', backgroundColor: '#FBF8F2', contents: (lead || []).concat([
         { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
         { type: 'separator', color: LINE, margin: 'lg' },
-      ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
+      ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' })))
+        .concat(foot ? [{ type: 'separator', color: LINE, margin: 'lg' }, { type: 'text', text: foot, size: 'xxs', color: '#B5A88F', wrap: true, margin: 'md' }] : []),
     },
   };
 }
