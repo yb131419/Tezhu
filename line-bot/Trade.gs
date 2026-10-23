@@ -37,6 +37,7 @@ function tradeAsk_(t) {
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
     if (s === '取消下單') return tradeCancel_();
+    if (s === '下單紀錄') return tradeRecords_();
     return null;
   } catch (err) {
     console.error(err);
@@ -47,7 +48,7 @@ function tradeAsk_(t) {
 function tradeCard_() {
   const p = tradePending_();
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['✅ 確認下單', '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
   return { text: '📈 智能下單\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows), alt: '📈 智能下單卡片' };
 }
 
@@ -143,6 +144,16 @@ function tradeCancel_() {
   const had = tradePending_();
   tradeSaveState_(Object.assign(tradeState_(), { pending: null }));
   return had ? '❌ 已取消，這張提案沒有送出。' : '目前沒有待確認的下單。';
+}
+
+// 下單紀錄：列出最近 10 筆（模擬與實際送單成交都會記在這裡），只讀
+function tradeRecords_() {
+  const list = tradeLogList_().slice(-10).reverse();
+  const rows = [['📈 智能下單', '📊 查看持倉']];
+  if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
+  const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
+    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n');
+  return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
 
 function tradePositions_() {
