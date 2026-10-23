@@ -11,7 +11,7 @@
 // 商品對照。epic 必須從 IG 網站的市場頁面複製（見 PR 說明），沒填前會直接拒絕下單。
 // sl／tp 是 IG 的「點數距離」，size 是 IG 的下單大小，兩者都要在模擬帳戶確認過再用。
 const TRADE_ITEMS = {
-  '黃金': { epic: 'FILL_IN_GOLD_EPIC', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },
+  '黃金': { epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
   '原油': { epic: 'CC.D.LCO.UNC.IP', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
   '納指': { epic: 'IX.D.NASDAQ.FBMU1.IP', size: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
 };
