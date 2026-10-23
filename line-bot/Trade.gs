@@ -17,6 +17,7 @@ const TRADE_ITEMS = {
 };
 const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
+const TRADE_MAX_SIZE = 5;             // 單筆最多下單數量（防止誤打大數字）
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 
@@ -30,8 +31,8 @@ function tradeAsk_(t) {
     if (s === '下單') return tradePickItem_();
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
-    m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)$/);
-    if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell');
+    m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
+    if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell', m[3]);
     if (s === '查看持倉') return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
@@ -61,13 +62,15 @@ function tradePickSide_(name) {
 }
 
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
-function tradePropose_(name, side) {
+function tradePropose_(name, side, sizeText) {
   const it = TRADE_ITEMS[name];
+  const size = sizeText ? Number(sizeText) : it.size;
+  if (!(size >= 1 && size <= TRADE_MAX_SIZE)) return '數量要在 1 到 ' + TRADE_MAX_SIZE + ' 之間，沒有產生提案。';
   const price = tradeQuote_(it);
   const sig = tradeSignal_(it);
   const dir = side === 'buy' ? 1 : -1;
   const p = {
-    id: tradeToken_(), name: name, side: side, size: it.size, price: price,
+    id: tradeToken_(), name: name, side: side, size: size, price: price,
     sl: tradeRound_(price - dir * it.sl * it.pip, it.prec),
     tp: tradeRound_(price + dir * it.tp * it.pip, it.prec),
     expires: Date.now() + TRADE_TTL_MS, sig: sig.text,
