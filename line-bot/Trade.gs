@@ -127,8 +127,10 @@ function tradeConfirm_(token) {
     const fillPrice = Number(conf.level);
     tradeBump_(day);
     tradeLog_(p, fillPrice, mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶');
-    return '✅ 已送出（' + (mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶') + '）\n成交價：' + fillPrice.toFixed(it.prec) +
+    const done = '✅ 已送出（' + (mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶') + '）\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
+    tradeNotify_('📣 成交通知\n' + p.name + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
+    return done;
   });
 }
 
@@ -242,6 +244,19 @@ function tradeEma_(vals, period) {
 }
 
 function tradeOpenCount_() { return (tradeFetch_('get', '/positions', 2).positions || []).length; }
+
+// 成交通知（只在真的送出單之後才發，模擬不發）：
+// 預設發到 Telegram（不計額度）；LINE 推播要在 TRADE_CFG 設 "notify":{"line":true} 才會發，
+// LINE 推播會計入官方帳號每月 200 則免費額度，所以預設關閉。
+function tradeNotify_(text) {
+  const n = tradeCfg_().notify || {};
+  if (n.telegram !== false && prop_('TG_OWNER_CHAT_ID')) {
+    try { tgApi_('sendMessage', { chat_id: prop_('TG_OWNER_CHAT_ID'), text: text }); } catch (e) { console.error(e); }
+  }
+  if (n.line === true && prop_('OWNER_USER_ID')) {
+    try { lineApi_('push', { to: prop_('OWNER_USER_ID'), messages: [{ type: 'text', text: text }] }); } catch (e) { console.error(e); }
+  }
+}
 
 /* ---------- 狀態（TRADE_STATE：提案、每日計數、模擬紀錄） ---------- */
 
