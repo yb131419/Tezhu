@@ -157,6 +157,7 @@ function tradeConfirm_(token) {
     if (mode === 'practice' && env === 'live') return '設定不一致：mode 是 practice，但 env 是 live，沒有下單。';
 
     const now = tradeQuote_(it);
+    const info = tradeMarketInfo_(it.epic);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
       return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 下單」。';
     }
@@ -166,8 +167,8 @@ function tradeConfirm_(token) {
     if (mode !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN) return '同時持倉已達上限 ' + TRADE_MAX_OPEN + ' 筆，沒有下單。';
 
     if (mode === 'paper') {
-      tradeLog_(p, now, '模擬紀錄，沒有送到 IG', '');
-      tradeVirtAdd_(p, now);
+      tradeLog_(p, now, '模擬紀錄，沒有送到 IG', '', tradeMarginOf_(now, p.size, info, ''));
+      tradeVirtAdd_(p, now, tradeMarginOf_(now, p.size, info, ''));
       tradeBump_(day);
       return '📝 模擬下單完成（沒有送到 IG）\n' + tradeProposalText_(p);
     }
@@ -181,7 +182,7 @@ function tradeConfirm_(token) {
     });
     const ref = placed.dealReference || '';
     tradeBump_(day);
-    tradeLog_(p, p.price, label + '，成交狀態待確認', ref);
+    tradeLog_(p, p.price, label + '，成交狀態待確認', ref, tradeMarginOf_(p.price, p.size, info, ''));
     if (!ref) return '⏳ 已送出，但 IG 沒有回傳單號，紀錄已標示「成交狀態待確認」，請按「📊 查看持倉」核對。';
     let conf = null, checkErr = '';
     try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
@@ -192,7 +193,7 @@ function tradeConfirm_(token) {
       return '❌ 下單沒有成交：' + reason + '\n（紀錄已更新）';
     }
     const fillPrice = Number(conf.level);
-    tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交' });
+    tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交', margin: tradeMarginRound_(tradeMarginOf_(fillPrice, p.size, info, '')) });
     const done = '✅ 已送出（' + label + '）\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
     tradeNotify_('📣 成交通知\n' + p.name + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(1).join('\n'));
@@ -213,30 +214,45 @@ function tradeOpenPositions_() {
   return positions.map(x => {
     const buy = x.position.direction === 'BUY';
     const name = tradeNameOf_(x.market.epic);
+    const info = tradeMarketInfo_(x.market.epic);
+    const size = Number(x.position.size), open = Number(x.position.level);
+    const cur = x.position.currency || info.cur;
     return {
       dealId: x.position.dealId, epic: x.market.epic, name: name, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
-      size: Number(x.position.size), open: Number(x.position.level), sl: x.position.stopLevel, tp: x.position.limitLevel,
+      size: size, open: open, sl: x.position.stopLevel, tp: x.position.limitLevel,
       bid: Number(x.market.bid), offer: Number(x.market.offer), prec: (TRADE_ITEMS[name] || { prec: 2 }).prec,
-      cur: x.position.currency || '',
+      cur: cur, margin: tradeMarginOf_(open, size, info, cur),
     };
   });
 }
 
-// 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
-// 百分比 = 損益 ÷ 開倉價值（開倉價 × 數量），也就是價格相對開倉價的變動（已含方向）
+// 未實現損益（約）後面加上幣別，例如「約 20.80 USD（+0.07%）」；幣別未知就標示
+// 百分比 = 未實現損益 ÷ 實際投入金額（保證金）。保證金取不到就標示「保證金未知」，不拿開倉價值代替
 function tradePnlText_(x, upl) {
-  const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
-  return '約 ' + upl.toFixed(2) + cur + (isFinite(pct) ? '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）' : '');
+  if (!(x.margin > 0)) return '約 ' + upl.toFixed(2) + cur + '（保證金未知）';
+  const pct = upl / x.margin * 100;
+  return '約 ' + upl.toFixed(2) + cur + '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）';
 }
 
-// 幣別取不到時回傳空字串；只在持倉沒有幣別時才呼叫
-function tradeCurrencyOf_(epic) {
+// 實際投入金額（保證金）= 數量 × 價格 × 保證金比例（IG 的 marginFactor，單位 PERCENTAGE）
+// 假設：每 1 單位、價格每變動 1 元，損益就是 1 元（和 tradePnlText_ 的損益算法一致，不乘 contractSize）；
+// 保證金和持倉幣別要一樣，不一樣或單位不認得就回傳 NaN（顯示「保證金未知」）
+function tradeMarginOf_(price, size, info, cur) {
+  if (!(price > 0) || !(size > 0) || !(info.mf > 0) || info.unit !== 'PERCENTAGE') return NaN;
+  if (cur && info.cur && cur !== info.cur) return NaN;
+  return size * price * info.mf / 100;
+}
+
+// 寫進紀錄或虛擬倉位的保證金：取不到就存 null
+function tradeMarginRound_(m) { return m > 0 ? Number(m.toFixed(2)) : null; }
+
+// IG 市場資訊：幣別、保證金比例與單位。取不到就給空值（之後顯示「保證金未知」），不影響持倉顯示
+function tradeMarketInfo_(epic) {
   try {
-    const m = tradeFetch_('get', '/markets/' + epic, 3);
-    const c = ((m.instrument || {}).currencies || [])[0] || {};
-    return c.code || '';
-  } catch (e) { return ''; }
+    const ins = tradeFetch_('get', '/markets/' + epic, 3).instrument || {};
+    return { cur: ((ins.currencies || [])[0] || {}).code || '', mf: Number(ins.marginFactor), unit: ins.marginFactorUnit || '' };
+  } catch (e) { return { cur: '', mf: NaN, unit: '' }; }
 }
 
 function tradeLevel_(v, prec) {
@@ -296,7 +312,7 @@ function tradeCloseConfirm_(token) {
     // IG 的平倉用 POST 加上 _method: DELETE（Apps Script 不能直接送 DELETE 帶內容）
     const placed = tradeFetch_('post', '/positions/otc', 1, { dealId: hit.dealId, direction: closeDir, size: hit.size, orderType: 'MARKET', expiry: '-' }, { _method: 'DELETE' });
     const ref = placed.dealReference || '';
-    tradeLog_({ name: hit.name, side: hit.dir === 'buy' ? 'sell' : 'buy', size: hit.size, sl: '-', tp: '-' }, p.price, '平倉（' + label + '），成交狀態待確認', ref);
+    tradeLog_({ name: hit.name, side: hit.dir === 'buy' ? 'sell' : 'buy', size: hit.size, sl: '-', tp: '-' }, p.price, '平倉（' + label + '），成交狀態待確認', ref, hit.margin);
     if (!ref) return '⏳ 已送出平倉，但 IG 沒有回傳單號，紀錄已標示待確認，請按「📊 查看持倉」核對。';
     let conf = null, checkErr = '';
     try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
@@ -327,7 +343,7 @@ function tradeRecords_() {
   const rows = [['📈 智能下單', '📊 查看持倉']];
   if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
   const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
-    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n') +
+    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + (x.margin > 0 ? ' · 保證金 ' + x.margin.toFixed(2) + ' USD' : '') + '（' + x.label + '）').join('\n') +
     '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
@@ -336,8 +352,6 @@ function tradeRecords_() {
 function tradePositions_() {
   const paper = tradeMode_() === 'paper';
   const real = paper ? [] : tradeOpenPositions_();
-  // 持倉資料沒有幣別時，改用該商品的報價幣別（取不到就顯示「幣別未知」）
-  real.forEach(x => { if (!x.cur) x.cur = tradeCurrencyOf_(x.epic); });
   const virt = tradeVirtOpen_();
   // 最下面的「🔍 持倉」：重新抓持倉與報價，只讀，不下單、不平倉
   const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 持倉']]);
@@ -375,9 +389,9 @@ function tradeNoteFlex_(t) {
 function tradeVirtList_() { return tradeState_().virt || []; }
 
 // 紙上模式確認時呼叫：記下一筆虛擬倉位（最多保留 10 筆）
-function tradeVirtAdd_(p, price) {
+function tradeVirtAdd_(p, price, margin) {
   const list = tradeVirtList_().concat([{
-    id: tradeToken_(), name: p.name, side: p.side, size: p.size, price: Number(price), sl: p.sl, tp: p.tp,
+    id: tradeToken_(), name: p.name, side: p.side, size: p.size, price: Number(price), sl: p.sl, tp: p.tp, margin: tradeMarginRound_(margin),
     at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'),
   }]).slice(-10);
   tradeSaveState_(Object.assign(tradeState_(), { virt: list }));
@@ -393,6 +407,7 @@ function tradeVirtOpen_() {
     return {
       id: v.id, name: v.name + '・虛擬', epic: it.epic, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
       size: v.size, open: v.price, sl: v.sl, tp: v.tp, bid: now, offer: now, prec: it.prec,
+      margin: v.margin > 0 ? v.margin : NaN,
       cur: 'USD',   // 虛擬單和送出的訂單一樣用 USD 計價（見 tradeConfirm_ 的 currencyCode）
     };
   });
@@ -757,9 +772,9 @@ function tradeBump_(day) {
 
 function tradeLogList_() { return tradeState_().log || []; }
 
-function tradeLog_(p, price, label, ref) {
+function tradeLog_(p, price, label, ref, margin) {
   const list = tradeLogList_();
-  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, size: p.size, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label, ref: ref || '' });
+  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, size: p.size, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, margin: tradeMarginRound_(margin), label: label, ref: ref || '' });
   tradeSaveState_(Object.assign(tradeState_(), { log: list.slice(-20) }));
 }
 
