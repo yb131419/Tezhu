@@ -60,7 +60,7 @@ function tradeAsk_(t) {
     if (s === '交易提醒') return tradeRemindStatus_('');
     if (s === '開啟提醒' || s === '關閉提醒') {
       tradeRemindSwitch_(s === '開啟提醒');
-      return tradeRemindStatus_(s === '開啟提醒' ? '已開啟，之後有交易訊號會推送提案到 Telegram。' : '已關閉，之後不會再推送提醒。');
+      return tradeRemindStatus_(s === '開啟提醒' ? '已開啟，之後有交易訊號會推送提案到 LINE 與 Telegram。' : '已關閉，之後不會再推送提醒。');
     }
     return null;
   } catch (err) {
@@ -72,7 +72,15 @@ function tradeAsk_(t) {
 function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
-  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  const help = '📖 用法\n' +
+    '・🛒 選擇下單：選商品與方向，先給你看提案\n' +
+    '・數量：在指令後面加數字，例如「買進納指 2」，最多 5 單位，不加就用預設 1 單位\n' +
+    '・確認：提案 5 分鐘內有效，按鈕帶提案代碼；過期或報價偏離太多就不下單\n' +
+    '・📊 查看持倉：看停損、停利、損益；按 📉 平倉 會先出提案，確認後才平倉\n' +
+    '・📜 下單紀錄：最近 10 筆\n' +
+    '・🔔 交易提醒：有交易訊號時推送提案到 LINE 與 Telegram，只推提案，不會自動下單\n' +
+    '・下單自檢：只讀檢查點數換算，不下單';
+  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。\n\n' + help + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
@@ -115,7 +123,7 @@ function tradePropose_(name, side, sizeText) {
     against: !!sig.signal && sig.signal !== side,
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
-  const body = tradeProposalText_(p) + '\n\n5 分鐘內按「✅ 確認下單」才會送出；按「❌ 取消下單」就不做。';
+  const body = tradeProposalText_(p) + '\n\n5 分鐘內按「✅ 確認下單」才會送出（按鈕已帶提案代碼）；按「❌ 取消下單」就不做。';
   const rows = [['✅ 確認下單' + p.id, '❌ 取消下單' + p.id]];   // 按鈕帶提案代碼：舊卡片只能確認／取消它自己的那張
   return { text: '🧾 下單提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('🧾 下單提案', body, rows), alt: '🧾 下單提案' };
 }
@@ -297,7 +305,8 @@ function tradeRecords_() {
   const rows = [['📈 智能下單', '📊 查看持倉']];
   if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
   const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
-    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n');
+    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n') +
+    '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
 
@@ -306,7 +315,7 @@ function tradePositions_() {
   if (tradeMode_() === 'paper') {
     // 紙上模式不連 IG 持倉，只看模擬紀錄
     const logs = tradeLogList_().slice(-5);
-    const text = '📝 紙上模式不查 IG 持倉，只顯示模擬紀錄。' + (logs.length ? '\n\n' + logs.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n') : '\n\n還沒有模擬紀錄。');
+    const text = '📝 紙上模式不查 IG 持倉，只顯示模擬紀錄，也不能平倉。' + (logs.length ? '\n\n' + logs.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n') : '\n\n還沒有模擬紀錄。');
     return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
   }
   // 損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）；停損停利用 IG 的 stopLevel、limitLevel，沒有就顯示未設定
@@ -316,7 +325,7 @@ function tradePositions_() {
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
     return '・' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) + '，現價 ' + now.toFixed(x.prec) +
       '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + upl.toFixed(2);
-  }).join('\n') : '📊 目前沒有持倉。';
+  }).join('\n') + '\n\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。' : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
@@ -470,7 +479,7 @@ function tradeRemindSwitch_(on) {
 function tradeRemindStatus_(note) {
   const on = prop_('TRADE_REMIND') === 'on';
   const rows = [on ? ['🔕 關閉提醒'] : ['🔔 開啟提醒'], ['📈 智能下單']];
-  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查一次，只推送提案，不會自動送單）' : '已關閉') + (note ? '\n' + note : '');
+  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查一次，有交易訊號就推送提案到 LINE 與 Telegram，只推提案，不會自動送單）' : '已關閉，不會推送提醒') + (note ? '\n' + note : '');
   return { text: text, buttons: rows, flex: tradeFlex_('🔔 交易提醒', text, rows), alt: '🔔 交易提醒' };
 }
 
