@@ -1,7 +1,7 @@
 /* ============ 智能下單（IG Group）：卡片＋確認 ============ */
 // 這個檔案要跟 Code.gs 放在同一個 Apps Script 專案（在編輯器「+」新增一個檔案，名字隨意，例如 Trade，整份貼進去）。
 // 安全規則（使用者要求「要確認才下單」）：
-// 1. 沒有排程，AI 也不會下單：要先按「🛒 下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
+// 1. 沒有排程，AI 也不會下單：要先按「🛒 選擇下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
 // 2. 預設 mode = paper（只記錄，不送 IG）。mode = practice 送 IG 模擬帳戶（env = demo）；
 //    真錢要 mode = live 且 env = live，兩個都改才會動真錢。
 // 3. 登入資料只放在指令碼屬性 TRADE_CFG（一個 JSON），不寫在程式碼裡。用 TradeSetup.gs 一次寫入。
@@ -29,7 +29,7 @@ function tradeAsk_(t) {
     if (q) return tradeEpicSearch_(q[1].trim());
     const s = String(t || '').replace(/\s+/g, '');
     if (/^(尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片)$/.test(s)) return tradeCard_();
-    if (s === '下單') return tradePickItem_();
+    if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
@@ -57,7 +57,7 @@ function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], ['✅ 確認下單', '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
@@ -106,10 +106,10 @@ function tradeProposalText_(p) {
 function tradeConfirm_(token) {
   return withLock_(() => {
     const p = tradePending_();
-    if (!p) return '目前沒有待確認的下單。\n請先按「🛒 下單」選商品與方向。';
+    if (!p) return '目前沒有待確認的下單。\n請先按「🛒 選擇下單」選商品與方向。';
     if (token && token.toUpperCase() !== p.id) return '確認碼對不上，可能是舊的提案，沒有下單。\n請按最新那張卡片的「✅ 確認下單」。';
     tradeSaveState_(Object.assign(tradeState_(), { pending: null }));   // 一次性：不管成不成功都先清掉，避免重複送單
-    if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 下單」。';
+    if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 選擇下單」。';
 
     const it = TRADE_ITEMS[p.name];
     const mode = tradeMode_();
@@ -119,7 +119,7 @@ function tradeConfirm_(token) {
 
     const now = tradeQuote_(it);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
-      return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 下單」。';
+      return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 選擇下單」。';
     }
     const day = tradeDay_();
     if (day.n >= TRADE_MAX_DAILY) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + TRADE_MAX_DAILY + '，沒有下單。';
@@ -167,7 +167,7 @@ function tradeRecords_() {
 
 function tradePositions_() {
   const positions = tradeFetch_('get', '/positions', 2).positions || [];
-  const rows = [['📈 交易', '🛒 下單']];
+  const rows = [['📈 交易', '🛒 選擇下單']];
   // IG 的 /positions 回傳 position.size（數量）、position.level（開倉價），損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）
   let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x => {
     const buy = x.position.direction === 'BUY';
