@@ -25,7 +25,7 @@ const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出)/.test(s);
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉)/.test(s);
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -50,6 +50,13 @@ function tradeAsk_(t) {
     // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
+    if (s === '平倉') return tradeCloseAsk_();
+    m = s.match(/^平倉(黃金|原油|納指)(多|空)$/);
+    if (m) return tradeClosePropose_(m[1], m[2]);
+    m = s.match(/^確認平倉([A-Za-z0-9]{4,8})?$/);
+    if (m) return tradeCloseConfirm_(m[1] || '');
+    m = s.match(/^取消平倉([A-Za-z0-9]{4,8})?$/);
+    if (m) return tradeCloseCancel_(m[1] || '');
     if (s === '交易提醒') return tradeRemindStatus_('');
     if (s === '開啟提醒' || s === '關閉提醒') {
       tradeRemindSwitch_(s === '開啟提醒');
@@ -176,6 +183,102 @@ function tradeCancel_(token) {
   return had ? '❌ 已取消，這張提案沒有送出。' : '目前沒有待確認的下單。';
 }
 
+// IG 目前的持倉整理成一種格式：卡片顯示、平倉都用這個
+function tradeOpenPositions_() {
+  const positions = tradeFetch_('get', '/positions', 2).positions || [];
+  return positions.map(x => {
+    const buy = x.position.direction === 'BUY';
+    const name = tradeNameOf_(x.market.epic);
+    return {
+      dealId: x.position.dealId, epic: x.market.epic, name: name, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
+      size: Number(x.position.size), open: Number(x.position.level), sl: x.position.stopLevel, tp: x.position.limitLevel,
+      bid: Number(x.market.bid), offer: Number(x.market.offer), prec: (TRADE_ITEMS[name] || { prec: 2 }).prec,
+    };
+  });
+}
+
+function tradeLevel_(v, prec) {
+  return v === null || v === undefined || v === '' ? '未設定' : Number(v).toFixed(prec);
+}
+
+/* ---------- 平倉：先出提案，按「✅ 確認平倉」才送出；不自動平倉，只有主人能用 ---------- */
+
+// 按「📉 平倉」：沒有持倉就說明；只有一筆就直接出提案；多筆就列出讓主人選
+function tradeCloseAsk_() {
+  if (tradeMode_() === 'paper') return { text: '📝 紙上模式沒有真實持倉可平。', buttons: [['📊 查看持倉']] };
+  const list = tradeOpenPositions_();
+  if (!list.length) return { text: '📊 目前沒有持倉可平。', buttons: [['📊 查看持倉']] };
+  if (list.length === 1) return tradeClosePropose_(list[0].name, list[0].dirZh);
+  const labels = [];
+  list.forEach(x => { const l = '平倉' + x.name + x.dirZh; if (labels.indexOf(l) < 0) labels.push(l); });
+  const rows = labels.map(l => [l]).concat([['📊 查看持倉']]);
+  return { text: '要平哪一筆？\n選好會先給你看提案，確認後才會平倉。', buttons: rows, flex: tradeFlex_('📉 選擇平倉', '選好之後會先給你看提案，確認後才會平倉。', rows), alt: '📉 選擇平倉' };
+}
+
+// 產生平倉提案：只存在 TRADE_STATE（closePending）裡，不會送單
+function tradeClosePropose_(name, dirZh) {
+  const hit = tradeOpenPositions_().filter(x => x.name === name && x.dirZh === dirZh)[0];
+  if (!hit) return { text: '找不到這個持倉，可能已經平倉了。\n請先按「📊 查看持倉」。', buttons: [['📊 查看持倉']] };
+  const price = hit.dir === 'buy' ? hit.bid : hit.offer;   // 平多用買價，平空用賣價
+  const p = { id: tradeToken_(), dealId: hit.dealId, name: name, dir: hit.dir, dirZh: dirZh, size: hit.size, price: price, prec: hit.prec, expires: Date.now() + TRADE_TTL_MS };
+  tradeSaveState_(Object.assign(tradeState_(), { closePending: p }));
+  const upl = (hit.dir === 'buy' ? price - hit.open : hit.open - price) * hit.size;
+  const body = '商品：' + name + '（' + hit.epic + '）\n' +
+    '方向：平' + dirZh + '（' + (hit.dir === 'buy' ? '賣出' : '買進') + '）' + hit.size + ' 單位\n' +
+    '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
+    '目前價：' + price.toFixed(hit.prec) + '\n' +
+    '未實現損益 約 ' + upl.toFixed(2) + '\n\n' +
+    '5 分鐘內按「✅ 確認平倉」才會送出；按「❌ 取消平倉」就不做。\n平倉提案代碼：' + p.id;
+  const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
+  return { text: '📉 平倉提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('📉 平倉提案', body, rows), alt: '📉 平倉提案' };
+}
+
+// 確認平倉：一次性；代碼對不上、過期、持倉已變就不平倉。平倉不計入每日新單數
+function tradeCloseConfirm_(token) {
+  return withLock_(() => {
+    const p = tradeState_().closePending;
+    if (!p) return '目前沒有待確認的平倉。\n請先按「📉 平倉」。';
+    if (token && token.toUpperCase() !== p.id) return '確認碼對不上，可能是舊的平倉提案，沒有平倉。';
+    tradeSaveState_(Object.assign(tradeState_(), { closePending: null }));   // 一次性：不管成不成功都先清掉
+    if (Date.now() > p.expires) return '這張平倉提案已超過 5 分鐘，沒有平倉。\n請重新按「📉 平倉」。';
+    if (tradeMode_() === 'paper') return '📝 紙上模式沒有真實持倉可平。';
+    const mode = tradeMode_(), env = tradeCfg_().env === 'live' ? 'live' : 'demo';
+    if (mode === 'live' && env !== 'live') return '設定不一致：mode 是 live，但 env 不是 live，沒有平倉。';
+    if (mode === 'practice' && env === 'live') return '設定不一致：mode 是 practice，但 env 是 live，沒有平倉。';
+    const hit = tradeOpenPositions_().filter(x => x.dealId === p.dealId)[0];
+    if (!hit) return '這筆持倉已經不在了，沒有平倉。';
+    if (hit.size !== p.size) return '持倉數量已經改變，沒有平倉。\n請重新按「📉 平倉」。';
+    if (!TRADE_ITEMS[hit.name]) return '這個商品不在智能下單的清單裡，請直接到 IG 網站處理。';
+    const label = mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶';
+    const closeDir = hit.dir === 'buy' ? 'SELL' : 'BUY';
+    // IG 的平倉用 POST 加上 _method: DELETE（Apps Script 不能直接送 DELETE 帶內容）
+    const placed = tradeFetch_('post', '/positions/otc', 1, { dealId: hit.dealId, direction: closeDir, size: hit.size, orderType: 'MARKET', expiry: '-' }, { _method: 'DELETE' });
+    const ref = placed.dealReference || '';
+    tradeLog_({ name: hit.name, side: hit.dir === 'buy' ? 'sell' : 'buy', size: hit.size, sl: '-', tp: '-' }, p.price, '平倉（' + label + '），成交狀態待確認', ref);
+    if (!ref) return '⏳ 已送出平倉，但 IG 沒有回傳單號，紀錄已標示待確認，請按「📊 查看持倉」核對。';
+    let conf = null, checkErr = '';
+    try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
+    if (!conf) return '⏳ 已送出平倉，但查詢結果失敗：' + checkErr + '\n紀錄已標示待確認，請按「📊 查看持倉」核對。';
+    if (conf.dealStatus !== 'ACCEPTED') {
+      const reason = conf.reason || conf.dealStatus || '未知原因';
+      tradeLogSet_(ref, { label: '平倉（' + label + '），未成交：' + reason });
+      return '❌ 平倉沒有成交：' + reason + '\n（紀錄已更新）';
+    }
+    const fill = Number(conf.level).toFixed(hit.prec);
+    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
+    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
+    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill;
+  });
+}
+
+function tradeCloseCancel_(token) {
+  const p = tradeState_().closePending;
+  if (!p) return '目前沒有待確認的平倉。';
+  if (token && token.toUpperCase() !== p.id) return '提案代碼對不上，可能是舊的平倉提案，沒有取消。';
+  tradeSaveState_(Object.assign(tradeState_(), { closePending: null }));
+  return '❌ 已取消，這張平倉提案沒有送出。';
+}
+
 // 下單紀錄：列出最近 10 筆（模擬與實際送單成交都會記在這裡），只讀
 function tradeRecords_() {
   const list = tradeLogList_().slice(-10).reverse();
@@ -187,22 +290,20 @@ function tradeRecords_() {
 }
 
 function tradePositions_() {
-  const rows = [['📈 交易', '🛒 選擇下單']];
+  const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']];
   if (tradeMode_() === 'paper') {
     // 紙上模式不連 IG 持倉，只看模擬紀錄
     const logs = tradeLogList_().slice(-5);
     const text = '📝 紙上模式不查 IG 持倉，只顯示模擬紀錄。' + (logs.length ? '\n\n' + logs.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n') : '\n\n還沒有模擬紀錄。');
     return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
   }
-  const positions = tradeFetch_('get', '/positions', 2).positions || [];
-  // IG 的 /positions 回傳 position.size（數量）、position.level（開倉價），損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）
-  let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x => {
-    const buy = x.position.direction === 'BUY';
-    const open = Number(x.position.level);
-    const now = buy ? Number(x.market.bid) : Number(x.market.offer);
-    const upl = (buy ? now - open : open - now) * Number(x.position.size);
-    return '・' + tradeNameOf_(x.market.epic) + ' ' + (buy ? '多' : '空') + ' ' + x.position.size +
-      ' 單位，開倉 ' + open + '，未實現損益 約 ' + upl.toFixed(2);
+  // 損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）；停損停利用 IG 的 stopLevel、limitLevel，沒有就顯示未設定
+  const list = tradeOpenPositions_();
+  let text = list.length ? '📊 目前持倉（' + list.length + ' 筆）\n' + list.map(x => {
+    const now = x.dir === 'buy' ? x.bid : x.offer;
+    const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
+    return '・' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) + '，現價 ' + now.toFixed(x.prec) +
+      '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + upl.toFixed(2);
   }).join('\n') : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
@@ -250,12 +351,12 @@ function tradeLogin_() {
 }
 
 // 呼叫 IG 的 API；version 依 IG 文件對應各端點
-function tradeFetch_(method, path, version, body) {
+function tradeFetch_(method, path, version, body, extra) {
   const cfg = tradeCfg_();
   const auth = tradeLogin_();
   const res = UrlFetchApp.fetch(tradeBase_() + path, {
     method: method, muteHttpExceptions: true, contentType: 'application/json',
-    headers: { 'X-IG-API-KEY': cfg.apiKey, CST: auth.cst, 'X-SECURITY-TOKEN': auth.token, Version: String(version), Accept: 'application/json' },
+    headers: Object.assign({ 'X-IG-API-KEY': cfg.apiKey, CST: auth.cst, 'X-SECURITY-TOKEN': auth.token, Version: String(version), Accept: 'application/json' }, extra || {}),
     payload: body ? JSON.stringify(body) : null,
   });
   const code = res.getResponseCode();
