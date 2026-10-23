@@ -81,7 +81,7 @@ function tradeAsk_(t) {
 function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
-  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  const body = '模式：' + tradeModeZh_() + '\n選商品與方向 → 按確認 → 查看持倉或平倉' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
   const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
@@ -367,7 +367,7 @@ function tradePositions_() {
   if (virt.length) lead.push(...tradePosFlex_(virt));
   if (!real.length && !virt.length) lead.push(tradeNoteFlex_(paper ? realNote : '目前沒有持倉。'));
   lead.push({ type: 'separator', color: '#E8DCC4' });
-  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
+  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '平倉需先按確認，提案 5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
 }
 
 // 一筆持倉的文字行（真實與虛擬共用）
@@ -817,8 +817,9 @@ function tradePosFlex_(list) {
         { type: 'box', layout: 'horizontal', contents: [
           cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
         ] },
-        { type: 'box', layout: 'horizontal', contents: [
-          cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
+        { type: 'box', layout: 'vertical', spacing: 'xs', contents: [
+          { type: 'text', text: '未實現損益', size: 'xs', color: SOFT },
+          { type: 'text', text: isFinite(upl) ? tradePnlText_(x, upl) : '未取得', size: 'md', weight: 'bold', color: upl >= 0 ? UP : DOWN, wrap: true },
         ] },
       ],
     };
