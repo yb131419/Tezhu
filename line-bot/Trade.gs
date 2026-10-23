@@ -284,7 +284,7 @@ function tradeCloseAsk_() {
   if (tradeMode_() === 'paper') return { text: '📝 紙上模式沒有真實持倉可平。', buttons: [['📊 查看持倉']] };
   const list = tradeOpenPositions_();
   if (!list.length) return { text: '📊 目前沒有持倉可平。', buttons: [['📊 查看持倉']] };
-  // 多筆：平倉一筆（每筆一顆）、全部平倉；選好會先給你看提案，確認後才平
+  // 任何持倉數量都有「平倉一筆」「全部平倉」；選好會先給你看提案，確認後才平
   const rows = [['平倉一筆'], ['全部平倉（' + list.length + ' 筆）'], ['📊 查看持倉']];
   const note = '要平哪一筆？或全部平倉？\n選好會先給你看提案，確認後才會平倉。';
   return { text: note, buttons: rows, flex: tradeFlex_('📉 選擇平倉', note, rows), alt: '📉 選擇平倉' };
