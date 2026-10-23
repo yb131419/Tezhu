@@ -12,7 +12,7 @@
 // sl／tp 是 IG 的「點數距離」，size 是 IG 的下單大小，兩者都要在模擬帳戶確認過再用。
 const TRADE_ITEMS = {
   '黃金': { label: '黃金', epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
-  '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, drift: 25, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
+  '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, drift: 25, off: '原油報價單位待確認，暫停下單與平倉', sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
   '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
 const TRADE_MAX_DAILY_DEFAULT = 5;    // 每日下單上限的預設值（全商品合計）；使用者可在「⚙️ 下單上限」改，存在 TRADE_DAILY_CAP
@@ -55,6 +55,7 @@ function tradeAsk_(t) {
     // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
+    if (s === '原油診斷') return tradeOilDiag_();
     if (s === '下單上限') return tradeCapAsk_();
     m = s.match(/^設上限(\d+|不限)$/);
     if (m) return tradeCapSet_(m[1]);
@@ -123,6 +124,7 @@ function tradeMinDeal_(it) {
 function tradePropose_(name, side, sizeText, notice) {
   const it = TRADE_ITEMS[name];
   // 數量以 min 為單位（納指 0.2，其他 1）：要在 min 到 TRADE_MAX_SIZE 之間，而且是 min 的整數倍
+  if (it.off) return it.off + '，沒有產生提案。';
   const min = it.min || 1;
   const size = Number((sizeText ? Number(sizeText) : it.size).toFixed(2));
   const steps = size / min;
@@ -168,6 +170,7 @@ function tradeConfirm_(token) {
     if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 下單」。';
 
     const it = TRADE_ITEMS[p.name];
+    if (it.off) return it.off + '，沒有下單。';
     const mode = tradeMode_();
     const env = tradeCfg_().env === 'live' ? 'live' : 'demo';
     if (mode === 'live' && env !== 'live') return '設定不一致：mode 是 live，但 env 不是 live，沒有下單。';
@@ -377,6 +380,7 @@ function tradeCloseOne_(item, nowList, label) {
   const hit = nowList.filter(x => x.dealId === item.dealId)[0];
   if (!hit) return '⏭ ' + tag + '：這筆持倉已經不在了，沒有平倉。';
   if (hit.size !== item.size) return '⏭ ' + tag + '：持倉數量已經改變，沒有平倉。\n請重新按「📉 平倉」。';
+  if (TRADE_ITEMS[hit.name] && TRADE_ITEMS[hit.name].off) return '⏭ ' + tag + '：' + TRADE_ITEMS[hit.name].off + '，沒有平倉。請到 IG App 手動處理。';
   if (!TRADE_ITEMS[hit.name]) return '⏭ ' + tag + '：這個商品不在智能下單的清單裡，請直接到 IG 網站處理。';
   const closeDir = hit.dir === 'buy' ? 'SELL' : 'BUY';
   const placed = tradeFetch_('post', '/positions/otc', 1, { dealId: hit.dealId, direction: closeDir, size: hit.size, orderType: 'MARKET', expiry: '-' }, { _method: 'DELETE' });
@@ -736,6 +740,7 @@ function tradeRemindTick_() {
     if (day.n >= tradeMaxDaily_() || (tradeMode_() !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN)) return;
     const seen = tradeState_().alerts || {};
     for (const name of Object.keys(TRADE_ITEMS)) {
+      if (TRADE_ITEMS[name].off) continue;   // 暫停的商品不推提醒
       const sig = tradeSignal_(TRADE_ITEMS[name]);
       if (!sig.signal || !sig.bar || seen[name] === sig.bar) continue;   // 同一根 K 線只提醒一次
       seen[name] = sig.bar;
@@ -869,6 +874,20 @@ function tradeDay_() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
   const d = tradeState_().day || {};
   return d.date === today ? { date: today, n: Number(d.n) || 0 } : { date: today, n: 0 };
+}
+
+// 原油診斷（只讀，不下單、不平倉）：列出 IG 回傳的價格與單位欄位，用來找出價格放大的原因
+function tradeOilDiag_() {
+  const it = TRADE_ITEMS['原油'];
+  const m = tradeFetch_('get', '/markets/' + it.epic, 3);
+  const ins = m.instrument || {}, snap = m.snapshot || {}, rules = m.dealingRules || {};
+  const pos = tradeOpenPositions_().filter(x => x.epic === it.epic);
+  const pick = (o, keys) => keys.map(k => k + ' = ' + (o[k] === undefined ? '（無）' : JSON.stringify(o[k]))).join('\n');
+  const text = '🔎 原油診斷（只讀）\n【報價】\n' + pick(snap, ['bid', 'offer', 'scalingFactor', 'updateTime']) +
+    '\n【商品】\n' + pick(ins, ['scalingFactor', 'contractSize', 'lotSize', 'valueOfOnePip', 'onePipMeans', 'marginFactor', 'marginFactorUnit', 'currencies']) +
+    '\n【規則】\n' + pick(rules, ['minDealSize', 'minStopOrProfitDistance']) +
+    '\n【持倉】\n' + (pos.length ? pos.map(x => 'level = ' + x.open + '，size = ' + x.size + '，stopLevel = ' + x.sl + '，limitLevel = ' + x.tp).join('\n') : '沒有原油持倉');
+  return { text: text, buttons: [['📊 查看持倉']] };
 }
 
 // 每日下單上限：存在 script property TRADE_DAILY_CAP；沒設就用預設 5，設成 none 就不限（Infinity，完全不檢查）
