@@ -56,6 +56,7 @@ function tradeAsk_(t) {
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
     if (s === '原油診斷') return tradeOilDiag_();
+    if (s === '停損停利紀錄') return tradeStopsAsk_();
     if (/^納指單位(（[\d.]+）)?$/.test(s)) return tradeNqUnitAsk_();
     m = s.match(/^設納指單位(0\.2|0\.4|0\.6|0\.8|1(\.0)?)$/);
     if (m) return tradeNqUnitSet_(m[1]);
@@ -428,9 +429,10 @@ function tradeRecords_() {
 function tradePositions_() {
   const paper = tradeMode_() === 'paper';
   const real = paper ? [] : tradeOpenPositions_();
+  if (!paper) tradeReconcile_(real);
   const virt = tradeVirtOpen_();
   // 最下面的「🔍 持倉」：重新抓持倉與報價，只讀，不下單、不平倉
-  const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 持倉']]);
+  const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 持倉'], ['📋 停損停利紀錄']]);
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
   // 真實倉位前面獨立一行標示「IG Group 模擬倉／真實倉」；虛擬倉位在商品名後面標示「虛擬」
   const realTag = tradeMode_() === 'live' ? 'IG Group 真實倉' : 'IG Group 模擬倉';
@@ -738,6 +740,7 @@ function tradeRemindStatus_(note) {
 function tradeRemindTick_() {
   try {
     if (prop_('TRADE_REMIND') !== 'on') return;
+    if (tradeMode_() !== 'paper') tradeReconcile_(tradeOpenPositions_());
     const cur = tradePending_();
     if (cur && cur.expires > Date.now()) return;   // 已有待確認的提案，不重複推送
     const day = tradeDay_();
@@ -914,6 +917,37 @@ function tradeNqUnitSet_(v) {
   if (!(n >= 0.2 && n <= 1) || Math.abs(Number(v) - n) > 1e-6) return tradeNqUnitAsk_('單位要是 0.2 到 1 之間、以 0.2 為單位，沒有更改。');
   setProp_('TRADE_NQ_UNIT', String(n));
   return tradeNqUnitAsk_('✅ 納斯達克下單單位已設為 ' + n.toFixed(1) + '。');
+}
+
+// 停損停利紀錄：每次查持倉或提醒時，拿上一次看到的持倉比對。消失的持倉如果上次報價已經過了停損或停利，就記下來。
+// 我們自己平倉的不會記（上次報價通常還沒過停損停利）。觸發價是上次看到的報價，不一定等於實際成交價
+function tradeReconcile_(cur) {
+  const st = tradeState_();
+  const stops = st.stops || [];
+  (st.snap || []).forEach(p => {
+    if (!(p.now > 0) || cur.some(x => x.dealId === p.dealId)) return;
+    const buy = p.dir === 'buy';
+    let kind = '';
+    if (p.sl !== null && (buy ? p.now <= p.sl : p.now >= p.sl)) kind = '停損';
+    else if (p.tp !== null && (buy ? p.now >= p.tp : p.now <= p.tp)) kind = '停利';
+    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, size: p.size, trigger: kind, price: p.now, prec: p.prec });
+  });
+  const snap = cur.map(x => {
+    const now = x.dir === 'buy' ? x.bid : x.offer;
+    return { dealId: x.dealId, name: x.name, dir: x.dir, dirZh: x.dirZh, size: x.size, sl: x.sl === null || x.sl === undefined || x.sl === '' ? null : Number(x.sl), tp: x.tp === null || x.tp === undefined || x.tp === '' ? null : Number(x.tp), now: isFinite(now) ? now : 0, prec: x.prec };
+  });
+  tradeSaveState_(Object.assign(tradeState_(), { snap: snap, stops: stops.slice(-20) }));
+}
+
+// 「📋 停損停利紀錄」：最近 10 筆，只讀
+function tradeStopsAsk_() {
+  const list = (tradeState_().stops || []).slice(-10).reverse();
+  const rows = [['📊 查看持倉'], ['📈 智能下單']];
+  const text = list.length
+    ? '📋 停損停利紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x => '・' + x.at + ' ' + tradeLabelOf_(x.name) + ' ' + x.dirZh + ' ' + x.size + ' 單位，' + x.trigger + '，觸發價約 ' + Number(x.price).toFixed(x.prec)).join('\n') +
+      '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。'
+    : '📋 目前沒有停損停利紀錄。\n查看持倉或提醒開啟時，會比對持倉被停損或停利平掉的情況並記下。';
+  return { text: text, buttons: rows, flex: tradeFlex_('📋 停損停利紀錄', text, rows), alt: '📋 停損停利紀錄' };
 }
 
 // 每日下單上限：存在 script property TRADE_DAILY_CAP；沒設就用預設 5，設成 none 就不限（Infinity，完全不檢查）
