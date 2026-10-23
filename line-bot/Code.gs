@@ -3124,6 +3124,12 @@ function handleTelegram_(update) {
     setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
   }
 
+  // 智能下單提醒的按鈕（Trade.gs）：只有主人的按鈕會處理
+  if (update.callback_query) {
+    if (typeof tradeTgCallback_ === 'function') tradeTgCallback_(update.callback_query);
+    return;
+  }
+
   const msg = update.message;
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
   const chatId = String(msg.chat.id);

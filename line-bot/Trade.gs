@@ -18,6 +18,7 @@ const TRADE_ITEMS = {
 const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
 const TRADE_MAX_SIZE = 5;             // 單筆最多下單數量（防止誤打大數字）
+let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，不用每個呼叫都登入一次
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 
@@ -37,6 +38,8 @@ function tradeAsk_(t) {
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
     if (s === '取消下單') return tradeCancel_();
+    // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
+    if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
     return null;
   } catch (err) {
@@ -197,6 +200,7 @@ function tradeBase_() {
 
 // 登入（v2：回傳 CST 與 X-SECURITY-TOKEN 兩個標頭），每次呼叫都重新登入，不把 token 存進屬性
 function tradeLogin_() {
+  if (TRADE_AUTH_) return TRADE_AUTH_;
   const cfg = tradeCfg_();
   if (!cfg.apiKey || !cfg.identifier || !cfg.password) {
     throw new Error('還沒設定 IG 登入資料，請用 TradeSetup.gs 寫入 TRADE_CFG');
@@ -208,7 +212,8 @@ function tradeLogin_() {
   });
   if (res.getResponseCode() !== 200) throw new Error('IG 登入失敗（' + res.getResponseCode() + '），請檢查 TRADE_CFG 與 API 金鑰');
   const h = res.getHeaders();
-  return { cst: h.CST || h.cst, token: h['X-SECURITY-TOKEN'] || h['x-security-token'] };
+  TRADE_AUTH_ = { cst: h.CST || h.cst, token: h['X-SECURITY-TOKEN'] || h['x-security-token'] };
+  return TRADE_AUTH_;
 }
 
 // 呼叫 IG 的 API；version 依 IG 文件對應各端點
@@ -253,17 +258,84 @@ function tradeSignal_(it) {
   tradeEpicCheck_(it);
   // 「分鐘數＋筆數」的寫法屬於 v2；要算 EMA200 需要至少 200 根，所以取 300 根
   const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/300', 2);
-  const closes = (data.prices || []).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
+  // 最後一根可能還沒收盤，判斷只用已收盤的 K 線；bar 是這根已收盤 K 線的時間，用來避免重複提醒
+  const all = data.prices || [];
+  const closed = all.slice(0, -1);
+  const closes = closed.map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
   const n = closes.length;
-  if (n < 30) return { signal: '', text: 'EMA：K 線不足，無法判斷' };
+  const barInfo = closed[n - 1] || {};
+  const bar = barInfo.snapshotTimeUTC || barInfo.snapshotTime || '';
+  if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足，無法判斷' };
   const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
   const trend = fast[n - 1] > slow[n - 1] ? '多頭（快線在慢線上方）' : '空頭（快線在慢線下方）';
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => 'EMA' + p + ' ' + tradeEma_(closes, p)[n - 1].toFixed(it.prec));
-  return { signal: cross, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
+  return { signal: cross, bar: bar, text: 'EMA：' + trend + (cross ? '，這根剛交叉' + (cross === 'buy' ? '做多' : '做空') : '') +
     '\n參考：' + refs.join('、') };
+}
+
+/* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
+
+// 開始提醒（在編輯器執行一次）：建立每 5 分鐘的觸發器。需要授權「管理觸發條件」
+function tradeRemindOn() {
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tradeRemindTick_') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('tradeRemindTick_').timeBased().everyMinutes(5).create();
+  setProp_('TRADE_REMIND', 'on');
+  console.log('提醒已開始，每 5 分鐘檢查一次');
+}
+
+// 停止提醒（在編輯器執行一次）：刪除觸發器。之後不會再推送，已推送的提案仍可手動取消
+function tradeRemindOff() {
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tradeRemindTick_') ScriptApp.deleteTrigger(t); });
+  setProp_('TRADE_REMIND', 'off');
+  console.log('提醒已停止');
+}
+
+// 觸發器每 5 分鐘呼叫一次：只推送提案，不送單
+function tradeRemindTick_() {
+  try {
+    if (prop_('TRADE_REMIND') !== 'on') return;
+    const cur = tradePending_();
+    if (cur && cur.expires > Date.now()) return;   // 已有待確認的提案，不重複推送
+    const day = tradeDay_();
+    if (day.n >= TRADE_MAX_DAILY || tradeOpenCount_() >= TRADE_MAX_OPEN) return;
+    const seen = tradeState_().alerts || {};
+    for (const name of Object.keys(TRADE_ITEMS)) {
+      const sig = tradeSignal_(TRADE_ITEMS[name]);
+      if (!sig.signal || !sig.bar || seen[name] === sig.bar) continue;   // 同一根 K 線只提醒一次
+      seen[name] = sig.bar;
+      tradeSaveState_(Object.assign(tradeState_(), { alerts: seen }));
+      tradeRemindSend_(name, sig.signal);
+      return;   // 一次只提醒一個商品，避免同時出現多張提案
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function tradeRemindSend_(name, side) {
+  const chat = prop_('TG_OWNER_CHAT_ID');
+  if (!chat) return;
+  const res = tradePropose_(name, side);
+  tgApi_('sendMessage', {
+    chat_id: chat,
+    text: '🔔 智能下單提醒（EMA 交叉）\n' + res.text + '\n\n回覆「確認」送出，回覆「否」取消，或直接按下方按鈕。',
+    reply_markup: { inline_keyboard: [[{ text: '✅ 確認下單', callback_data: 'trade_ok' }, { text: '❌ 否', callback_data: 'trade_no' }]] },
+  });
+}
+
+// Telegram 按鈕（Code.gs 的 handleTelegram_ 會把 callback_query 交給這裡）：只接受主人的按鈕
+function tradeTgCallback_(cq) {
+  const owner = prop_('TG_OWNER_CHAT_ID');
+  if (!owner || !cq.message || String(cq.message.chat.id) !== owner) return;
+  let reply = '';
+  if (cq.data === 'trade_ok') reply = tradeConfirm_('');
+  else if (cq.data === 'trade_no') reply = tradeCancel_();
+  else return;
+  tgApi_('answerCallbackQuery', { callback_query_id: cq.id, text: '已處理' });
+  tgApi_('sendMessage', { chat_id: owner, text: reply });
 }
 
 function tradeEma_(vals, period) {
