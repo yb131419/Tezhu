@@ -27,7 +27,7 @@ const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -56,6 +56,7 @@ function tradeAsk_(t) {
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
     if (s === '平倉') return tradeCloseAsk_();
+    if (/^全部平倉(（\d+筆）)?$/.test(s)) return tradeCloseAllPropose_();
     m = s.match(/^平倉(黃金|原油|納指)(多|空)$/);
     if (m) return tradeClosePropose_(m[1], m[2]);
     m = s.match(/^確認平倉([A-Za-z0-9]{4,8})?$/);
@@ -210,7 +211,8 @@ function tradeConfirm_(token) {
     const fillPrice = Number(conf.level);
     tradeLogSet_(ref, { price: fillPrice.toFixed(it.prec), label: label + '，已成交', margin: tradeMarginRound_(tradeMarginOf_(fillPrice, p.size, info, '')) });
     const done = '✅ 已送出（' + label + '）\n方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n成交價：' + fillPrice.toFixed(it.prec) +
-      '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
+      '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec) +
+      '\n成交投入成本：' + (tradeMarginOf_(fillPrice, p.size, info, '') > 0 ? '約 ' + tradeMarginOf_(fillPrice, p.size, info, '').toFixed(2) + ' USD' : '未知');
     tradeNotify_('📣 成交通知\n' + tradeLabelOf_(p.name) + ' ' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' + done.split('\n').slice(2).join('\n'));
     return done;
   });
@@ -282,66 +284,102 @@ function tradeCloseAsk_() {
   const list = tradeOpenPositions_();
   if (!list.length) return { text: '📊 目前沒有持倉可平。', buttons: [['📊 查看持倉']] };
   if (list.length === 1) return tradeClosePropose_(list[0].name, list[0].dirZh);
+  // 多筆：每一筆一顆按鈕，另外有「全部平倉」；選好會先給你看提案，確認後才平
   const labels = [];
   list.forEach(x => { const l = '平倉' + tradeLabelOf_(x.name) + x.dirZh; if (labels.indexOf(l) < 0) labels.push(l); });
-  const rows = labels.map(l => [l]).concat([['📊 查看持倉']]);
-  return { text: '要平哪一筆？\n選好會先給你看提案，確認後才會平倉。', buttons: rows, flex: tradeFlex_('📉 選擇平倉', '選好之後會先給你看提案，確認後才會平倉。', rows), alt: '📉 選擇平倉' };
+  const rows = labels.map(l => [l]).concat([['全部平倉（' + list.length + ' 筆）'], ['📊 查看持倉']]);
+  const note = '要平哪一筆？也可以全部平倉。\n選好會先給你看提案，確認後才會平倉。';
+  return { text: note, buttons: rows, flex: tradeFlex_('📉 選擇平倉', note, rows), alt: '📉 選擇平倉' };
 }
 
-// 產生平倉提案：只存在 TRADE_STATE（closePending）裡，不會送單
+// 單筆平倉提案（依商品與方向找到那一筆）
 function tradeClosePropose_(name, dirZh) {
   const hit = tradeOpenPositions_().filter(x => x.name === name && x.dirZh === dirZh)[0];
   if (!hit) return { text: '找不到這個持倉，可能已經平倉了。\n請先按「📊 查看持倉」。', buttons: [['📊 查看持倉']] };
-  const price = hit.dir === 'buy' ? hit.bid : hit.offer;   // 平多用買價，平空用賣價
-  const p = { id: tradeToken_(), dealId: hit.dealId, name: name, dir: hit.dir, dirZh: dirZh, size: hit.size, price: price, prec: hit.prec, expires: Date.now() + TRADE_TTL_MS };
+  return tradeCloseMake_([hit]);
+}
+
+// 全部平倉：把目前所有在智能下單清單內的持倉列成一份提案，仍要按確認
+function tradeCloseAllPropose_() {
+  if (tradeMode_() === 'paper') return { text: '📝 紙上模式沒有真實持倉可平。', buttons: [['📊 查看持倉']] };
+  const list = tradeOpenPositions_().filter(x => TRADE_ITEMS[x.name]);
+  if (!list.length) return { text: '📊 目前沒有可平的持倉。', buttons: [['📊 查看持倉']] };
+  return tradeCloseMake_(list);
+}
+
+// 產生平倉提案（一筆或多筆）：只存在 TRADE_STATE.closePending，不會送單。價格用平倉方向（平多用買價，平空用賣價）
+function tradeCloseMake_(list) {
+  const items = list.map(x => {
+    const price = x.dir === 'buy' ? x.bid : x.offer;
+    const upl = (x.dir === 'buy' ? price - x.open : x.open - price) * x.size;
+    return { dealId: x.dealId, name: x.name, epic: x.epic, dir: x.dir, dirZh: x.dirZh, size: x.size, open: x.open, price: price, prec: x.prec, margin: x.margin, cur: x.cur, upl: upl };
+  });
+  const p = { id: tradeToken_(), items: items, expires: Date.now() + TRADE_TTL_MS };
   tradeSaveState_(Object.assign(tradeState_(), { closePending: p }));
-  const upl = (hit.dir === 'buy' ? price - hit.open : hit.open - price) * hit.size;
-  const body = '商品：' + tradeLabelOf_(name) + '（' + hit.epic + '）\n' +
-    '方向：平' + dirZh + '（' + (hit.dir === 'buy' ? '賣出' : '買進') + '）' + hit.size + ' 單位\n' +
-    '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
-    '目前價：' + price.toFixed(hit.prec) + '\n' +
-    '未實現損益 ' + tradePnlText_(hit, upl) + '\n\n' +
-    '5 分鐘內按確認才會送出。\n代碼：' + p.id;
+  let body;
+  if (items.length === 1) {
+    const it = items[0];
+    body = '商品：' + tradeLabelOf_(it.name) + '（' + it.epic + '）\n' +
+      '方向：平' + it.dirZh + '（' + (it.dir === 'buy' ? '賣出' : '買進') + '）' + it.size + ' 單位\n' +
+      '開倉價：' + it.open.toFixed(it.prec) + '\n' +
+      '目前價：' + it.price.toFixed(it.prec) + '\n' +
+      '未實現損益 ' + tradePnlText_(it, it.upl) + '\n';
+  } else {
+    body = items.map(it => '・' + tradeLabelOf_(it.name) + ' 平' + it.dirZh + ' ' + it.size + ' 單位，未實現損益 ' + tradePnlText_(it, it.upl)).join('\n') +
+      '\n\n共 ' + items.length + ' 筆，會逐筆平倉。\n';
+  }
+  body += '5 分鐘內按確認才會送出。\n代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
   return { text: '📉 平倉提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('📉 平倉提案', body, rows), alt: '📉 平倉提案' };
 }
 
-// 確認平倉：一次性；代碼對不上、過期、持倉已變就不平倉。平倉不計入每日新單數
+// 確認平倉：一次性；代碼對不上、過期就不平倉。提案裡的每一筆各自檢查、各自送單，一筆失敗不影響其他筆。平倉不計入每日新單數
 function tradeCloseConfirm_(token) {
   return withLock_(() => {
     const p = tradeState_().closePending;
     if (!p) return '目前沒有待確認的平倉。\n請先按「📉 平倉」。';
     if (token && token.toUpperCase() !== p.id) return '確認碼對不上，可能是舊的平倉提案，沒有平倉。';
     tradeSaveState_(Object.assign(tradeState_(), { closePending: null }));   // 一次性：不管成不成功都先清掉
+    if (!p.items) return '平倉提案格式已更新，沒有平倉。\n請重新按「📉 平倉」。';
     if (Date.now() > p.expires) return '這張平倉提案已超過 5 分鐘，沒有平倉。\n請重新按「📉 平倉」。';
     if (tradeMode_() === 'paper') return '📝 紙上模式沒有真實持倉可平。';
     const mode = tradeMode_(), env = tradeCfg_().env === 'live' ? 'live' : 'demo';
     if (mode === 'live' && env !== 'live') return '設定不一致：mode 是 live，但 env 不是 live，沒有平倉。';
     if (mode === 'practice' && env === 'live') return '設定不一致：mode 是 practice，但 env 是 live，沒有平倉。';
-    const hit = tradeOpenPositions_().filter(x => x.dealId === p.dealId)[0];
-    if (!hit) return '這筆持倉已經不在了，沒有平倉。';
-    if (hit.size !== p.size) return '持倉數量已經改變，沒有平倉。\n請重新按「📉 平倉」。';
-    if (!TRADE_ITEMS[hit.name]) return '這個商品不在智能下單的清單裡，請直接到 IG 網站處理。';
     const label = mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶';
-    const closeDir = hit.dir === 'buy' ? 'SELL' : 'BUY';
-    // IG 的平倉用 POST 加上 _method: DELETE（Apps Script 不能直接送 DELETE 帶內容）
-    const placed = tradeFetch_('post', '/positions/otc', 1, { dealId: hit.dealId, direction: closeDir, size: hit.size, orderType: 'MARKET', expiry: '-' }, { _method: 'DELETE' });
-    const ref = placed.dealReference || '';
-    tradeLog_({ name: hit.name, side: hit.dir === 'buy' ? 'sell' : 'buy', size: hit.size, sl: '-', tp: '-' }, p.price, '平倉（' + label + '），成交狀態待確認', ref, hit.margin);
-    if (!ref) return '⏳ 已送出平倉，但 IG 沒有回傳單號，紀錄已標示待確認，請按「📊 查看持倉」核對。';
-    let conf = null, checkErr = '';
-    try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
-    if (!conf) return '⏳ 已送出平倉，但查詢結果失敗：' + checkErr + '\n紀錄已標示待確認，請按「📊 查看持倉」核對。';
-    if (conf.dealStatus !== 'ACCEPTED') {
-      const reason = conf.reason || conf.dealStatus || '未知原因';
-      tradeLogSet_(ref, { label: '平倉（' + label + '），未成交：' + reason });
-      return '❌ 平倉沒有成交：' + reason + '\n（紀錄已更新）';
-    }
-    const fill = Number(conf.level).toFixed(hit.prec);
-    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
-    tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
-    return '✅ 已平倉（' + label + '）\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill;
+    const nowList = tradeOpenPositions_();
+    const lines = p.items.map(item => {
+      try { return tradeCloseOne_(item, nowList, label); }
+      catch (err) { return '❌ ' + tradeLabelOf_(item.name) + ' 平' + item.dirZh + '：' + (err.message || err) + '\n（這筆沒有確認結果，請到「📊 查看持倉」核對）'; }
+    });
+    return '（' + label + '）\n' + lines.join('\n');
   });
+}
+
+// 平掉一筆：先確認持倉還在、數量沒變，再送平倉單，最後查成交結果（IG 的平倉用 POST 加 _method: DELETE）
+function tradeCloseOne_(item, nowList, label) {
+  const tag = tradeLabelOf_(item.name) + ' 平' + item.dirZh + ' ' + item.size + ' 單位';
+  const hit = nowList.filter(x => x.dealId === item.dealId)[0];
+  if (!hit) return '⏭ ' + tag + '：這筆持倉已經不在了，沒有平倉。';
+  if (hit.size !== item.size) return '⏭ ' + tag + '：持倉數量已經改變，沒有平倉。\n請重新按「📉 平倉」。';
+  if (!TRADE_ITEMS[hit.name]) return '⏭ ' + tag + '：這個商品不在智能下單的清單裡，請直接到 IG 網站處理。';
+  const closeDir = hit.dir === 'buy' ? 'SELL' : 'BUY';
+  const placed = tradeFetch_('post', '/positions/otc', 1, { dealId: hit.dealId, direction: closeDir, size: hit.size, orderType: 'MARKET', expiry: '-' }, { _method: 'DELETE' });
+  const ref = placed.dealReference || '';
+  tradeLog_({ name: hit.name, side: hit.dir === 'buy' ? 'sell' : 'buy', size: hit.size, sl: '-', tp: '-' }, item.price, '平倉（' + label + '），成交狀態待確認', ref, hit.margin);
+  if (!ref) return '⏳ ' + tag + '：已送出，但 IG 沒有回傳單號，紀錄已標示待確認。';
+  let conf = null, checkErr = '';
+  try { conf = tradeFetch_('get', '/confirms/' + ref, 1); } catch (e) { checkErr = e.message || String(e); }
+  if (!conf) return '⏳ ' + tag + '：已送出，但查詢結果失敗：' + checkErr + '\n紀錄已標示待確認。';
+  if (conf.dealStatus !== 'ACCEPTED') {
+    const reason = conf.reason || conf.dealStatus || '未知原因';
+    tradeLogSet_(ref, { label: '平倉（' + label + '），未成交：' + reason });
+    return '❌ ' + tag + '：沒有成交：' + reason;
+  }
+  const fill = Number(conf.level).toFixed(hit.prec);
+  tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
+  tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
+  return '✅ ' + tag + '，成交價 ' + fill;
 }
 
 function tradeCloseCancel_(token) {
