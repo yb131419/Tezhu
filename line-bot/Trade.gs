@@ -27,7 +27,7 @@ const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s) || s === '查詢';
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -43,7 +43,7 @@ function tradeAsk_(t) {
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
     if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell', m[3]);
-    if (s === '查看持倉' || s === '查詢') return tradePositions_();
+    if (s === '查看持倉' || s === '持倉' || s === '查詢') return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
     if (s === '下單自檢') return tradeSelfTest_();
@@ -346,8 +346,8 @@ function tradePositions_() {
   // 持倉資料沒有幣別時，改用該商品的報價幣別（取不到就顯示「幣別未知」）
   real.forEach(x => { if (!x.cur) x.cur = tradeCurrencyOf_(x.epic); });
   const virt = tradeVirtOpen_();
-  // 最下面的「🔍 查詢」：重新抓持倉與報價，只讀，不下單、不平倉
-  const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 查詢']]);
+  // 最下面的「🔍 持倉」：重新抓持倉與報價，只讀，不下單、不平倉
+  const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 持倉']]);
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
   // 真實倉位前面獨立一行標示「IG Group 模擬倉／真實倉」；虛擬倉位在商品名後面標示「虛擬」
   const realTag = tradeMode_() === 'live' ? 'IG Group 真實倉' : 'IG Group 模擬倉';
