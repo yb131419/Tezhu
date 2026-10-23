@@ -15,7 +15,7 @@ const TRADE_ITEMS = {
   '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
   '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
-const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
+const TRADE_MAX_DAILY_DEFAULT = 5;    // 每日下單上限的預設值（全商品合計）；使用者可在「⚙️ 下單上限」改，存在 TRADE_DAILY_CAP
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
 const TRADE_MAX_SIZE = 5;             // 單筆最多下單數量（防止誤打大數字）
 let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，不用每個呼叫都登入一次
@@ -27,7 +27,7 @@ const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -55,6 +55,9 @@ function tradeAsk_(t) {
     // 提醒推送後回覆「確認」或「否」：只有在有待確認的提案時才算下單指令，否則照常交給小乖
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
+    if (s === '下單上限') return tradeCapAsk_();
+    m = s.match(/^設上限(\d+|不限)$/);
+    if (m) return tradeCapSet_(m[1]);
     if (s === '平倉') return tradeCloseAsk_();
     if (s === '平倉一筆') return tradeCloseMenu_();
     if (/^全部平倉(（\d+筆）)?$/.test(s)) return tradeCloseAllPropose_();
@@ -85,7 +88,7 @@ function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
   const body = '模式：' + tradeModeZh_() + '\n選商品與方向 → 按確認 → 查看持倉或平倉' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['⚙️ 下單上限'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
@@ -179,7 +182,8 @@ function tradeConfirm_(token) {
       return tradePropose_(p.name, p.side, String(p.size), notice);
     }
     const day = tradeDay_();
-    if (day.n >= TRADE_MAX_DAILY) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + TRADE_MAX_DAILY + '，沒有下單。';
+    const cap = tradeMaxDaily_();
+    if (day.n >= cap) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + cap + ' 筆，沒有下單。（可在「⚙️ 下單上限」調整）';
     // 紙上模式不查 IG 持倉；IG 模式才檢查同時持倉上限
     if (mode !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN) return '同時持倉已達上限 ' + TRADE_MAX_OPEN + ' 筆，沒有下單。';
 
@@ -728,7 +732,7 @@ function tradeRemindTick_() {
     const cur = tradePending_();
     if (cur && cur.expires > Date.now()) return;   // 已有待確認的提案，不重複推送
     const day = tradeDay_();
-    if (day.n >= TRADE_MAX_DAILY || (tradeMode_() !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN)) return;
+    if (day.n >= tradeMaxDaily_() || (tradeMode_() !== 'paper' && tradeOpenCount_() >= TRADE_MAX_OPEN)) return;
     const seen = tradeState_().alerts || {};
     for (const name of Object.keys(TRADE_ITEMS)) {
       const sig = tradeSignal_(TRADE_ITEMS[name]);
@@ -864,6 +868,32 @@ function tradeDay_() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
   const d = tradeState_().day || {};
   return d.date === today ? { date: today, n: Number(d.n) || 0 } : { date: today, n: 0 };
+}
+
+// 每日下單上限：存在 script property TRADE_DAILY_CAP；沒設就用預設 5，設成 none 就不限（Infinity，完全不檢查）
+function tradeMaxDaily_() {
+  const v = prop_('TRADE_DAILY_CAP');
+  if (v === 'none') return Infinity;
+  const n = Number(v);
+  return v && n > 0 ? n : TRADE_MAX_DAILY_DEFAULT;
+}
+
+// 「⚙️ 下單上限」卡片：顯示目前設定，可選 3、5、10、20、不限，或打「設上限 數字」自訂
+function tradeCapAsk_(note) {
+  const cap = tradeMaxDaily_();
+  const text = (note ? note + '\n' : '') + '每日下單上限：' + (cap === Infinity ? '不限' : cap + ' 筆') +
+    '\n以台北時間計，只算送出的單，平倉不計。\n選一個，或打「設上限 數字」自訂。';
+  const rows = [['設上限 3', '設上限 5'], ['設上限 10', '設上限 20'], ['設上限 不限'], ['📈 智能下單']];
+  return { text: text, buttons: rows, flex: tradeFlex_('⚙️ 下單上限', text, rows), alt: '⚙️ 下單上限' };
+}
+
+// 設定上限：不限就存 none；數字要是 1 到 1000 的整數，否則不更改
+function tradeCapSet_(v) {
+  if (v === '不限') { setProp_('TRADE_DAILY_CAP', 'none'); return tradeCapAsk_('✅ 已取消每日下單上限。'); }
+  const n = Math.floor(Number(v));
+  if (!(n >= 1 && n <= 1000)) return tradeCapAsk_('上限要是 1 到 1000 之間的數字，沒有更改。');
+  setProp_('TRADE_DAILY_CAP', String(n));
+  return tradeCapAsk_('✅ 每日下單上限已設為 ' + n + ' 筆。');
 }
 
 function tradeBump_(day) {
