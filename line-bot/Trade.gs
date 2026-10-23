@@ -1,17 +1,19 @@
-/* ============ 自動下單（OANDA）：卡片＋確認 ============ */
+/* ============ 自動下單（IG Group）：卡片＋確認 ============ */
 // 這個檔案要跟 Code.gs 放在同一個 Apps Script 專案（在編輯器「+」新增一個檔案，名字隨意，例如 Trade，整份貼進去）。
 // 安全規則（使用者要求「要確認才下單」）：
 // 1. 沒有排程，AI 也不會下單：要先按「🛒 下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
-// 2. 預設 mode = paper（只記錄，不送 OANDA）。要到 OANDA 模擬帳戶送單改成 practice；
+// 2. 預設 mode = paper（只記錄，不送 IG）。mode = practice 送 IG 模擬帳戶（env = demo）；
 //    真錢要 mode = live 且 env = live，兩個都改才會動真錢。
-// 3. 金鑰只放在指令碼屬性 TRADE_CFG（一個 JSON），不寫在程式碼裡。
-// 4. 提案 5 分鐘內有效；確認時重抓報價，偏離太多就不下單；每日單數與同時持倉都有上限（同 Python 版 config.py）。
+// 3. 登入資料只放在指令碼屬性 TRADE_CFG（一個 JSON），不寫在程式碼裡。用 TradeSetup.gs 一次寫入。
+// 4. 提案 5 分鐘內有效；確認時重抓報價，偏離太多就不下單；每日單數與同時持倉都有上限（沿用原本 bot 的設定）。
 // 指令碼屬性只用兩個：TRADE_CFG（設定，你自己填）與 TRADE_STATE（提案、每日計數、模擬紀錄，小乖自己寫）。
 
-const TRADE_ITEMS = {   // 同 Python 版 config.py：單位、停損停利（pips）、pip 大小、價格小數位（請用模擬帳戶確認 prec）
-  '黃金': { id: 'XAU_USD', units: 10, sl: 150, tp: 300, pip: 0.01, prec: 3 },
-  '原油': { id: 'BCO_USD', units: 100, sl: 50, tp: 100, pip: 0.01, prec: 3 },
-  '納指': { id: 'NAS100_USD', units: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },
+// 商品對照。epic 必須從 IG 網站的市場頁面複製（見 PR 說明），沒填前會直接拒絕下單。
+// sl／tp 是 IG 的「點數距離」，size 是 IG 的下單大小，兩者都要在模擬帳戶確認過再用。
+const TRADE_ITEMS = {
+  '黃金': { epic: 'FILL_IN_GOLD_EPIC', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },
+  '原油': { epic: 'FILL_IN_BRENT_EPIC', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },
+  '納指': { epic: 'FILL_IN_NASDAQ100_EPIC', size: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },
 };
 const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
@@ -59,11 +61,11 @@ function tradePickSide_(name) {
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
 function tradePropose_(name, side) {
   const it = TRADE_ITEMS[name];
-  const price = tradeQuote_(it.id);
-  const sig = tradeSignal_(it.id);
+  const price = tradeQuote_(it);
+  const sig = tradeSignal_(it);
   const dir = side === 'buy' ? 1 : -1;
   const p = {
-    id: tradeToken_(), name: name, side: side, units: it.units, price: price,
+    id: tradeToken_(), name: name, side: side, size: it.size, price: price,
     sl: tradeRound_(price - dir * it.sl * it.pip, it.prec),
     tp: tradeRound_(price + dir * it.tp * it.pip, it.prec),
     expires: Date.now() + TRADE_TTL_MS, sig: sig.text,
@@ -77,11 +79,11 @@ function tradePropose_(name, side) {
 
 function tradeProposalText_(p) {
   const it = TRADE_ITEMS[p.name];
-  return '商品：' + p.name + '（' + it.id + '）\n' +
-    '方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.units + ' 單位\n' +
+  return '商品：' + p.name + '（' + it.epic + '）\n' +
+    '方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' +
     '參考價：' + p.price.toFixed(it.prec) + '\n' +
-    '停損：' + p.sl.toFixed(it.prec) + '（' + it.sl + ' pips）\n' +
-    '停利：' + p.tp.toFixed(it.prec) + '（' + it.tp + ' pips）\n' +
+    '停損：' + p.sl.toFixed(it.prec) + '（' + it.sl + ' 點）\n' +
+    '停利：' + p.tp.toFixed(it.prec) + '（' + it.tp + ' 點）\n' +
     p.sig + (p.against ? '\n⚠️ 這根 K 線的 EMA 交叉方向跟你選的相反' : '') +
     '\n提案代碼：' + p.id;
 }
@@ -95,13 +97,12 @@ function tradeConfirm_(token) {
     if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 下單」。';
 
     const it = TRADE_ITEMS[p.name];
-    const cfg = tradeCfg_();
     const mode = tradeMode_();
-    const env = cfg.env === 'live' ? 'live' : 'practice';
+    const env = tradeCfg_().env === 'live' ? 'live' : 'demo';
     if (mode === 'live' && env !== 'live') return '設定不一致：mode 是 live，但 env 不是 live，沒有下單。';
     if (mode === 'practice' && env === 'live') return '設定不一致：mode 是 practice，但 env 是 live，沒有下單。';
 
-    const now = tradeQuote_(it.id);
+    const now = tradeQuote_(it);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
       return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 下單」。';
     }
@@ -110,21 +111,23 @@ function tradeConfirm_(token) {
     if (tradeOpenCount_() >= TRADE_MAX_OPEN) return '同時持倉已達上限 ' + TRADE_MAX_OPEN + ' 筆，沒有下單。';
 
     if (mode === 'paper') {
-      tradeLog_(p, now, '模擬紀錄，沒有送到 OANDA');
+      tradeLog_(p, now, '模擬紀錄，沒有送到 IG');
       tradeBump_(day);
-      return '📝 模擬下單完成（沒有送到 OANDA）\n' + tradeProposalText_(p);
+      return '📝 模擬下單完成（沒有送到 IG）\n' + tradeProposalText_(p);
     }
 
-    const res = tradeFetch_('post', tradeAcct_('/orders'), { order: {
-      type: 'MARKET', instrument: it.id, units: String(p.side === 'buy' ? p.units : -p.units),
-      stopLossOnFill: { price: p.sl.toFixed(it.prec), timeInForce: 'GTC' },
-      takeProfitOnFill: { price: p.tp.toFixed(it.prec), timeInForce: 'GTC' },
-    } });
-    if (!res.orderFillTransaction) return '❌ 下單沒有成交：' + JSON.stringify(res).slice(0, 300);
-    const fillPrice = Number(res.orderFillTransaction.price);
+    // IG：先送單，拿 dealReference，再用 /confirms 確認是否成交
+    const placed = tradeFetch_('post', '/positions/otc', 2, {
+      epic: it.epic, direction: p.side === 'buy' ? 'BUY' : 'SELL', size: p.size, orderType: 'MARKET',
+      currencyCode: 'USD', forceOpen: true, guaranteedStop: false,
+      stopDistance: it.sl, limitDistance: it.tp,
+    });
+    const conf = tradeFetch_('get', '/confirms/' + placed.dealReference, 1);
+    if (conf.dealStatus !== 'ACCEPTED') return '❌ 下單沒有成交：' + (conf.reason || conf.dealStatus || '未知原因');
+    const fillPrice = Number(conf.level);
     tradeBump_(day);
-    tradeLog_(p, fillPrice, mode === 'live' ? '真實帳戶' : 'OANDA 模擬帳戶');
-    return '✅ 已送出（' + (mode === 'live' ? '真實帳戶' : 'OANDA 模擬帳戶') + '）\n成交價：' + fillPrice.toFixed(it.prec) +
+    tradeLog_(p, fillPrice, mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶');
+    return '✅ 已送出（' + (mode === 'live' ? '真實帳戶' : 'IG 模擬帳戶') + '）\n成交價：' + fillPrice.toFixed(it.prec) +
       '\n停損：' + p.sl.toFixed(it.prec) + '\n停利：' + p.tp.toFixed(it.prec);
   });
 }
@@ -136,32 +139,20 @@ function tradeCancel_() {
 }
 
 function tradePositions_() {
-  const trades = tradeFetch_('get', tradeAcct_('/openTrades')).trades || [];
+  const positions = tradeFetch_('get', '/positions', 2).positions || [];
   const rows = [['📈 交易', '🛒 下單']];
-  let text = trades.length ? '📊 目前持倉（' + trades.length + ' 筆）\n' + trades.map(t =>
-    '・' + tradeNameOf_(t.instrument) + ' ' + (Number(t.currentUnits) > 0 ? '多' : '空') + ' ' + Math.abs(Number(t.currentUnits)) +
-    ' 單位，成交 ' + t.price + '，未實現損益 ' + t.unrealizedPL).join('\n') : '📊 目前沒有持倉。';
+  let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x =>
+    '・' + tradeNameOf_(x.market.epic) + ' ' + (x.position.direction === 'BUY' ? '多' : '空') + ' ' + x.position.dealSize +
+    ' 單位，開倉 ' + x.position.level + '，未實現損益 ' + x.position.upl).join('\n') : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
 }
 
-/* ---------- 設定與 OANDA 連線（金鑰只從 TRADE_CFG 讀） ---------- */
-// TRADE_CFG 範例（在「指令碼屬性」新增一個屬性，值是下面這段 JSON）：
-// {"apiKey":"你的OANDA金鑰","account":"101-xxx-xxxxxxx-001","mode":"paper","env":"practice"}
-
-// 指令碼屬性超過 50 個時，「專案設定」頁面會變成唯讀，只能用程式寫入。
-// 步驟：把下面的 apiKey、account 改成你自己的值，在編輯器選「tradeSetCfgOnce_」按「執行」一次，
-// 跑完後馬上把 apiKey、account 改回 YOUR_ 開頭的預留字（程式碼裡不要留下真的金鑰）。
-// 已經有 TRADE_CFG 時不會覆寫，要改設定請先在指令碼屬性刪掉 TRADE_CFG。
-function tradeSetCfgOnce_() {
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('TRADE_CFG')) { console.log('TRADE_CFG 已存在，沒有覆寫'); return; }
-  const cfg = { apiKey: 'YOUR_OANDA_API_KEY', account: 'YOUR_ACCOUNT_ID', mode: 'paper', env: 'practice' };
-  if (cfg.apiKey.indexOf('YOUR_') === 0) throw new Error('請先把 apiKey、account 改成你自己的值再執行');
-  props.setProperty('TRADE_CFG', JSON.stringify(cfg));
-  console.log('TRADE_CFG 已寫入（金鑰不顯示）');
-}
+/* ---------- 設定與 IG 連線（登入資料只從 TRADE_CFG 讀） ---------- */
+// TRADE_CFG 範例（用 TradeSetup.gs 一次寫入，不要手動貼在屬性欄位裡）：
+// {"apiKey":"IG的API金鑰","identifier":"IG登入帳號","password":"IG登入密碼","mode":"paper","env":"demo"}
+// 注意：獨立的模擬帳戶能否建立 API 金鑰，目前還沒確認（見 PR 說明）。
 
 function tradeCfg_() {
   try { return JSON.parse(prop_('TRADE_CFG') || '{}'); } catch (e) { return {}; }
@@ -173,42 +164,62 @@ function tradeMode_() {
 }
 
 function tradeModeZh_() {
-  return { paper: '模擬（不送單）', practice: 'OANDA 模擬帳戶', live: '真實帳戶⚠️' }[tradeMode_()];
+  return { paper: '模擬（不送單）', practice: 'IG 模擬帳戶', live: '真實帳戶⚠️' }[tradeMode_()];
 }
 
 function tradeBase_() {
-  return tradeCfg_().env === 'live' ? 'https://api-fxtrade.oanda.com' : 'https://api-fxpractice.oanda.com';
+  return tradeCfg_().env === 'live' ? 'https://api.ig.com/gateway/deal' : 'https://demo-api.ig.com/gateway/deal';
 }
 
-function tradeAcct_(sub) { return '/v3/accounts/' + tradeCfg_().account + sub; }
-
-function tradeFetch_(method, path, body) {
+// 登入（v2：回傳 CST 與 X-SECURITY-TOKEN 兩個標頭），每次呼叫都重新登入，不把 token 存進屬性
+function tradeLogin_() {
   const cfg = tradeCfg_();
-  if (!cfg.apiKey || !cfg.account) {
-    throw new Error('還沒設定 OANDA 金鑰，請到 Apps Script「專案設定→指令碼屬性」新增 TRADE_CFG（內容請看 Trade.gs 最上面的範例）');
+  if (!cfg.apiKey || !cfg.identifier || !cfg.password) {
+    throw new Error('還沒設定 IG 登入資料，請用 TradeSetup.gs 寫入 TRADE_CFG');
   }
+  const res = UrlFetchApp.fetch(tradeBase_() + '/session', {
+    method: 'post', muteHttpExceptions: true, contentType: 'application/json',
+    headers: { 'X-IG-API-KEY': cfg.apiKey, Version: '2', Accept: 'application/json' },
+    payload: JSON.stringify({ identifier: cfg.identifier, password: cfg.password }),
+  });
+  if (res.getResponseCode() !== 200) throw new Error('IG 登入失敗（' + res.getResponseCode() + '），請檢查 TRADE_CFG 與 API 金鑰');
+  const h = res.getHeaders();
+  return { cst: h.CST || h.cst, token: h['X-SECURITY-TOKEN'] || h['x-security-token'] };
+}
+
+// 呼叫 IG 的 API；version 依 IG 文件對應各端點
+function tradeFetch_(method, path, version, body) {
+  const cfg = tradeCfg_();
+  const auth = tradeLogin_();
   const res = UrlFetchApp.fetch(tradeBase_() + path, {
     method: method, muteHttpExceptions: true, contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + cfg.apiKey },
+    headers: { 'X-IG-API-KEY': cfg.apiKey, CST: auth.cst, 'X-SECURITY-TOKEN': auth.token, Version: String(version), Accept: 'application/json' },
     payload: body ? JSON.stringify(body) : null,
   });
   const code = res.getResponseCode();
   const text = res.getContentText();
   let json = {};
   try { json = JSON.parse(text); } catch (e) { /* 不是 JSON 就用原文 */ }
-  if (code >= 400) throw new Error('OANDA ' + code + '：' + (json.errorMessage || text.slice(0, 200)));
+  if (code >= 400) throw new Error('IG ' + code + '：' + (json.errorCode || text.slice(0, 200)));
   return json;
 }
 
-function tradeQuote_(instrument) {
-  const p = tradeFetch_('get', tradeAcct_('/pricing?instruments=' + instrument)).prices[0];
-  return (Number(p.bids[0].price) + Number(p.asks[0].price)) / 2;   // 中間價，同 Python 版 get_price
+function tradeEpicCheck_(it) {
+  if (!it.epic || it.epic.indexOf('FILL_IN') === 0) throw new Error('還沒填 Epic 代碼，請從 IG 市場頁面複製（見 PR 說明）');
 }
 
-// 同 Python 版 analysis.py：M15 收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
-function tradeSignal_(instrument) {
-  const data = tradeFetch_('get', '/v3/instruments/' + instrument + '/candles?granularity=M15&count=100&price=M');
-  const closes = (data.candles || []).filter(c => c.complete).map(c => Number(c.mid.c));
+// 報價：用 IG 的 /markets/{epic} 取買價與賣價，取中間價
+function tradeQuote_(it) {
+  tradeEpicCheck_(it);
+  const snap = tradeFetch_('get', '/markets/' + it.epic, 3).snapshot;
+  return (Number(snap.bid) + Number(snap.offer)) / 2;
+}
+
+// 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
+function tradeSignal_(it) {
+  tradeEpicCheck_(it);
+  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/100', 3);
+  const closes = (data.prices || []).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
   const n = closes.length;
   if (n < 30) return { signal: '', text: 'EMA：K 線不足，無法判斷' };
   const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
@@ -230,7 +241,7 @@ function tradeEma_(vals, period) {
   return out;
 }
 
-function tradeOpenCount_() { return (tradeFetch_('get', tradeAcct_('/openTrades')).trades || []).length; }
+function tradeOpenCount_() { return (tradeFetch_('get', '/positions', 2).positions || []).length; }
 
 /* ---------- 狀態（TRADE_STATE：提案、每日計數、模擬紀錄） ---------- */
 
@@ -259,13 +270,13 @@ function tradeLogList_() { return tradeState_().log || []; }
 
 function tradeLog_(p, price, label) {
   const list = tradeLogList_();
-  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, units: p.units, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label });
+  list.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, side: p.side, size: p.size, price: Number(price).toFixed(TRADE_ITEMS[p.name].prec), sl: p.sl, tp: p.tp, label: label });
   tradeSaveState_(Object.assign(tradeState_(), { log: list.slice(-20) }));
 }
 
-function tradeNameOf_(instrument) {
-  const hit = Object.keys(TRADE_ITEMS).filter(n => TRADE_ITEMS[n].id === instrument)[0];
-  return hit || instrument;
+function tradeNameOf_(epic) {
+  const hit = Object.keys(TRADE_ITEMS).filter(n => TRADE_ITEMS[n].epic === epic)[0];
+  return hit || epic;
 }
 
 function tradeRound_(x, prec) { return Number(x.toFixed(prec)); }
