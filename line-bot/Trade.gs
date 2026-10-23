@@ -145,9 +145,15 @@ function tradeCancel_() {
 function tradePositions_() {
   const positions = tradeFetch_('get', '/positions', 2).positions || [];
   const rows = [['📈 交易', '🛒 下單']];
-  let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x =>
-    '・' + tradeNameOf_(x.market.epic) + ' ' + (x.position.direction === 'BUY' ? '多' : '空') + ' ' + x.position.dealSize +
-    ' 單位，開倉 ' + x.position.level + '，未實現損益 ' + x.position.upl).join('\n') : '📊 目前沒有持倉。';
+  // IG 的 /positions 回傳 position.size（數量）、position.level（開倉價），損益要用市場的 bid／offer 自己算（約略值，帳戶幣別）
+  let text = positions.length ? '📊 目前持倉（' + positions.length + ' 筆）\n' + positions.map(x => {
+    const buy = x.position.direction === 'BUY';
+    const open = Number(x.position.level);
+    const now = buy ? Number(x.market.bid) : Number(x.market.offer);
+    const upl = (buy ? now - open : open - now) * Number(x.position.size);
+    return '・' + tradeNameOf_(x.market.epic) + ' ' + (buy ? '多' : '空') + ' ' + x.position.size +
+      ' 單位，開倉 ' + open + '，未實現損益 約 ' + upl.toFixed(2);
+  }).join('\n') : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
   return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', text, rows), alt: '📊 持倉' };
