@@ -299,19 +299,32 @@ function tradeRound_(x, prec) { return Number(x.toFixed(prec)); }
 function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6).toUpperCase(); }
 
 // LINE 卡片（Flex）：每一顆按鈕都是「送出一句文字」，所以會走同一套 answer_ 指令，不會直接下單
+// 版面與小乖精品選單一致：象牙白底、金色漸層標題、每顆按鈕獨占一行
 function tradeFlex_(title, body, rows) {
+  const INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
+  const btn = (label, i) => ({
+    type: 'box', layout: 'horizontal', alignItems: 'center', justifyContent: 'center', paddingAll: '13px', cornerRadius: '12px',
+    borderWidth: '1px', borderColor: i ? LINE : '#C9A56A',
+    background: i ? undefined : { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
+    backgroundColor: i ? '#FFFFFF' : '#D9BC85',
+    action: { type: 'message', label: label, text: label },
+    contents: [{ type: 'text', text: label, size: 'sm', weight: 'bold', color: INK, align: 'center' }],
+  });
+  const labels = [].concat.apply([], rows);
   return {
     type: 'bubble', size: 'kilo',
+    header: {
+      type: 'box', layout: 'vertical', paddingAll: '16px', background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' },
+      contents: [
+        { type: 'text', text: '小乖 · PRIVATE', size: 'xxs', weight: 'bold', color: '#5A4630' },
+        { type: 'text', text: title, size: 'xl', weight: 'bold', color: INK, wrap: true, margin: 'sm' },
+      ],
+    },
     body: {
-      type: 'box', layout: 'vertical', spacing: 'md', contents: [
-        { type: 'text', text: title, weight: 'bold', size: 'lg', wrap: true },
-        { type: 'text', text: body, wrap: true, size: 'sm', color: '#6B5A45' },
-      ].concat(rows.map(r => ({
-        type: 'box', layout: 'horizontal', spacing: 'sm', contents: r.map((label, i) => ({
-          type: 'button', style: i ? 'secondary' : 'primary', height: 'sm', flex: 1,
-          action: { type: 'message', label: label, text: label },
-        })),
-      }))),
+      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px', backgroundColor: '#FBF7EF', contents: [
+        { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
+        { type: 'separator', color: LINE },
+      ].concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
     },
   };
 }
