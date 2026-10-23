@@ -230,8 +230,11 @@ function tradeOpenPositions_() {
 }
 
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
-function tradePnlText_(upl, cur) {
-  return '約 ' + upl.toFixed(2) + (cur ? ' ' + cur : '（幣別未知）');
+// 百分比 = 損益 ÷ 開倉價值（開倉價 × 數量），也就是價格相對開倉價的變動（已含方向）
+function tradePnlText_(x, upl) {
+  const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
+  const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
+  return '約 ' + upl.toFixed(2) + cur + (isFinite(pct) ? '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）' : '');
 }
 
 // 幣別取不到時回傳空字串；只在持倉沒有幣別時才呼叫
@@ -273,7 +276,7 @@ function tradeClosePropose_(name, dirZh) {
     '方向：平' + dirZh + '（' + (hit.dir === 'buy' ? '賣出' : '買進') + '）' + hit.size + ' 單位\n' +
     '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
     '目前價：' + price.toFixed(hit.prec) + '\n' +
-    '未實現損益 ' + tradePnlText_(upl, hit.cur) + '\n\n' +
+    '未實現損益 ' + tradePnlText_(hit, upl) + '\n\n' +
     '5 分鐘內按「✅ 確認平倉」才會送出；按「❌ 取消平倉」就不做。\n平倉提案代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
   return { text: '📉 平倉提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('📉 平倉提案', body, rows), alt: '📉 平倉提案' };
@@ -366,7 +369,7 @@ function tradePosLine_(x) {
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
   return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
-    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(upl, x.cur) : '未取得');
+    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得');
 }
 
 function tradeNoteFlex_(t) {
@@ -806,7 +809,7 @@ function tradePosFlex_(list) {
           cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('未實現損益', isFinite(upl) ? tradePnlText_(upl, x.cur) : '未取得', upl >= 0 ? UP : DOWN),
+          cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
       ],
     };
