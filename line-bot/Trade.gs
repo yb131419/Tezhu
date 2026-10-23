@@ -13,7 +13,7 @@
 const TRADE_ITEMS = {
   '黃金': { label: '黃金', epic: 'MT.D.GC.FBMU3.IP', size: 1, sl: 150, tp: 300, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證；可能是特定到期月合約
   '原油': { label: '布倫特原油', epic: 'CC.D.LCO.UNC.IP', size: 1, sl: 50, tp: 100, pip: 0.01, prec: 2 },   // 使用者提供，尚未用 IG 行情驗證
-  '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 1, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
+  '納指': { label: '納斯達克100指數', epic: 'IX.D.NASDAQ.IFMM.IP', size: 0.2, min: 0.2, sl: 200, tp: 400, pip: 0.1, prec: 1 },   // 美國科技股100指數 現貨 ($1)，由查代碼結果取得，尚未用行情驗證
 };
 const TRADE_MAX_DAILY = 5;            // 每日最多單數（全商品合計）
 const TRADE_MAX_OPEN = 2;             // 同時最多持倉數
@@ -41,10 +41,10 @@ function tradeAsk_(t) {
     if (/^(尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片)$/.test(s)) return tradeCard_();
     if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     // 語音只能打開卡片、查詢；買進、賣出、平倉、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
-    if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/.test(s) || /^(確認|確認下單|確認平倉|平倉)/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
+    if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/.test(s) || /^(確認|確認下單|確認平倉|平倉)/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
-    m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
+    m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
     if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell', m[3]);
     if (/^(查看持倉|查持倉|看持倉|持倉|我的持倉)$/.test(s)) return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
@@ -106,15 +106,26 @@ function tradePickSide_(name) {
   const buy = ['🟢 買進' + label], sell = ['🔴 賣出' + label];
   const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
   const note = '依趨勢參考，不保證獲利，方向請自己決定。\n目前：' + tradeFavorText_(dir) +
-    (dir ? '（' + (dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）' : '') + '\n選好會先給你看提案，確認後才會下單。';
+    (dir ? '（' + (dir === 'buy' ? '快線在慢線上方' : '快線在慢線下方') + '）' : '') + '\n選好會先給你看提案，確認後才會下單。' + (TRADE_ITEMS[name].min ? '\n數量：在指令後面加數字，最小 ' + TRADE_ITEMS[name].min + '，例如「買進' + tradeLabelOf_(name) + ' ' + TRADE_ITEMS[name].min * 2 + '」' : '');
   return { text: '要買還是賣' + label + '？\n' + note, buttons: rows, flex: tradeFlex_('🛒 ' + label, note, rows), alt: '🛒 ' + label };
+}
+
+// IG 規定的最小下單數量（/markets 的 dealingRules.minDealSize）；取不到回傳 0，不擋提案
+function tradeMinDeal_(it) {
+  try { return Number(tradeFetch_('get', '/markets/' + it.epic, 3).dealingRules.minDealSize.value) || 0; } catch (e) { return 0; }
 }
 
 // 產生提案：只存在 TRADE_STATE 裡，不會下單
 function tradePropose_(name, side, sizeText) {
   const it = TRADE_ITEMS[name];
-  const size = sizeText ? Number(sizeText) : it.size;
-  if (!(size >= 1 && size <= TRADE_MAX_SIZE)) return '數量要在 1 到 ' + TRADE_MAX_SIZE + ' 之間，沒有產生提案。';
+  // 數量以 min 為單位（納指 0.2，其他 1）：要在 min 到 TRADE_MAX_SIZE 之間，而且是 min 的整數倍
+  const min = it.min || 1;
+  const size = Number((sizeText ? Number(sizeText) : it.size).toFixed(2));
+  const steps = size / min;
+  if (!(size >= min && size <= TRADE_MAX_SIZE) || Math.abs(steps - Math.round(steps)) > 1e-6) return '數量要是 ' + min + ' 的倍數，在 ' + min + ' 到 ' + TRADE_MAX_SIZE + ' 之間，沒有產生提案。';
+  // IG 規定的最小下單數量（dealingRules.minDealSize）；取不到就不擋
+  const minDeal = tradeMinDeal_(it);
+  if (minDeal && size < minDeal) return '這個商品最小下單數量是 ' + minDeal + '，沒有產生提案。';
   const price = tradeQuote_(it);
   // 趨勢只是提案的參考資訊：K 線取不到（例如額度用完）不影響提案本身
   let sig;
