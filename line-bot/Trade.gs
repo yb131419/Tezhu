@@ -339,6 +339,8 @@ function tradeCloseMake_(list) {
   });
   const p = { id: tradeToken_(), items: items, expires: Date.now() + TRADE_TTL_MS };
   tradeSaveState_(Object.assign(tradeState_(), { closePending: p }));
+  const totU = items.reduce((a, i) => a + i.upl, 0);
+  const totM = items.every(i => i.margin > 0) ? items.reduce((a, i) => a + i.margin, 0) : NaN;
   let body;
   if (items.length === 1) {
     const it = items[0];
@@ -349,7 +351,7 @@ function tradeCloseMake_(list) {
       '未實現損益 ' + tradePnlText_(it, it.upl) + '\n';
   } else {
     body = items.map(it => '・' + tradeLabelOf_(it.name) + ' 平' + it.dirZh + ' ' + it.size + ' 單位，未實現損益 ' + tradePnlText_(it, it.upl)).join('\n') +
-      '\n\n共 ' + items.length + ' 筆，會逐筆平倉。\n';
+      '\n合計 ' + tradePnlText_({ cur: items[0].cur, margin: totM }, totU, ' ') + '\n\n共 ' + items.length + ' 筆，會逐筆平倉。\n';
   }
   body += '5 分鐘內按確認才會送出。\n代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
@@ -375,7 +377,14 @@ function tradeCloseConfirm_(token) {
       try { return tradeCloseOne_(item, nowList, label); }
       catch (err) { return '❌ ' + tradeLabelOf_(item.name) + ' 平' + item.dirZh + '：' + (err.message || err) + '\n（這筆沒有確認結果，請到「📊 查看持倉」核對）'; }
     });
-    return '（' + label + '）\n' + lines.join('\n');
+    const done = p.items.filter(i => i.done);
+    let total = '';
+    if (done.length > 1) {
+      const u = done.reduce((a, i) => a + i.done.upl, 0);
+      const m = done.every(i => i.done.margin > 0) ? done.reduce((a, i) => a + i.done.margin, 0) : NaN;
+      total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, margin: m }, u, ' ');
+    }
+    return '（' + label + '）\n' + lines.join('\n') + total;
   });
 }
 
@@ -403,7 +412,9 @@ function tradeCloseOne_(item, nowList, label) {
   const fill = Number(conf.level).toFixed(hit.prec);
   tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
   tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
-  return '✅ ' + tag + '，成交價 ' + fill;
+  const upl = (item.dir === 'buy' ? Number(fill) - item.open : item.open - Number(fill)) * item.size;
+  item.done = { upl: upl, margin: item.margin, cur: item.cur };   // 給多筆時算合計用
+  return '✅ ' + tag + '，成交價 ' + fill + '\n  盈虧 ' + tradePnlText_(item, upl, ' ');
 }
 
 function tradeCloseCancel_(token) {
