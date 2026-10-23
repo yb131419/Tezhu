@@ -223,8 +223,23 @@ function tradeOpenPositions_() {
       dealId: x.position.dealId, epic: x.market.epic, name: name, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
       size: Number(x.position.size), open: Number(x.position.level), sl: x.position.stopLevel, tp: x.position.limitLevel,
       bid: Number(x.market.bid), offer: Number(x.market.offer), prec: (TRADE_ITEMS[name] || { prec: 2 }).prec,
+      cur: x.position.currency || '',
     };
   });
+}
+
+// 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
+function tradePnlText_(upl, cur) {
+  return '約 ' + upl.toFixed(2) + (cur ? ' ' + cur : '（幣別未知）');
+}
+
+// 幣別取不到時回傳空字串；只在持倉沒有幣別時才呼叫
+function tradeCurrencyOf_(epic) {
+  try {
+    const m = tradeFetch_('get', '/markets/' + epic, 3);
+    const c = ((m.instrument || {}).currencies || [])[0] || {};
+    return c.code || '';
+  } catch (e) { return ''; }
 }
 
 function tradeLevel_(v, prec) {
@@ -257,7 +272,7 @@ function tradeClosePropose_(name, dirZh) {
     '方向：平' + dirZh + '（' + (hit.dir === 'buy' ? '賣出' : '買進') + '）' + hit.size + ' 單位\n' +
     '開倉價：' + hit.open.toFixed(hit.prec) + '\n' +
     '目前價：' + price.toFixed(hit.prec) + '\n' +
-    '未實現損益 約 ' + upl.toFixed(2) + '\n\n' +
+    '未實現損益 ' + tradePnlText_(upl, hit.cur) + '\n\n' +
     '5 分鐘內按「✅ 確認平倉」才會送出；按「❌ 取消平倉」就不做。\n平倉提案代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
   return { text: '📉 平倉提案（' + tradeModeZh_() + '）\n' + body, buttons: rows, flex: tradeFlex_('📉 平倉提案', body, rows), alt: '📉 平倉提案' };
@@ -324,10 +339,12 @@ function tradeRecords_() {
 function tradePositions_() {
   const paper = tradeMode_() === 'paper';
   const real = paper ? [] : tradeOpenPositions_();
+  // 持倉資料沒有幣別時，改用該商品的報價幣別（取不到就顯示「幣別未知」）
+  real.forEach(x => { if (!x.cur) x.cur = tradeCurrencyOf_(x.epic); });
   const virt = tradeVirtOpen_();
   const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]));
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
-  const realText = real.length ? real.map(x => tradePosLine_(x)).join('\n') : realNote;
+  const realText = real.length ? real.map(x => tradePosLine_(x)).join('\n') : realNote;   // 幣別已在上一行補好
   const virtText = virt.length ? virt.map(v => tradePosLine_(v)).join('\n') : '目前沒有。';
   const text = '【真實倉位】IG 模擬帳戶\n' + realText + '\n\n【虛擬倉位】紙上模式記錄，損益依目前報價估算\n' + virtText +
     '\n\n📉 平倉只對真實倉位有效。虛擬倉位可按「🗑 清除虛擬」移除紀錄，不會送出任何單。';
@@ -346,7 +363,7 @@ function tradePosLine_(x) {
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
   return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
-    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + (ok ? upl.toFixed(2) : '未取得');
+    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(upl, x.cur) : '未取得');
 }
 
 function tradeSectionFlex_(title, sub) {
@@ -383,6 +400,7 @@ function tradeVirtOpen_() {
     return {
       id: v.id, name: v.name + '・虛擬', epic: it.epic, dir: buy ? 'buy' : 'sell', dirZh: buy ? '多' : '空',
       size: v.size, open: v.price, sl: v.sl, tp: v.tp, bid: now, offer: now, prec: it.prec,
+      cur: 'USD',   // 虛擬單和送出的訂單一樣用 USD 計價（見 tradeConfirm_ 的 currencyCode）
     };
   });
 }
@@ -794,7 +812,7 @@ function tradePosFlex_(list) {
           cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('未實現損益（約）', isFinite(upl) ? upl.toFixed(2) : '未取得', upl >= 0 ? UP : DOWN),
+          cell('未實現損益', isFinite(upl) ? tradePnlText_(upl, x.cur) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
       ],
     };
