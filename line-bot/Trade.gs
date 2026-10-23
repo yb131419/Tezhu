@@ -231,7 +231,7 @@ function tradeQuote_(it) {
 // 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
 function tradeSignal_(it) {
   tradeEpicCheck_(it);
-  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/100', 3);
+  const data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/100', 2);   // 「分鐘數＋筆數」的寫法屬於 v2
   const closes = (data.prices || []).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
   const n = closes.length;
   if (n < 30) return { signal: '', text: 'EMA：K 線不足，無法判斷' };
