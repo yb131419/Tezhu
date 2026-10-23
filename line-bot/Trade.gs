@@ -56,6 +56,9 @@ function tradeAsk_(t) {
     if ((s === '確認' || s === '否') && tradePending_()) return s === '確認' ? tradeConfirm_('') : tradeCancel_();
     if (s === '下單紀錄') return tradeRecords_();
     if (s === '原油診斷') return tradeOilDiag_();
+    if (/^納指單位(（[\d.]+）)?$/.test(s)) return tradeNqUnitAsk_();
+    m = s.match(/^設納指單位(0\.2|0\.4|0\.6|0\.8|1(\.0)?)$/);
+    if (m) return tradeNqUnitSet_(m[1]);
     if (s === '下單上限') return tradeCapAsk_();
     m = s.match(/^設上限(\d+|不限)$/);
     if (m) return tradeCapSet_(m[1]);
@@ -89,7 +92,7 @@ function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
   const body = '模式：' + tradeModeZh_() + '\n選商品與方向 → 按確認 → 查看持倉或平倉' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['⚙️ 下單上限'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], ['⚙️ 下單上限'], ['📏 納指單位（' + tradeNqUnit_().toFixed(1) + '）'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv)), alt: '📈 智能下單卡片' };
 }
 
@@ -126,7 +129,7 @@ function tradePropose_(name, side, sizeText, notice) {
   // 數量以 min 為單位（納指 0.2，其他 1）：要在 min 到 TRADE_MAX_SIZE 之間，而且是 min 的整數倍
   if (it.off) return it.off + '，沒有產生提案。';
   const min = it.min || 1;
-  const size = Number((sizeText ? Number(sizeText) : it.size).toFixed(2));
+  const size = Number((sizeText ? Number(sizeText) : (name === '納指' ? tradeNqUnit_() : it.size)).toFixed(2));
   const steps = size / min;
   if (!(size >= min && size <= TRADE_MAX_SIZE) || Math.abs(steps - Math.round(steps)) > 1e-6) return '數量要是 ' + min + ' 的倍數，在 ' + min + ' 到 ' + TRADE_MAX_SIZE + ' 之間，沒有產生提案。';
   // IG 規定的最小下單數量（dealingRules.minDealSize）；取不到就不擋
@@ -889,6 +892,28 @@ function tradeOilDiag_() {
     '\n【規則】\n' + pick(rules, ['minDealSize', 'minStopOrProfitDistance']) +
     '\n【持倉】\n' + (pos.length ? pos.map(x => 'level = ' + x.open + '，size = ' + x.size + '，stopLevel = ' + x.sl + '，limitLevel = ' + x.tp).join('\n') : '沒有原油持倉');
   return { text: text, buttons: [['📊 查看持倉']] };
+}
+
+// 納斯達克的下單單位（沒寫數量時的預設）：存在 script property TRADE_NQ_UNIT，0.2 到 1、以 0.2 為單位；沒設或壞掉就是 0.2
+function tradeNqUnit_() {
+  const n = Number(prop_('TRADE_NQ_UNIT'));
+  return n >= 0.2 && n <= 1 ? Math.round(n * 5) / 5 : 0.2;
+}
+
+// 「📏 納指單位」子卡片：0.2、0.4、0.6、0.8、1 五個選項，顯示目前單位
+function tradeNqUnitAsk_(note) {
+  const u = tradeNqUnit_();
+  const text = (note ? note + '\n' : '') + '納斯達克下單單位：' + u.toFixed(1) + '\n沒寫數量時就用這個單位（0.2 到 1，以 0.2 為單位）。';
+  const rows = [['設納指單位 0.2', '設納指單位 0.4'], ['設納指單位 0.6', '設納指單位 0.8'], ['設納指單位 1'], ['📈 智能下單']];
+  return { text: text, buttons: rows, flex: tradeFlex_('📏 納指單位', text, rows), alt: '📏 納指單位' };
+}
+
+// 設定納指單位：0.2 到 1、以 0.2 為單位，其他數字不更改
+function tradeNqUnitSet_(v) {
+  const n = Math.round(Number(v) * 5) / 5;
+  if (!(n >= 0.2 && n <= 1) || Math.abs(Number(v) - n) > 1e-6) return tradeNqUnitAsk_('單位要是 0.2 到 1 之間、以 0.2 為單位，沒有更改。');
+  setProp_('TRADE_NQ_UNIT', String(n));
+  return tradeNqUnitAsk_('✅ 納斯達克下單單位已設為 ' + n.toFixed(1) + '。');
 }
 
 // 每日下單上限：存在 script property TRADE_DAILY_CAP；沒設就用預設 5，設成 none 就不限（Infinity，完全不檢查）
