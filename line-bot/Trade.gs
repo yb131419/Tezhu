@@ -329,7 +329,7 @@ function tradePositions_() {
   const log = tradeLogList_().slice(-3);
   if (tradeMode_() === 'paper' && log.length) text += '\n\n📝 最近的模擬紀錄：\n' + log.map(x => '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' @ ' + x.price).join('\n');
   const lead = list.length ? tradePosFlex_(list).concat([{ type: 'separator', color: '#E8DCC4' }]) : [];
-  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利顯示「未設定」，代表 IG 沒有設定。\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
+  return { text: text, buttons: rows, flex: tradeFlex_('📊 持倉', '停損、停利未設定時顯示「未設定」。\n📉 平倉需先看提案再確認，5 分鐘內有效。', rows, lead), alt: '📊 持倉' };
 }
 
 /* ---------- 設定與 IG 連線（登入資料只從 TRADE_CFG 讀） ---------- */
@@ -668,25 +668,28 @@ function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6
 function tradePosFlex_(list) {
   const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const cell = (label, value, color) => ({
-    type: 'box', layout: 'vertical', flex: 1, contents: [
+    type: 'box', layout: 'vertical', flex: 1, spacing: 'xs', contents: [
       { type: 'text', text: label, size: 'xxs', color: SOFT },
-      { type: 'text', text: value, size: 'sm', weight: 'bold', color: color || INK, wrap: true },
+      { type: 'text', text: value, size: 'xs', weight: 'bold', color: color || INK },
     ],
   });
   return list.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
     return {
-      type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
+      type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'text', text: x.name, size: 'md', weight: 'bold', color: INK, flex: 3 },
-          { type: 'text', text: x.dirZh + ' ' + x.size + ' 單位', size: 'sm', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
+          { type: 'text', text: x.dirZh + ' ' + x.size + ' 單位', size: 'xs', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('開倉', x.open.toFixed(x.prec)), cell('現價', now.toFixed(x.prec)), cell('損益（約）', upl.toFixed(2), upl >= 0 ? UP : DOWN),
+          cell('開倉', x.open.toFixed(x.prec)), cell('現價', now.toFixed(x.prec)),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
           cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
+        ] },
+        { type: 'box', layout: 'horizontal', contents: [
+          cell('未實現損益（約）', upl.toFixed(2), upl >= 0 ? UP : DOWN),
         ] },
       ],
     };
@@ -719,7 +722,7 @@ function tradeFlex_(title, body, rows, lead) {
     body: {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '22px', backgroundColor: '#FBF8F2', contents: (lead || []).concat([
         { type: 'text', text: body, wrap: true, size: 'sm', color: SOFT },
-        { type: 'separator', color: LINE },
+        { type: 'separator', color: LINE, margin: 'lg' },
       ]).concat(labels.map((label, i) => Object.assign(btn(label, i), { margin: 'sm' }))),
     },
   };
