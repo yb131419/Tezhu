@@ -21,6 +21,8 @@ const TRADE_MAX_SIZE = 5;             // 單筆最多下單數量（防止誤打
 let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，不用每個呼叫都登入一次
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
+const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
+const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完，約於下週重置，目前無法判斷方向';
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
@@ -118,7 +120,9 @@ function tradePropose_(name, side, sizeText) {
   const size = sizeText ? Number(sizeText) : it.size;
   if (!(size >= 1 && size <= TRADE_MAX_SIZE)) return '數量要在 1 到 ' + TRADE_MAX_SIZE + ' 之間，沒有產生提案。';
   const price = tradeQuote_(it);
-  const sig = tradeSignal_(it);
+  // 趨勢只是提案的參考資訊：K 線取不到（例如額度用完）不影響提案本身
+  let sig;
+  try { sig = tradeSignal_(it); } catch (err) { sig = { signal: '', text: 'EMA：趨勢資料取不到（' + (err && err.message || err) + '）' }; }
   const dir = side === 'buy' ? 1 : -1;
   const p = {
     id: tradeToken_(), name: name, side: side, size: size, price: price,
@@ -517,24 +521,44 @@ function tradeQuote_(it) {
   return (Number(snap.bid) + Number(snap.offer)) / 2;
 }
 
+// 15 分鐘 K 線（已收盤）。IG 的歷史資料有帳戶額度，所以：
+// 1. 只抓 210 根（EMA200 需要約 200 根），不再用 300 根或 120 根的 fallback
+// 2. 同一個 15 分鐘區間內只向 IG 要一次，結果快取到下一根 K 線；智能下單與提醒共用
+// 3. 額度用完（exceeded-account-historical-data-allowance）就記住 1 小時，期間不再呼叫 IG
+function tradeCandles_(it) {
+  const cache = CacheService.getScriptCache();
+  const key = 'K15_' + it.epic + '_' + Math.floor(Date.now() / 900000);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/' + TRADE_BARS, 2); }
+  catch (err) {
+    if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
+      cache.put('K15_QUOTA', '1', 3600);
+      throw new Error(TRADE_QUOTA_MSG);
+    }
+    throw err;
+  }
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 prices（欄位：' + Object.keys(data || {}).join(',') + '）');
+  // 最後一根可能還沒收盤，所以丟掉
+  const closed = data.prices.slice(0, -1);
+  const out = {
+    closes: closed.map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2),
+    bar: closed.length ? (closed[closed.length - 1].snapshotTimeUTC || closed[closed.length - 1].snapshotTime || '') : '',
+  };
+  cache.put(key, JSON.stringify(out), 900);
+  return out;
+}
+
 // 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
 function tradeSignal_(it) {
   tradeEpicCheck_(it);
-  // 「分鐘數＋筆數」的寫法屬於 v2；要算 EMA200 需要至少 200 根，所以取 300 根
-  // 300 根抓不到時改抓 120 根（帳戶的歷史資料額度或筆數可能不夠）；兩次都失敗就回報第一次的原因
-  let data;
-  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/300', 2); }
-  catch (err) {
-    try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/120', 2); } catch (e2) { throw err; }
-  }
-  if (!data || !data.prices) throw new Error('IG 回傳沒有 prices（欄位：' + Object.keys(data || {}).join(',') + '）');
-  // 最後一根可能還沒收盤，判斷只用已收盤的 K 線；bar 是這根已收盤 K 線的時間，用來避免重複提醒
-  const all = data.prices;
-  const closed = all.slice(0, -1);
-  const closes = closed.map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2);
+  // 已收盤的 K 線（同一根 K 線期間只向 IG 要一次，見 tradeCandles_）；bar 是最後一根已收盤 K 線的時間，用來避免重複提醒
+  const kl = tradeCandles_(it);
+  const closes = kl.closes;
   const n = closes.length;
-  const barInfo = closed[n - 1] || {};
-  const bar = barInfo.snapshotTimeUTC || barInfo.snapshotTime || '';
+  const bar = kl.bar;
   if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
   const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
   const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
