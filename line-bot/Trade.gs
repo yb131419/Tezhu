@@ -1,7 +1,7 @@
 /* ============ 智能下單（IG Group）：卡片＋確認 ============ */
 // 這個檔案要跟 Code.gs 放在同一個 Apps Script 專案（在編輯器「+」新增一個檔案，名字隨意，例如 Trade，整份貼進去）。
 // 安全規則（使用者要求「要確認才下單」）：
-// 1. 沒有排程，AI 也不會下單：要先按「🛒 選擇下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
+// 1. 沒有排程，AI 也不會下單：要先按「🛒 下單」選商品與方向，看到提案後再按「✅ 確認下單」才會送出。
 // 2. 預設 mode = paper（只記錄，不送 IG）。mode = practice 送 IG 模擬帳戶（env = demo）；
 //    真錢要 mode = live 且 env = live，兩個都改才會動真錢。
 // 3. 登入資料只放在指令碼屬性 TRADE_CFG（一個 JSON），不寫在程式碼裡。用 TradeSetup.gs 一次寫入。
@@ -27,7 +27,7 @@ const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s);
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|清除虛擬|取消清除)/.test(s) || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -43,7 +43,7 @@ function tradeAsk_(t) {
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
     if (m) return tradePropose_(m[2], /買/.test(m[1]) ? 'buy' : 'sell', m[3]);
-    if (s === '查看持倉') return tradePositions_();
+    if (s === '查看持倉' || s === '查詢') return tradePositions_();
     m = s.match(/^確認下單([A-Za-z0-9]{4,8})?$/);
     if (m) return tradeConfirm_(m[1] || '');
     if (s === '下單自檢') return tradeSelfTest_();
@@ -80,7 +80,7 @@ function tradeCard_() {
   const p = tradePending_();
   const adv = tradeAdviceRows_();
   const help = '📖 用法\n' +
-    '・🛒 選擇下單：選商品與方向，先給你看提案\n' +
+    '・🛒 下單：選商品與方向，先給你看提案\n' +
     '・數量：在指令後面加數字，例如「買進納指 2」，最多 5 單位，不加就用預設 1 單位\n' +
     '・確認：提案 5 分鐘內有效，按鈕帶提案代碼；過期或報價偏離太多就不下單\n' +
     '・📊 查看持倉：看停損、停利、損益；按 📉 平倉 會先出提案，確認後才平倉\n' +
@@ -89,7 +89,7 @@ function tradeCard_() {
     '・下單自檢：只讀檢查點數換算，不下單';
   // 用法放在最底部、小字淺色；上面只留方向參考、模式、待確認提案與按鈕
   const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 選擇下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body + '\n\n' + help, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv), help), alt: '📈 智能下單卡片' };
 }
 
@@ -152,10 +152,10 @@ function tradeProposalText_(p) {
 function tradeConfirm_(token) {
   return withLock_(() => {
     const p = tradePending_();
-    if (!p) return '目前沒有待確認的下單。\n請先按「🛒 選擇下單」選商品與方向。';
+    if (!p) return '目前沒有待確認的下單。\n請先按「🛒 下單」選商品與方向。';
     if (token && token.toUpperCase() !== p.id) return '確認碼對不上，可能是舊的提案，沒有下單。\n請按最新那張卡片的「✅ 確認下單」。';
     tradeSaveState_(Object.assign(tradeState_(), { pending: null }));   // 一次性：不管成不成功都先清掉，避免重複送單
-    if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 選擇下單」。';
+    if (Date.now() > p.expires) return '這張提案已超過 5 分鐘，沒有下單。\n請重新按「🛒 下單」。';
 
     const it = TRADE_ITEMS[p.name];
     const mode = tradeMode_();
@@ -165,7 +165,7 @@ function tradeConfirm_(token) {
 
     const now = tradeQuote_(it);
     if (Math.abs(now - p.price) > it.sl * it.pip * TRADE_DRIFT) {
-      return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 選擇下單」。';
+      return '報價變動太大（提案 ' + p.price.toFixed(it.prec) + '，現在 ' + now.toFixed(it.prec) + '），沒有下單。\n請重新按「🛒 下單」。';
     }
     const day = tradeDay_();
     if (day.n >= TRADE_MAX_DAILY) return '今天已經下了 ' + day.n + ' 筆，已達每日上限 ' + TRADE_MAX_DAILY + '，沒有下單。';
@@ -346,7 +346,8 @@ function tradePositions_() {
   // 持倉資料沒有幣別時，改用該商品的報價幣別（取不到就顯示「幣別未知」）
   real.forEach(x => { if (!x.cur) x.cur = tradeCurrencyOf_(x.epic); });
   const virt = tradeVirtOpen_();
-  const rows = [['📈 交易', '🛒 選擇下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]));
+  // 最下面的「🔍 查詢」：重新抓持倉與報價，只讀，不下單、不平倉
+  const rows = [['📈 交易', '🛒 下單'], ['📉 平倉']].concat(virt.map(v => ['🗑 清除虛擬' + v.id]), [['🔍 查詢']]);
   const realNote = paper ? '紙上模式不查 IG，切到 IG 模擬帳戶模式才看得到真實倉位。' : '目前沒有。';
   // 真實倉位前面獨立一行標示「IG Group 模擬倉／真實倉」；虛擬倉位在商品名後面標示「虛擬」
   const realTag = tradeMode_() === 'live' ? 'IG Group 真實倉' : 'IG Group 模擬倉';
@@ -503,7 +504,7 @@ function tradeEpicSearch_(term) {
 // 下單自檢（只讀，不下單）：把 sl／tp 點數換算成價格距離，並對照 IG 回報的點值與最小停損距離。
 // 實測步驟（由使用者手動做，程式不會自動下單）：
 // 1. 「下單自檢」看每個商品的換算與 IG 的 onePipMeans 是否一致、停損是否高於 IG 最小值。
-// 2. 在 practice 模式下按「🛒 選擇下單」→ 納指 → 買進納指 1，看提案的停損價是否約為參考價 ∓ 20.0。
+// 2. 在 practice 模式下按「🛒 下單」→ 納指 → 買進納指 1，看提案的停損價是否約為參考價 ∓ 20.0。
 // 3. 按「✅ 確認下單＋代碼」送出 1 單，到 IG 模擬帳戶看該單的停損價與停利價，是否與提案一致。
 // 4. 用「📊 查看持倉」確認持倉數量與開倉價；確認後到 IG 網站手動平倉。
 function tradeSelfTest_() {
