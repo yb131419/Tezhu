@@ -124,7 +124,7 @@ function tradePropose_(name, side, sizeText) {
     id: tradeToken_(), name: name, side: side, size: size, price: price,
     sl: tradeRound_(price - dir * it.sl * it.pip, it.prec),
     tp: tradeRound_(price + dir * it.tp * it.pip, it.prec),
-    expires: Date.now() + TRADE_TTL_MS, sig: sig.text,
+    expires: Date.now() + TRADE_TTL_MS, at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), sig: sig.text,
     against: !!sig.signal && sig.signal !== side,
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
@@ -135,7 +135,7 @@ function tradePropose_(name, side, sizeText) {
 
 function tradeProposalText_(p) {
   const it = TRADE_ITEMS[p.name];
-  return '商品：' + tradeLabelOf_(p.name) + '（' + it.epic + '）\n' +
+  return (p.at ? '提案時間：' + p.at + '\n' : '') + '商品：' + tradeLabelOf_(p.name) + '（' + it.epic + '）\n' +
     '方向：' + (p.side === 'buy' ? '買進' : '賣出') + ' ' + p.size + ' 單位\n' +
     '參考價：' + p.price.toFixed(it.prec) + '\n' +
     '停損：' + p.sl.toFixed(it.prec) + '（' + it.sl + ' 點）\n' +
