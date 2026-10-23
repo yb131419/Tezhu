@@ -820,6 +820,7 @@ function tradePosFlex_(list) {
         { type: 'box', layout: 'vertical', spacing: 'xs', contents: [
           { type: 'text', text: '未實現損益', size: 'xs', color: SOFT },
           { type: 'text', text: isFinite(upl) ? tradePnlText_(x, upl) : '未取得', size: 'md', weight: 'bold', color: upl >= 0 ? UP : DOWN, wrap: true },
+          { type: 'text', text: x.margin > 0 ? '投入成本 約 ' + x.margin.toFixed(2) + (x.cur ? ' ' + x.cur : '') : '投入成本 未知', size: 'xs', color: SOFT, wrap: true },
         ] },
       ],
     };
