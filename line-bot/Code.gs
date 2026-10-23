@@ -676,6 +676,8 @@ function answer_(text) {
   if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
   if (rl) return rl;
+  const tr = typeof tradeAsk_ === 'function' ? tradeAsk_(t2) : null;   // 「📈 智能下單」卡片：要按「✅ 確認下單」才送單（Trade.gs，確定性指令，AI 不會觸發）
+  if (tr) return tr;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
   if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
     setProp_('CASE_PENDING', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
