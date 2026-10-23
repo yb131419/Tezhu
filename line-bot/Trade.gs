@@ -22,7 +22,14 @@ let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 
+// 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
+function tradeAskWord_(t) {
+  const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
+  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出)/.test(s);
+}
+
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
+// 注意：呼叫端（handleLine_、handleTelegram_）已先確認是主人本人才會進到這裡
 function tradeAsk_(t) {
   try {
     const q = String(t || '').match(/^查代碼\s*(.+)$/);

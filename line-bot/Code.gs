@@ -537,6 +537,7 @@ function handleLineGroup_(ev, gid, type) {
   const answering = st && !called && text.length <= 15 && (/^(取消|改|加|刪|删)/.test(text) || Object.keys(quoteOpts_(text)).length);
   if (!called && !answering) return;
   if (!text) return reply_(ev.replyToken, '主人叫我嗎？在「小乖」後面接著打要我做的事喔。');
+  if (tradeAskWord_(text)) return;   // 交易指令不在群組執行，避免持倉、下單內容被群組其他人看到
   const ans = answer_(text);
   const rp = reportLine_();
   reply_(ev.replyToken, rp.short || ans, rp.msgs);
@@ -550,10 +551,8 @@ function handleLine_(ev) {
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
   const owner = prop_('OWNER_USER_ID');
-  if (ev.type === 'follow') {
-    if (!owner) reply_(ev.replyToken, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
-    return;
-  }
+  // 陌生人加好友、傳訊息一律不回應（不回提示，避免洩漏資訊）；只有主人本人的訊息才會進到指令
+  if (ev.type === 'follow') return;
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image' || ev.message.type === 'video') {
     if (!owner || uid !== owner) return;
@@ -600,7 +599,7 @@ function handleLine_(ev) {
     setProp_('OWNER_USER_ID', uid);
     return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。', null, true);
   }
-  if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;          // 還沒綁定時也不回提示：主人直接傳「綁定 同步密碼」即可
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
@@ -3241,7 +3240,7 @@ function handleTelegram_(update) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
-  if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
+  // 陌生人（還沒綁定或不是主人）傳任何訊息都不回應
   const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
   if (bind) {
     if (owner && owner !== chatId) return;   // 已經有主人：別人一律不回
@@ -3249,7 +3248,7 @@ function handleTelegram_(update) {
     setProp_('TG_OWNER_CHAT_ID', chatId);
     return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
-  if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;             // 還沒綁定時也不回提示
   if (chatId !== owner) return;   // 只回主人，其他人不回應
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
