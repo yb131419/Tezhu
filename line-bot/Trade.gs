@@ -87,7 +87,7 @@ function tradeCard_() {
 
 // 趨勢參考：依 EMA 趨勢標示目前較有利的方向。只是參考，按鈕都能按，不會自動下單，也不寫勝率
 function tradeFavorText_(dir) {
-  return dir === 'buy' ? '多單有利' : dir === 'sell' ? '空單有利' : '暫無資料';
+  return dir === 'buy' ? '多單有利 📈' : dir === 'sell' ? '空單有利 📉' : '暫無資料';
 }
 
 function tradePickItem_() {
@@ -323,7 +323,7 @@ function tradePositions_() {
   let text = list.length ? '📊 目前持倉（' + list.length + ' 筆）\n' + list.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
-    return '・' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) + '，現價 ' + now.toFixed(x.prec) +
+    return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) + '，現價 ' + now.toFixed(x.prec) +
       '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 約 ' + upl.toFixed(2);
   }).join('\n') + '\n\n📉 平倉：先出提案，按「✅ 確認平倉」才送出，5 分鐘內有效。' : '📊 目前沒有持倉。';
   const log = tradeLogList_().slice(-3);
@@ -566,7 +566,7 @@ function tradeAdviceRows_() {
 }
 
 function tradeDirZh_(dir) {
-  return dir === 'buy' ? '多單' : dir === 'sell' ? '空單' : '暫無資料';
+  return dir === 'buy' ? '多單 📈' : dir === 'sell' ? '空單 📉' : '暫無資料';
 }
 
 function tradeAdviceText_(rows) {
@@ -575,7 +575,7 @@ function tradeAdviceText_(rows) {
 
 // 卡片最上面：每個商品一行，多單綠、空單紅，一眼就看得出來
 function tradeAdviceFlex_(rows) {
-  const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74';
+  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#9A8B74';
   const line = r => ({
     type: 'box', layout: 'vertical', spacing: 'xs', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: '#E8DCC4', contents: [
       { type: 'box', layout: 'horizontal', contents: [
@@ -666,7 +666,7 @@ function tradeToken_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 6
 // 版面與小乖精品選單一致：象牙白底、金色漸層標題、每顆按鈕獨占一行
 // 持倉卡片：每筆一個小卡，商品與方向在上，開倉、現價、損益、停損、停利排成格子
 function tradePosFlex_(list) {
-  const UP = '#2E6B45', DOWN = '#9E3A2B', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
+  const UP = '#B3261E', DOWN = '#2E7D4F', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
   const cell = (label, value, color) => ({
     type: 'box', layout: 'vertical', flex: 1, spacing: 'xs', contents: [
       { type: 'text', text: label, size: 'xxs', color: SOFT },
@@ -680,7 +680,7 @@ function tradePosFlex_(list) {
       type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '14px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: LINE, contents: [
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'text', text: x.name, size: 'md', weight: 'bold', color: INK, flex: 3 },
-          { type: 'text', text: x.dirZh + ' ' + x.size + ' 單位', size: 'xs', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
+          { type: 'text', text: x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位', size: 'xs', weight: 'bold', color: x.dir === 'buy' ? UP : DOWN, align: 'end', flex: 2 },
         ] },
         { type: 'box', layout: 'horizontal', contents: [
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', now.toFixed(x.prec)),
