@@ -32,6 +32,7 @@ PRESETS = {
 }
 DEFAULT_REGION = '右下'
 PAD = 4   # 方框四周多蓋幾個像素，邊緣的半透明陰影也一起抹掉
+TG_LIMIT = 48 * 1024 * 1024   # Telegram 機器人傳影片上限 50MB，留一點空間
 
 
 class Oops(Exception):
@@ -86,14 +87,18 @@ def box_px(region, size):
     return bx, by, bw, bh
 
 
-def remove(src, out, region_text=DEFAULT_REGION, work=None):
+def remove(src, out, region_text=DEFAULT_REGION, max_bytes=TG_LIMIT):
+    """去浮水印並輸出。成品超過 max_bytes（Telegram 傳影片上限）就一路提高壓縮率重做，直到傳得回去。"""
     size = probe_size(src)
     bx, by, bw, bh = box_px(parse_region(region_text), size)
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src,
-         '-vf', 'delogo=x=%d:y=%d:w=%d:h=%d:show=0' % (bx, by, bw, bh),
-         '-map', '0:v:0', '-map', '0:a?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
-         '-c:a', 'copy', '-movflags', '+faststart', out])
-    return (bx, by, bw, bh), size
+    for crf in (18, 23, 26, 28, 30):
+        run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src,
+             '-vf', 'delogo=x=%d:y=%d:w=%d:h=%d:show=0' % (bx, by, bw, bh),
+             '-map', '0:v:0', '-map', '0:a?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', str(crf),
+             '-c:a', 'copy', '-movflags', '+faststart', out])
+        if os.path.getsize(out) <= max_bytes:
+            return (bx, by, bw, bh), size, crf
+    raise Oops('去好的影片還是太大，傳不回 Telegram。請把影片剪短一點再試一次。')
 
 
 # ---- GitHub Actions 版：從 Telegram 拿影片、傳回去 ----
@@ -162,8 +167,8 @@ def main():
         else:
             src = os.path.join(tempfile.mkdtemp(), 'input.mp4')
             tg_download(os.environ['FILE_ID'], src)
-        box, size = remove(src, a.out, a.region)
-        print('去除浮水印完成：畫面 %dx%d，方框 x=%d y=%d w=%d h=%d' % (size + box), file=sys.stderr)
+        box, size, crf = remove(src, a.out, a.region)
+        print('去除浮水印完成：畫面 %dx%d，方框 x=%d y=%d w=%d h=%d，壓縮 crf %d' % (size + box + (crf,)), file=sys.stderr)
         if chat:
             tg_send_video(chat, a.out, '🧽 浮水印去好了（位置：%s）' % (a.region or DEFAULT_REGION))
     except Oops as e:
