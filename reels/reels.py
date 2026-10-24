@@ -46,6 +46,7 @@ OUTRO = 3.0      # 教學框結尾「重點整理」停留秒數
 FONT = os.environ.get('REELS_FONT') or 'Noto Sans CJK TC'
 MODEL = os.environ.get('OPENAI_MODEL') or 'gpt-4.1-mini'
 MAX_SOURCE_SEC = 20 * 60          # 原始影片最長 20 分鐘
+# 中間步驟（切段、拼接、照片、運鏡）用接近無損的 CRF 12，只有最後 finish() 壓一次給 Telegram，避免畫質一層層變差
 TG_LIMIT = 48 * 1024 * 1024       # Telegram 機器人傳影片上限 50MB，留一點空間
 
 
@@ -292,21 +293,34 @@ def timeline_doc(info, src_id, ver='', note='', mode='reels'):
     return dict(info['timeline'], file_id=src_id, ver=ver, note=note, mode=mode, kind='talk')
 
 
+def curl_post(cfg):
+    """用 curl 送出請求。網址和金鑰放在 stdin 的設定檔，不放在指令參數，同一台機器的其他程式（ps）看不到。"""
+    return subprocess.run(['curl', '-sS', '-K', '-'], input='\n'.join(cfg) + '\n', capture_output=True, text=True).stdout
+
+
+def cq(s):
+    """設定檔裡的值要加引號，並跳脫反斜線、雙引號和換行。"""
+    return '"%s"' % str(s).replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
+
+
 def tg_send_document(chat_id, path, caption):
-    cmd = ['curl', '-sS', '-F', 'chat_id=%s' % chat_id, '-F', 'document=@%s' % path, '-F', 'caption=%s' % caption[:1000],
-           'https://api.telegram.org/bot%s/sendDocument' % os.environ['TELEGRAM_BOT_TOKEN']]
-    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    token = os.environ['TELEGRAM_BOT_TOKEN']
+    out = curl_post(['url = %s' % cq('https://api.telegram.org/bot%s/sendDocument' % token),
+                     'form-string = %s' % cq('chat_id=%s' % chat_id), 'form = %s' % cq('document=@%s' % path),
+                     'form-string = %s' % cq('caption=%s' % caption[:1000])])
     if '"ok":true' not in out.replace(' ', ''):
         log('sendDocument 失敗：', out[:300])   # 時間軸傳不回來不影響影片，只是不能回覆調整
 
 
 def tg_send_video(chat_id, path, caption, thumb=None):
-    cmd = ['curl', '-sS', '-F', 'chat_id=%s' % chat_id, '-F', 'video=@%s' % path, '-F', 'supports_streaming=true',
-           '-F', 'width=%d' % W, '-F', 'height=%d' % H, '-F', 'caption=%s' % caption[:1000]]
+    token = os.environ['TELEGRAM_BOT_TOKEN']
+    cfg = ['url = %s' % cq('https://api.telegram.org/bot%s/sendVideo' % token),
+           'form-string = %s' % cq('chat_id=%s' % chat_id), 'form = %s' % cq('video=@%s' % path),
+           'form-string = "supports_streaming=true"', 'form-string = %s' % cq('width=%d' % W),
+           'form-string = %s' % cq('height=%d' % H), 'form-string = %s' % cq('caption=%s' % caption[:1000])]
     if thumb:
-        cmd += ['-F', 'thumbnail=@%s' % thumb]
-    cmd.append('https://api.telegram.org/bot%s/sendVideo' % os.environ['TELEGRAM_BOT_TOKEN'])
-    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+        cfg.append('form = %s' % cq('thumbnail=@%s' % thumb))
+    out = curl_post(cfg)
     try:
         res = json.loads(out)
     except ValueError:
@@ -320,12 +334,13 @@ def tg_send_video(chat_id, path, caption, thumb=None):
 
 # ---------------- OpenAI ----------------
 def transcribe(audio):
-    out = subprocess.run([
-        'curl', '-sS', 'https://api.openai.com/v1/audio/transcriptions',
-        '-H', 'Authorization: Bearer %s' % os.environ['OPENAI_API_KEY'],
-        '-F', 'file=@%s' % audio, '-F', 'model=whisper-1', '-F', 'response_format=verbose_json',
-        '-F', 'timestamp_granularities[]=segment', '-F', 'prompt=以下是繁體中文（台灣）的口語影片。',
-    ], capture_output=True, text=True).stdout
+    out = curl_post([
+        'url = "https://api.openai.com/v1/audio/transcriptions"',
+        'header = %s' % cq('Authorization: Bearer %s' % os.environ['OPENAI_API_KEY']),
+        'form = %s' % cq('file=@%s' % audio), 'form-string = "model=whisper-1"',
+        'form-string = "response_format=verbose_json"', 'form-string = "timestamp_granularities[]=segment"',
+        'form-string = %s' % cq('prompt=以下是繁體中文（台灣）的口語影片。'),
+    ])
     try:
         data = json.loads(out)
     except ValueError:
@@ -491,7 +506,7 @@ def photo_clip(img, out, sec, size):
          '[0:v]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,boxblur=28:2,eq=brightness=-0.06[bg];'
          '[0:v]scale=%d:%d:force_original_aspect_ratio=decrease[fg];'
          '[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=%d,format=yuv420p[v]' % (w, h, w, h, w, h, FPS),
-         '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+         '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12',
          '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-shortest', out])
     return out
 
@@ -518,7 +533,7 @@ def join_sources(paths, work):
             cmd += ['-f', 'lavfi', '-t', '%.3f' % dur, '-i', 'anullsrc=r=48000:cl=stereo']
         cmd += ['-vf', 'scale=%d:%d:force_original_aspect_ratio=decrease,pad=%d:%d:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=%d,format=yuv420p'
                 % (w, h, w, h, FPS), '-map', '0:v:0', '-map', '0:a:0' if has_audio else '1:a',
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-c:a', 'aac', '-ar', '48000', '-ac', '2',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12', '-c:a', 'aac', '-ar', '48000', '-ac', '2',
                 '-b:a', '192k', '-shortest', out]
         run(cmd)
         parts.append(out)
@@ -773,7 +788,7 @@ def montage(src, spans, work, fx=True, moves=None, trans=None):
             chain = vf() + (';[v]zoompan=%s:d=1:s=%dx%d:fps=%d,setsar=1[w]' % (zp, W, H, FPS) if fx else ';[v]null[w]')
         out = os.path.join(work, 'm%03d.mp4' % n)
         run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', '%.3f' % a, '-t', '%.3f' % L, '-i', src,
-             '-filter_complex', chain, '-map', '[w]', '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+             '-filter_complex', chain, '-map', '[w]', '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12',
              '-r', str(FPS), out])
         parts.append(out)
         lens.append(float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', out]))['format']['duration']))
@@ -802,7 +817,7 @@ def montage(src, spans, work, fx=True, moves=None, trans=None):
     cmd += ['-f', 'lavfi', '-t', '%.3f' % total, '-i', 'anullsrc=r=48000:cl=stereo']
     fc.append('[%d:a]anull[a]' % na)
     cmd += ['-filter_complex', ';'.join(fc), '-map', vmap, '-map', '[a]', '-t', '%.3f' % total,
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', str(FPS), '-c:a', 'aac', '-ar', '48000', joined]
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12', '-r', str(FPS), '-c:a', 'aac', '-ar', '48000', joined]
     run(cmd)
     return joined, starts
 
@@ -851,7 +866,7 @@ def cut(src, spans, has_audio, work, punch=False, shots=None):
         if not has_audio:
             cmd += ['-f', 'lavfi', '-t', '%.3f' % (b - a), '-i', 'anullsrc=r=48000:cl=stereo']
         cmd += ['-filter_complex', vf(zoom, move, b - a, shot[1:]), '-map', '[v]', '-map', '0:a:0' if has_audio else '1:a',
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', str(FPS),
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12', '-r', str(FPS),
                 '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', out]
         run(cmd)
         parts.append(out)
@@ -1470,9 +1485,9 @@ def music_gain(base, accents):
     return '+'.join(['%.3f' % base] + bumps)
 
 
-def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None, accents=None):
-    # 控制檔案大小，Telegram 機器人傳影片上限 50MB
-    kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200))
+def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx=None, look='clean', pad=0, voice=None, accents=None, crf=21, rate=1.0):
+    # 控制檔案大小，Telegram 機器人傳影片上限 50MB；rate 是降檔時的位元率比例
+    kbps = int(min(6000, (TG_LIMIT * 8 / 1000) / max(total, 1) - 200) * rate)
     vf = "[0:v]%s%sass='%s':fontsdir='%s'[v]" % ('tpad=stop_mode=clone:stop_duration=%.2f,' % pad if pad else '',   # 教學框結尾停在最後一格放重點整理
                                   LOOKS.get(look, LOOKS['clean']) + ',' if grade else '',
                                 ass.replace("'", "\\'").replace(':', '\\:'),   # 調色：AI 依氣氛挑（溫暖、冷調、電影感…）
@@ -1514,7 +1529,7 @@ def finish(joined, ass, music, total, out, work, music_vol=0.35, grade=True, sfx
     fc += ';%samix=inputs=%d:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5,%s[a]' % (''.join(mix), len(mix), fade) if len(mix) > 1 \
         else ';[s1]loudnorm=I=-14:TP=-1.5,%s[a]' % fade
     cmd += ['-filter_complex', fc, '-map', '[v]', '-map', '[a]', '-t', '%.3f' % total,
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-maxrate', '%dk' % kbps, '-bufsize', '%dk' % (kbps * 2),
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', str(crf), '-maxrate', '%dk' % kbps, '-bufsize', '%dk' % (kbps * 2),
             '-r', str(FPS), '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', out]
     run(cmd)
     thumb = os.path.join(work, 'thumb.jpg')
@@ -1730,8 +1745,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         look = (plan or {}).get('look') or 'clean'
         voice = voiceover(plan, opt, total, work) if silent and opt['voice'] and plan else []
         log('配音 %d 句' % len(voice))
-        thumb = finish(joined, ass, music, total, out, work, music_vol=.85 if silent and not voice else .35, grade=opt['fx'], sfx=sfx,
-                       look=look, pad=pad, voice=voice, accents=(plan or {}).get('xfades'))
+        fin = dict(music_vol=.85 if silent and not voice else .35, grade=opt['fx'], sfx=sfx,
+                   look=look, pad=pad, voice=voice, accents=(plan or {}).get('xfades'))
+        thumb = finish(joined, ass, music, total, out, work, **fin)
         fx_desc = fx_summary(plan, opt, silent)
         if CARDS:
             fx_desc = (cards_done[1] if cards_done else '卡片特效這次沒做成（%s）' % CARD_SKIP) + ('、' + fx_desc if fx_desc else '')
@@ -1741,6 +1757,9 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         diff = subs_check(joined, out, ass, work) if n else None
         if diff is not None:
             log('字幕檢查：畫面差異 %.1f%s' % (diff, '' if diff >= 1.5 else '　⚠️ 字幕可能沒有畫上去'))
+        if os.path.getsize(out) > TG_LIMIT:   # 太大就降畫質、降位元率再壓一次，不直接失敗
+            log('影片 %.1f MB 超過上限，降畫質重壓' % (os.path.getsize(out) / 1048576))
+            thumb = finish(joined, ass, music, total, out, work, crf=26, rate=0.6, **fin)
         if os.path.getsize(out) > TG_LIMIT:
             raise Oops('剪好的影片太大，傳不回 Telegram。請在說明寫短一點的秒數（例如「剪 Reels 30秒」）再試一次。')
         shutil.copy(thumb, out + '.jpg')
