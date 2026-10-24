@@ -5222,6 +5222,40 @@ function wmWatchFolder() {
   }
   setProp_('WM_PENDING', JSON.stringify(pending));
   setProp_('WM_LAST', String(Date.now()));
+  wmSaveResults_(done, owner);
+}
+// 去浮水印成品存進雲端硬碟：看有沒有新的成功執行，把 Actions 的 watermark 成品抓回來存進「已處理」，並傳 Drive 連結
+// 第一次只記下現有的執行，不補存舊的
+function wmSaveResults_(done, owner) {
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const auth = { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' };
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/runs?status=success&per_page=10', { headers: auth, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) { console.error('去浮水印成品：讀取執行紀錄失敗 ' + res.getResponseCode()); return; }
+  const runs = JSON.parse(res.getContentText()).workflow_runs || [];
+  let saved = null;
+  try { saved = JSON.parse(prop_('WM_SAVED') || 'null'); } catch (e) { saved = null; }
+  if (!saved) { setProp_('WM_SAVED', JSON.stringify(runs.map(r => r.id))); return; }
+  runs.filter(r => saved.indexOf(r.id) < 0).forEach(run => {
+    saved.push(run.id);   // 先記下，失敗也不一直重試
+    try {
+      const arts = JSON.parse(UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/runs/' + run.id + '/artifacts', { headers: auth, muteHttpExceptions: true }).getContentText()).artifacts || [];
+      const art = arts.find(a => a.name === 'watermark');
+      if (!art) return;
+      // 下載網址會轉址到儲存空間，轉址後不能再帶 GitHub 的權杖，所以手動跟一次
+      const hop = UrlFetchApp.fetch(art.archive_download_url, { headers: auth, muteHttpExceptions: true, followRedirects: false });
+      const loc = hop.getHeaders()['Location'] || hop.getHeaders()['location'];
+      const zip = (loc ? UrlFetchApp.fetch(loc, { muteHttpExceptions: true }) : hop).getBlob();
+      const mp4 = Utilities.unzip(zip).find(b => /\.mp4$/i.test(b.getName()));
+      if (!mp4) return;
+      const name = '去浮水印_' + Utilities.formatDate(new Date(run.created_at), 'Asia/Taipei', 'yyyyMMdd_HHmm') + '.mp4';
+      const file = done.createFile(mp4.setName(name));
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '☁️ 去好的影片已存進雲端硬碟（已處理資料夾）：\n' + file.getUrl() });
+    } catch (e) {
+      console.error('去浮水印成品存雲端硬碟失敗：' + e);
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '☁️ 去好的影片沒存進雲端硬碟（' + String(e).slice(0, 80) + '），影片本身還是可以在 Telegram 或 GitHub 下載。' });
+    }
+  });
+  setProp_('WM_SAVED', JSON.stringify(saved.slice(-50)));
 }
 // 「檢查去浮水印」：看資料夾裡還在等的影片、正在處理的數量，以及上次自動檢查的時間
 function wmStatus_() {
