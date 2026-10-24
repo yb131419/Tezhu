@@ -3193,9 +3193,9 @@ function handleTelegram_(update) {
     }
     return wmRun_(chatId, wmVideo.file_id, text);
   }
-  // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）
+  // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）；只貼連結也會開始去浮水印
   const wmLink = /https?:\/\/(?:drive|docs)\.google\.com\/\S+/.exec(text);
-  if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text))) return wmRun_(chatId, '', text, wmLink[0]);
+  if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text) || wmLink[0] === text.trim())) return wmRun_(chatId, '', text, wmLink[0]);
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
