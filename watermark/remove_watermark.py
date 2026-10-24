@@ -125,6 +125,8 @@ def drive_download(url, dest):
 def tg_download(file_id, dest):
     info = tg('getFile', file_id=file_id)
     if not info.get('ok'):
+        if 'too big' in str(info.get('description', '')):
+            raise Oops('影片超過 20MB，Telegram 不讓機器人下載。請把影片上傳到 Google 雲端硬碟，設成「知道連結的人都能看」，再把連結貼給小乖。')
         raise Oops('拿不到影片（%s），請再傳一次。' % info.get('description', ''))
     url = 'https://api.telegram.org/file/bot%s/%s' % (os.environ['TELEGRAM_BOT_TOKEN'], info['result']['file_path'])
     urllib.request.urlretrieve(url, dest)
