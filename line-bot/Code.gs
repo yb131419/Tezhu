@@ -36,6 +36,7 @@ const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今�
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
+const WM_BTN = '🧽 去浮水印';   // 去除浮水印（獨立功能，不經過剪 Reels）
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
@@ -45,7 +46,7 @@ const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
+  { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
@@ -3170,6 +3171,10 @@ function handleTelegram_(update) {
     const ig = igTg_(msg, text);
     if (ig) return tgSend_(chatId, ig);
   }
+  // 去除浮水印（獨立功能）：按「🧽 去浮水印」後傳的影片，或影片說明寫「去浮水印」，要在剪 Reels 之前判斷
+  const wmVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
+  if (owner && chatId === owner && /^[^\p{L}\p{N}]*(去浮水印|去除浮水印)\s*$/u.test(text)) return tgSend_(chatId, wmAsk_(chatId));
+  if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) return wmRun_(chatId, wmVideo.file_id, text);
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
@@ -5100,6 +5105,35 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRe
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
 </script></body></html>`;
 
+
+/* ============ 🧽 去除浮水印：影片交給 GitHub Actions 去掉固定位置的浮水印（watermark/remove_watermark.py），去好傳回 Telegram ============ */
+// 位置寫在影片說明裡：左上／右上／左下／右下（預設）／上方／下方／中間上／中間下，或 x,y,寬,高（百分比，例如 70,84,29,12 是右下角）
+function wmPending_() { return Number(prop_('WM_UNTIL')) > Date.now(); }
+function wmAsk_(chatId) {
+  setProp_('WM_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  return '🧽 好！10 分鐘內把要去浮水印的影片傳給我（按左下角的迴紋針 📎 選影片，20MB 以內）。\n\n'
+    + '浮水印在哪一邊，可以寫在影片說明裡：左上、右上、左下、右下（預設）、上方、下方、中間上、中間下；位置不準的話寫 x,y,寬,高（百分比）。\n\n'
+    + '只會去掉浮水印，聲音和畫面其他部分都不動，不會配樂、不會剪。';
+}
+function wmRun_(chatId, fileId, note) {
+  setProp_('WM_UNTIL', '0');
+  if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🧽 去浮水印還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（和剪 Reels 共用）。');
+  const m = String(note || '').replace(/\s+/g, '').match(/\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?|左上|右上|左下|右下|上方|下方|中間上|中間下/);
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: String(chatId), file_id: fileId, region: m ? m[0] : '' } }),
+  });
+  const code = res.getResponseCode();
+  if (code !== 204) {
+    console.error('去浮水印觸發失敗：' + code + ' ' + res.getContentText());
+    return tgSend_(chatId, code === 401 || code === 403 || code === 404
+      ? '🧽 GitHub 金鑰不對或權限不夠（' + code + '），請重新產生金鑰後傳「設定 GitHub金鑰 新金鑰」。'
+      : '🧽 現在沒辦法開始去浮水印（' + code + '），請等一下再傳一次。');
+  }
+  return tgSend_(chatId, '🧽 收到了，開始去浮水印（位置：' + (m ? m[0] : '右下') + '）。大約 1～3 分鐘會傳回來。');
+}
 
 /* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
 // 需要的指令碼屬性：GITHUB_TOKEN（可以在 Telegram 打「設定 GitHub金鑰 xxx」）；REELS_REPO 可不填，預設 yb131419/Tezhu

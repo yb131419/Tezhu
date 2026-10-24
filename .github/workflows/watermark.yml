@@ -1,0 +1,47 @@
+# 去除浮水印：在 Telegram 傳影片給小乖，去掉固定位置的浮水印，去好的影片傳回 Telegram。
+# 獨立功能，不經過 Reels 剪片流程。程式在 watermark/remove_watermark.py。
+# 需要 repo secret：TELEGRAM_BOT_TOKEN（和剪 Reels 共用）。
+name: 小乖去除浮水印
+
+on:
+  workflow_dispatch:
+    inputs:
+      chat_id:
+        description: Telegram 聊天編號
+        required: true
+      file_id:
+        description: Telegram 影片檔案編號
+        required: true
+      region:
+        description: 浮水印位置（左上／右上／左下／右下／上方／下方／中間上／中間下，或 x,y,寬,高 百分比；空白是右下）
+        required: false
+        default: '右下'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watermark
+  cancel-in-progress: false
+
+jobs:
+  watermark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: watermark
+
+      - name: 安裝 ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+
+      - name: 去除浮水印並傳回 Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ inputs.chat_id }}
+          FILE_ID: ${{ inputs.file_id }}
+          REGION: ${{ inputs.region }}
+        run: python3 watermark/remove_watermark.py --out "$RUNNER_TEMP/watermark.mp4"
