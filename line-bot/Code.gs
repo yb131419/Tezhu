@@ -5168,6 +5168,8 @@ function wmRun_(chatId, fileId, note, url) {
 // 檔名可以寫位置，例如「右下_生日.mp4」「左上.mov」；沒寫就右下。第一次要在編輯器執行 wmInstallTrigger 一次。
 const WM_WATCH_ID = '1dnTmIM0OMicnL-n73tZqH-PkWzzKYt7h';   // 固定的監看資料夾；指令碼屬性 WM_FOLDER_ID 可以換
 function wmFolderId_() { return prop_('WM_FOLDER_ID') || WM_WATCH_ID; }
+// 雲端硬碟對 .mov 等檔案有時標成 application/octet-stream，所以看副檔名也算
+function wmIsVideo_(f) { return /^video\//.test(f.getMimeType()) || /\.(mp4|mov|m4v|avi|mkv|webm|3gp)$/i.test(f.getName()); }
 const WM_DONE = '已處理';
 const WM_POS_RE = /左上|右上|左下|右下|上方|下方|中間上|中間下|\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?/;
 function wmInstallTrigger() {
@@ -5200,7 +5202,7 @@ function wmWatchFolder() {
   const files = watch.getFiles();
   for (let n = 0; files.hasNext() && n < 5;) {
     const f = files.next();
-    if (!/^video\//.test(f.getMimeType())) continue;
+    if (!wmIsVideo_(f)) continue;
     n++;
     const wasPrivate = f.getSharingAccess() === DriveApp.Access.PRIVATE;
     const m = f.getName().replace(/\s+/g, '').match(WM_POS_RE);
@@ -5228,14 +5230,14 @@ function wmStatus_() {
   const files = watch.getFiles();
   while (files.hasNext()) {
     const f = files.next();
-    if (/^video\//.test(f.getMimeType())) waiting.push(f.getName());
+    if (wmIsVideo_(f)) waiting.push(f.getName());
   }
   let pending = [];
   try { pending = JSON.parse(prop_('WM_PENDING') || '[]'); } catch (e) { pending = []; }
   const doneIt = watch.getFoldersByName(WM_DONE);
   const doneFiles = doneIt.hasNext() ? doneIt.next().getFiles() : null;
   let doneCount = 0;
-  while (doneFiles && doneFiles.hasNext()) { if (/^video\//.test(doneFiles.next().getMimeType())) doneCount++; }
+  while (doneFiles && doneFiles.hasNext()) { if (wmIsVideo_(doneFiles.next())) doneCount++; }
   const last = Number(prop_('WM_LAST'));
   const when = last ? Utilities.formatDate(new Date(last), 'Asia/Taipei', 'M/d HH:mm') : '還沒有紀錄';
   return '🧽 去浮水印資料夾狀態\n'
