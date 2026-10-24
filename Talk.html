@@ -302,7 +302,7 @@ let conv=false,wl=null;
 function convOn(){conv=true;document.body.classList.add('conv');try{if(navigator.audioSession)navigator.audioSession.type='play-and-record';}catch(e){}try{if(navigator.wakeLock&&!wl)navigator.wakeLock.request('screen').then(l=>{wl=l;}).catch(()=>{});}catch(e){}}
 function convOff(msg){conv=false;document.body.classList.remove('conv');if(wl){wl.release().catch(()=>{});wl=null;}if(msg)hint.textContent=msg;}
 // 小乖講完才開麥克風（講話時不聽，免得錄到自己的聲音）
-function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(window.speechSynthesis&&speechSynthesis.speaking)return next();micStart();},500);}
+function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(window.speechSynthesis&&speechSynthesis.speaking)return next();micStart();},250);}
 function stopTalk(){clearTimeout(ttsT);if(window.speechSynthesis)speechSynthesis.cancel();$('au').onended=null;$('au').pause();if(auSrc){const s=auSrc;auSrc=null;s.onended=null;try{s.stop();}catch(e){}}}
 function speak(t,audio){if(!$('spk').checked)return next();if(conv&&$('loop').checked)hint.textContent='小乖說話中…講完會自動再聽你說（按麥克風可以直接插話）';if(audio)return playMp3(t,audio);tts(t);}
 // 真人語音用同一個音效環境播放（iPhone 用 <audio> 播完常常把麥克風弄成靜音）；不行再退回 <audio>
@@ -318,10 +318,10 @@ function appOf(t){const m=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'
 function openApp(a,w){w=w||add('','xg');w.textContent='好，幫你打開 '+a[0]+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟 '+a[0];b.onclick=()=>{location.href=a[1];};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a[1];},300);}
 function P(b){return fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;
- if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}}busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
+ if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}}busy=true;const tm={s:Date.now()};const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
- P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h){busy=false;return {say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]};}const ap=appOf(h);if(ap){busy=false;w.textContent='';openApp(ap,w);return null;}return P({action:'talk',key:KEY,ask:h,image:'',voice:$('spk').checked&&$('real').checked,spoken:true});})
- .then(r=>{if(!r)return;busy=false;if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
+ P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;tm.t1=Date.now();const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h){busy=false;return {say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]};}const ap=appOf(h);if(ap){busy=false;w.textContent='';openApp(ap,w);return null;}return P({action:'talk',key:KEY,ask:h,image:'',voice:$('spk').checked&&$('real').checked,spoken:true});})
+ .then(r=>{if(!r)return;busy=false;if(aud)console.info('[小乖計時] 轉文字 '+(tm.t1-tm.s)+'ms、小乖回答＋語音 '+(Date.now()-tm.t1)+'ms');if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
@@ -347,7 +347,7 @@ async function micStart(){
   if(blob.size<1500||heardAny===false){convOff(conv?'對話先停在這裡，要講話再按麥克風':'沒錄到聲音，再按一次麥克風');return;}
   const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
  mr.start(250);micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
- // 講完安靜 3 秒才自動送出（中間想一下、換氣不會被切掉）；一直沒講話 10 秒就停；最長 2 分鐘
+ // 講完安靜 2 秒就自動送出（原本 3 秒，等太久；中間短暫換氣通常不會被切掉）；一直沒講話 10 秒就停；最長 2 分鐘
  // 門檻跟著環境噪音調整：先量 0.4 秒的背景聲，小聲講話也算有在講
  const ac=getAC();if(ac&&ac.state!=='running')await Promise.race([ac.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
  if(!mr)return;
@@ -358,9 +358,9 @@ async function micStart(){
    if(Date.now()-t0<700){floor=Math.max(floor,m);th=Math.min(14,Math.max(6,floor+5));}
    else if(m>th){heard=true;heardAny=true;last=Date.now();}
    const quiet=Date.now()-last;
-   if(heard&&quiet>1200&&quiet<=3000&&!/送出/.test(hint.textContent))hint.textContent='還在聽…沒話要說就會送出（也可以按麥克風直接送）';
-   if(heard&&quiet<=1200&&/送出/.test(hint.textContent))hint.textContent='我在聽…';
-   if((heard&&quiet>3000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
+   if(heard&&quiet>800&&quiet<=2000&&!/送出/.test(hint.textContent))hint.textContent='還在聽…沒話要說就會送出（也可以按麥克風直接送）';
+   if(heard&&quiet<=800&&/送出/.test(hint.textContent))hint.textContent='我在聽…';
+   if((heard&&quiet>2000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
 $('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();if(busy)return;convOn();micStart();};
