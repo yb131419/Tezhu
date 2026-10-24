@@ -3186,6 +3186,7 @@ function handleTelegram_(update) {
   // 去除浮水印（獨立功能）：按「🧽 去浮水印」後傳的影片，或影片說明寫「去浮水印」，要在剪 Reels 之前判斷
   const wmVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && /^[^\p{L}\p{N}]*(去浮水印|去除浮水印)\s*$/u.test(text)) return tgSend_(chatId, wmAsk_(chatId));
+  if (owner && chatId === owner && /^[^\p{L}\p{N}]*(檢查去浮水印|去浮水印狀態)\s*$/u.test(text)) return tgSend_(chatId, wmStatus_());
   if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) {
     if (wmVideo.file_size && wmVideo.file_size > 20 * 1024 * 1024) {   // Telegram 機器人只能下載 20MB 以內，超過就不送去剪
       setProp_('WM_UNTIL', '0');
@@ -5214,6 +5215,25 @@ function wmWatchFolder() {
     if (owner) tgApi_('sendMessage', { chat_id: owner, text: '🧽 發現新影片「' + f.getName() + '」，開始去浮水印（位置：' + (region || '右下') + '）。大約 1～3 分鐘會傳回來。' });
   }
   setProp_('WM_PENDING', JSON.stringify(pending));
+  setProp_('WM_LAST', String(Date.now()));
+}
+// 「檢查去浮水印」：看資料夾裡還在等的影片、正在處理的數量，以及上次自動檢查的時間
+function wmStatus_() {
+  const watch = DriveApp.getFolderById(WM_WATCH_ID);
+  const waiting = [];
+  const files = watch.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (/^video\//.test(f.getMimeType())) waiting.push(f.getName());
+  }
+  let pending = [];
+  try { pending = JSON.parse(prop_('WM_PENDING') || '[]'); } catch (e) { pending = []; }
+  const last = Number(prop_('WM_LAST'));
+  const when = last ? Utilities.formatDate(new Date(last), 'Asia/Taipei', 'M/d HH:mm') : '還沒有紀錄';
+  return '🧽 去浮水印資料夾狀態\n'
+    + '・等待處理：' + (waiting.length ? waiting.length + ' 支（' + waiting.slice(0, 5).join('、') + (waiting.length > 5 ? ' 等' : '') + '）' : '沒有')
+    + '\n・正在處理：' + pending.length + ' 支（處理完會自動傳回來）'
+    + '\n・上次自動檢查：' + when + '（每 5 分鐘檢查一次）';
 }
 
 /* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
