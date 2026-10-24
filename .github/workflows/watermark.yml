@@ -10,8 +10,13 @@ on:
         description: Telegram 聊天編號
         required: true
       file_id:
-        description: Telegram 影片檔案編號
-        required: true
+        description: Telegram 影片檔案編號（和 url 二選一）
+        required: false
+        default: ''
+      url:
+        description: Google 雲端硬碟影片連結（設成知道連結的人都能看；和 file_id 二選一）
+        required: false
+        default: ''
       region:
         description: 浮水印位置（左上／右上／左下／右下／上方／下方／中間上／中間下，或 x,y,寬,高 百分比；空白是右下）
         required: false
@@ -37,11 +42,13 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg > /dev/null
+          python3 -m pip install -q --break-system-packages gdown   # 雲端硬碟連結下載用
 
       - name: 去除浮水印並傳回 Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ inputs.chat_id }}
           FILE_ID: ${{ inputs.file_id }}
+          URL: ${{ inputs.url }}
           REGION: ${{ inputs.region }}
         run: python3 watermark/remove_watermark.py --out "$RUNNER_TEMP/watermark.mp4"

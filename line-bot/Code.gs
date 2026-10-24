@@ -3175,6 +3175,9 @@ function handleTelegram_(update) {
   const wmVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && /^[^\p{L}\p{N}]*(去浮水印|去除浮水印)\s*$/u.test(text)) return tgSend_(chatId, wmAsk_(chatId));
   if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) return wmRun_(chatId, wmVideo.file_id, text);
+  // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）
+  const wmLink = /https?:\/\/(?:drive|docs)\.google\.com\/\S+/.exec(text);
+  if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text))) return wmRun_(chatId, '', text, wmLink[0]);
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
@@ -5112,10 +5115,11 @@ function wmPending_() { return Number(prop_('WM_UNTIL')) > Date.now(); }
 function wmAsk_(chatId) {
   setProp_('WM_UNTIL', String(Date.now() + 10 * 60 * 1000));
   return '🧽 好！10 分鐘內把要去浮水印的影片傳給我（按左下角的迴紋針 📎 選影片，20MB 以內）。\n\n'
+    + '影片超過 20MB 的話：把影片上傳到 Google 雲端硬碟，設成「知道連結的人都能看」，把連結貼給我就好。\n\n'
     + '浮水印在哪一邊，可以寫在影片說明裡：左上、右上、左下、右下（預設）、上方、下方、中間上、中間下；位置不準的話寫 x,y,寬,高（百分比）。\n\n'
     + '只會去掉浮水印，聲音和畫面其他部分都不動，不會配樂、不會剪。';
 }
-function wmRun_(chatId, fileId, note) {
+function wmRun_(chatId, fileId, note, url) {
   setProp_('WM_UNTIL', '0');
   if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🧽 去浮水印還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（和剪 Reels 共用）。');
   const m = String(note || '').replace(/\s+/g, '').match(/\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?|左上|右上|左下|右下|上方|下方|中間上|中間下/);
@@ -5123,7 +5127,7 @@ function wmRun_(chatId, fileId, note) {
   const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/dispatches', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
-    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: String(chatId), file_id: fileId, region: m ? m[0] : '' } }),
+    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: String(chatId), file_id: fileId || '', url: url || '', region: m ? m[0] : '' } }),
   });
   const code = res.getResponseCode();
   if (code !== 204) {
