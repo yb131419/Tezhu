@@ -119,9 +119,13 @@ def drive_download(url, dest):
     import gdown   # GitHub Actions 上用 pip 安裝
     if 'drive.google.com' not in url and 'docs.google.com' not in url:
         raise Oops('這不是 Google 雲端硬碟的連結。請把影片上傳到雲端硬碟，設成「知道連結的人都能看」，再把連結貼給小乖。')
+    m = re.search(r'/d/([\w-]+)|[?&]id=([\w-]+)', url)   # /file/d/ID/view（含 usp=drivesdk 等參數）或 ?id=ID
+    if not m:
+        raise Oops('雲端硬碟的連結看不懂，請從「共用」複製檔案的連結再貼一次。')
     try:
-        ok = gdown.download(url, dest, quiet=True, fuzzy=True)
-    except Exception:   # noqa: BLE001 gdown 各種失敗都當成連結打不開
+        ok = gdown.download(id=m.group(1) or m.group(2), output=dest, quiet=True)   # 新版 gdown 已經沒有 fuzzy 參數
+    except Exception as e:   # noqa: BLE001 gdown 各種失敗都當成連結打不開，錯誤寫進紀錄方便查
+        print('gdown 失敗：%r' % e, file=sys.stderr)
         ok = None
     if not ok or not os.path.exists(dest) or os.path.getsize(dest) == 0:
         raise Oops('雲端硬碟的影片抓不到。請確認連結是「知道連結的人都能看」，而且是影片檔（不是資料夾）。')
