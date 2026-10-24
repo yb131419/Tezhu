@@ -3195,6 +3195,9 @@ function handleTelegram_(update) {
     return wmRun_(chatId, wmVideo.file_id, text);
   }
   // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）；只貼連結也會開始去浮水印
+  // 貼上「去浮水印」資料夾的連結：直接掃描這個資料夾（不用貼影片網址）
+  const wmFolder = /drive\.google\.com\/drive\/folders\/([\w-]+)/.exec(text);
+  if (owner && chatId === owner && wmFolder && wmFolder[1] === wmFolderId_()) { wmWatchFolder(); return tgSend_(chatId, wmStatus_()); }
   const wmLink = /https?:\/\/(?:drive|docs)\.google\.com\/\S+/.exec(text);
   if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text) || wmLink[0] === text.trim())) return wmRun_(chatId, '', text, wmLink[0]);
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
@@ -5163,7 +5166,8 @@ function wmRun_(chatId, fileId, note, url) {
 /* ============ 🧽 去浮水印：雲端硬碟資料夾自動監看（每 5 分鐘）============ */
 // 影片存進「去浮水印」資料夾（手機 Drive App 上傳，不受 Telegram 20MB 限制），小乖自動去浮水印、成品傳回 Telegram，處理過的搬到「已處理」
 // 檔名可以寫位置，例如「右下_生日.mp4」「左上.mov」；沒寫就右下。第一次要在編輯器執行 wmInstallTrigger 一次。
-const WM_WATCH_ID = '1dnTmIM0OMicnL-n73tZqH-PkWzzKYt7h';
+const WM_WATCH_ID = '1dnTmIM0OMicnL-n73tZqH-PkWzzKYt7h';   // 固定的監看資料夾；指令碼屬性 WM_FOLDER_ID 可以換
+function wmFolderId_() { return prop_('WM_FOLDER_ID') || WM_WATCH_ID; }
 const WM_DONE = '已處理';
 const WM_POS_RE = /左上|右上|左下|右下|上方|下方|中間上|中間下|\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?/;
 function wmInstallTrigger() {
@@ -5180,7 +5184,7 @@ function wmDispatch_(url, region) {   // 觸發 watermark.yml，回傳 GitHub �
   return res.getResponseCode();
 }
 function wmWatchFolder() {
-  const watch = DriveApp.getFolderById(WM_WATCH_ID);
+  const watch = DriveApp.getFolderById(wmFolderId_());
   const doneIt = watch.getFoldersByName(WM_DONE);
   const done = doneIt.hasNext() ? doneIt.next() : watch.createFolder(WM_DONE);
   const owner = prop_('TG_OWNER_CHAT_ID');
@@ -5219,7 +5223,7 @@ function wmWatchFolder() {
 }
 // 「檢查去浮水印」：看資料夾裡還在等的影片、正在處理的數量，以及上次自動檢查的時間
 function wmStatus_() {
-  const watch = DriveApp.getFolderById(WM_WATCH_ID);
+  const watch = DriveApp.getFolderById(wmFolderId_());
   const waiting = [];
   const files = watch.getFiles();
   while (files.hasNext()) {
