@@ -1324,8 +1324,20 @@ function futureEvents_() {
   return readAll_().events.filter(e => e.date >= today).sort(evCmp_);
 }
 function evDay_(k) { return Utilities.formatDate(new Date(Date.now() + k * 86400000), TZ, 'yyyy-MM-dd'); }
+// 有時間的行程開始前 1 小時也提醒一次（2026-10-24 使用者要求）；id 固定成 h1_＋行程 id，
+// 之後補舊行程時不會重複加，使用者刪掉的提醒也不會再加回來
+function hourRemind_(d, ev) {
+  const id = 'h1_' + ev.id;
+  if (!ev.time || d.deleted[id] || d.reminders.some(r => r.id === id)) return false;
+  const t = parseAt_(ev.date + 'T' + hm_(ev.time));
+  if (!t || t - 60 * 6e4 <= Date.now()) return false;
+  d.reminders.push({ id: id, text: '1 小時後：' + ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 60 * 6e4),
+    repeat: 'none', fired: false, src: ev.id, u: Date.now() });
+  return true;
+}
 // 有時間的行程自動加「開始前 30 分鐘」提醒（跟小乖主頁一樣；2026-10-16 使用者選「要提醒」）
 function evRemind_(d, ev) {
+  hourRemind_(d, ev);
   if (!ev.time) return false;
   const t = parseAt_(ev.date + 'T' + hm_(ev.time));
   if (!t || t - 30 * 6e4 <= Date.now()) return false;
@@ -3585,6 +3597,8 @@ function checkReminders() {
     const now = Date.now();
     const msgs = [];
     const purged = purgePast_(d);   // 順便把過了日期的行程刪掉
+    let hourAdded = 0;              // 舊行程補上「1 小時前」提醒（新增的行程已在 evRemind_ 加過）
+    d.events.forEach(e => { if (hourRemind_(d, e)) hourAdded++; });
     d.reminders.forEach(r => {
       if (r.fired) return;
       const t = parseAt_(r.at);
@@ -3600,7 +3614,7 @@ function checkReminders() {
       }
       r.u = now;
     });
-    if (msgs.length || purged) writeAll_(d);
+    if (msgs.length || purged || hourAdded) writeAll_(d);
     return { msgs: msgs, title: (d.profile && d.profile.title) || '小乖' };
   });
   if (!due.msgs.length) return;
