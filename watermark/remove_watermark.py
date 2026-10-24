@@ -11,7 +11,7 @@
   python3 watermark/remove_watermark.py --input 影片.mp4 --out 去好的.mp4 --region 右下
   python3 watermark/remove_watermark.py --input 影片.mp4 --out 去好的.mp4 --region 70,84,29,12
 
-GitHub Actions 版（.github/workflows/watermark.yml）用環境變數：TELEGRAM_BOT_TOKEN、CHAT_ID、FILE_ID、REGION，
+GitHub Actions 版（.github/workflows/watermark.yml）用環境變數：TELEGRAM_BOT_TOKEN、CHAT_ID、FILE_ID、URL（雲端硬碟連結，有 URL 就不用 FILE_ID）、REGION，
 去好的影片直接傳回 Telegram。
 """
 import argparse
@@ -109,6 +109,19 @@ def tg(method, **data):
         return json.loads(e.read() or b'{}')
 
 
+def drive_download(url, dest):
+    """Google 雲端硬碟的影片（要設成「知道連結的人都能看」）→ 下載到 dest。網址不是雲端硬碟就回報錯誤。"""
+    import gdown   # GitHub Actions 上用 pip 安裝
+    if 'drive.google.com' not in url and 'docs.google.com' not in url:
+        raise Oops('這不是 Google 雲端硬碟的連結。請把影片上傳到雲端硬碟，設成「知道連結的人都能看」，再把連結貼給小乖。')
+    try:
+        ok = gdown.download(url, dest, quiet=True, fuzzy=True)
+    except Exception:   # noqa: BLE001 gdown 各種失敗都當成連結打不開
+        ok = None
+    if not ok or not os.path.exists(dest) or os.path.getsize(dest) == 0:
+        raise Oops('雲端硬碟的影片抓不到。請確認連結是「知道連結的人都能看」，而且是影片檔（不是資料夾）。')
+
+
 def tg_download(file_id, dest):
     info = tg('getFile', file_id=file_id)
     if not info.get('ok'):
@@ -141,6 +154,9 @@ def main():
     try:
         if a.input:
             src = a.input
+        elif os.environ.get('URL'):
+            src = os.path.join(tempfile.mkdtemp(), 'input.mp4')
+            drive_download(os.environ['URL'], src)
         else:
             src = os.path.join(tempfile.mkdtemp(), 'input.mp4')
             tg_download(os.environ['FILE_ID'], src)
