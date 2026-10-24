@@ -3186,7 +3186,13 @@ function handleTelegram_(update) {
   // 去除浮水印（獨立功能）：按「🧽 去浮水印」後傳的影片，或影片說明寫「去浮水印」，要在剪 Reels 之前判斷
   const wmVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && /^[^\p{L}\p{N}]*(去浮水印|去除浮水印)\s*$/u.test(text)) return tgSend_(chatId, wmAsk_(chatId));
-  if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) return wmRun_(chatId, wmVideo.file_id, text);
+  if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) {
+    if (wmVideo.file_size && wmVideo.file_size > 20 * 1024 * 1024) {   // Telegram 機器人只能下載 20MB 以內，超過就不送去剪
+      setProp_('WM_UNTIL', '0');
+      return tgSend_(chatId, '🧽 這支影片超過 20MB，Telegram 不讓機器人下載。\n\n請改用雲端硬碟：把影片上傳到 Google 雲端硬碟，設成「知道連結的人都能看」，複製連結貼給小乖（說明可以寫位置，例如「右下」）。');
+    }
+    return wmRun_(chatId, wmVideo.file_id, text);
+  }
   // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）
   const wmLink = /https?:\/\/(?:drive|docs)\.google\.com\/\S+/.exec(text);
   if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text))) return wmRun_(chatId, '', text, wmLink[0]);
