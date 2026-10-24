@@ -5159,6 +5159,63 @@ function wmRun_(chatId, fileId, note, url) {
   return tgSend_(chatId, '🧽 收到了，開始去浮水印（位置：' + (m ? m[0] : '右下') + '）。大約 1～3 分鐘會傳回來。');
 }
 
+/* ============ 🧽 去浮水印：雲端硬碟資料夾自動監看（每 5 分鐘）============ */
+// 影片存進「去浮水印」資料夾（手機 Drive App 上傳，不受 Telegram 20MB 限制），小乖自動去浮水印、成品傳回 Telegram，處理過的搬到「已處理」
+// 檔名可以寫位置，例如「右下_生日.mp4」「左上.mov」；沒寫就右下。第一次要在編輯器執行 wmInstallTrigger 一次。
+const WM_WATCH_ID = '1dnTmIM0OMicnL-n73tZqH-PkWzzKYt7h';
+const WM_DONE = '已處理';
+const WM_POS_RE = /左上|右上|左下|右下|上方|下方|中間上|中間下|\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?/;
+function wmInstallTrigger() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'wmWatchFolder').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('wmWatchFolder').timeBased().everyMinutes(5).create();
+}
+function wmDispatch_(url, region) {   // 觸發 watermark.yml，回傳 GitHub 的狀態碼（204 是成功）
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: prop_('TG_OWNER_CHAT_ID'), file_id: '', url: url, region: region || '' } }),
+  });
+  return res.getResponseCode();
+}
+function wmWatchFolder() {
+  const watch = DriveApp.getFolderById(WM_WATCH_ID);
+  const doneIt = watch.getFoldersByName(WM_DONE);
+  const done = doneIt.hasNext() ? doneIt.next() : watch.createFolder(WM_DONE);
+  const owner = prop_('TG_OWNER_CHAT_ID');
+  let pending = [];
+  try { pending = JSON.parse(prop_('WM_PENDING') || '[]'); } catch (e) { pending = []; }
+  // 1. 送去超過 30 分鐘的（GitHub 那邊應該已經下載完了），原本是「限制存取」的改回去
+  pending = pending.filter(p => {
+    if (Date.now() - p.t < 30 * 60 * 1000) return true;
+    if (p.private) try { DriveApp.getFileById(p.id).setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) { console.error(e); }
+    return false;
+  });
+  // 2. 資料夾裡新的影片：設成知道連結的人都能看 → 送去剪 → 搬到「已處理」（一次最多 5 支）
+  const files = watch.getFiles();
+  for (let n = 0; files.hasNext() && n < 5;) {
+    const f = files.next();
+    if (!/^video\//.test(f.getMimeType())) continue;
+    n++;
+    const wasPrivate = f.getSharingAccess() === DriveApp.Access.PRIVATE;
+    const m = f.getName().replace(/\s+/g, '').match(WM_POS_RE);
+    const region = m ? m[0] : '';
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const code = wmDispatch_('https://drive.google.com/file/d/' + f.getId() + '/view', region);
+    if (code !== 204) {
+      console.error('去浮水印（資料夾）觸發失敗：' + code);
+      if (wasPrivate) f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '🧽 「' + f.getName() + '」沒有開始去浮水印（' + code + '），之後會再試。' });
+      continue;
+    }
+    done.addFile(f);
+    watch.removeFile(f);
+    pending.push({ id: f.getId(), t: Date.now(), private: wasPrivate });
+    if (owner) tgApi_('sendMessage', { chat_id: owner, text: '🧽 發現新影片「' + f.getName() + '」，開始去浮水印（位置：' + (region || '右下') + '）。大約 1～3 分鐘會傳回來。' });
+  }
+  setProp_('WM_PENDING', JSON.stringify(pending));
+}
+
 /* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
 // 需要的指令碼屬性：GITHUB_TOKEN（可以在 Telegram 打「設定 GitHub金鑰 xxx」）；REELS_REPO 可不填，預設 yb131419/Tezhu
 const REELS_WORD = /剪\s*reels|reels|剪\s*大片|剪片|剪輯|短影音/i;

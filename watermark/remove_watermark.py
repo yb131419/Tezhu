@@ -170,7 +170,10 @@ def main():
         box, size, crf = remove(src, a.out, a.region)
         print('去除浮水印完成：畫面 %dx%d，方框 x=%d y=%d w=%d h=%d，壓縮 crf %d' % (size + box + (crf,)), file=sys.stderr)
         if chat:
-            tg_send_video(chat, a.out, '🧽 浮水印去好了（位置：%s）' % (a.region or DEFAULT_REGION))
+            # 下載：Telegram 這支影片可以長按儲存；另外 GitHub 執行頁面的 Artifacts 也有 watermark.mp4 可以下載（需要登入 GitHub）
+            run_url = '%s/%s/actions/runs/%s' % (os.environ.get('GITHUB_SERVER_URL', 'https://github.com'),
+                                                 os.environ.get('GITHUB_REPOSITORY', 'yb131419/Tezhu'), os.environ.get('GITHUB_RUN_ID', ''))
+            tg_send_video(chat, a.out, '🧽 浮水印去好了（位置：%s）\n下載：%s' % (a.region or DEFAULT_REGION, run_url))
     except Oops as e:
         print('Oops:', e, file=sys.stderr)
         if chat:
