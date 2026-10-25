@@ -464,6 +464,12 @@ function doPost(e) {
     try { return json_(wallApi_(body)); } catch (err) { console.error(err); return json_({ ok: false, error: String(err && err.message || err) }); }
   }
 
+  // 行程網頁（Schedule.html）：列出、新增或修改、刪除行程
+  if (['evList', 'evSave', 'evDel'].indexOf(body.action) >= 0) {
+    if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼錯誤' });
+    try { return json_(eventApi_(body)); } catch (err) { console.error(err); return json_({ ok: false, error: String(err && err.message || err) }); }
+  }
+
   // 網頁同步
   if (body.action === 'sync') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return json_({ ok: false, error: '同步密碼錯誤' });
@@ -3484,7 +3490,7 @@ function listDays_(a, b, label) {
   const one = from === to;
   const head = one ? '⏰ ' + label + ' ' + md(from) + '（星期' + wk(from) + '）'
     : '🗓️ ' + label + '行程（' + md(from) + '～' + md(to) + '）';
-  if (!evs.length && !rms.length) return head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。';
+  if (!evs.length && !rms.length) return head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。\n\n✏️ 手機上新增行程：' + SCHEDULE_URL;
   const evLine = e => '・' + (hm_(e.time) || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
   const rmLine = r => '・' + String(r.at).slice(11, 16) + '　🔔 ' + r.text;
   let body = [];
@@ -3502,7 +3508,7 @@ function listDays_(a, b, label) {
     });
   }
   const dels = evs.map(evDelLabel_).concat(rms.map(r => '🗑️ 刪 ' + r.text)).slice(0, 8);
-  return { buttons: [dels].concat(MENU), text: [head, ''].concat(body, ['', '要刪掉哪一筆，點下面的 🗑️ 按鈕就好。']).join('\n') };
+  return { buttons: [dels].concat(MENU), text: [head, ''].concat(body, ['', '要刪掉哪一筆，點下面的 🗑️ 按鈕就好。', '✏️ 手機上調配行程：' + SCHEDULE_URL]).join('\n') };
 }
 
 // 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
@@ -4902,6 +4908,41 @@ function merge_(a, b) {
   const pa = a.profile || {}, pb = b.profile || {};
   out.profile = (pb.u || 0) > (pa.u || 0) ? pb : pa;
   return out;
+}
+
+/* ============ 行程網頁（Schedule.html）：手機上查看、新增、修改、刪除 ============ */
+const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Schedule.html';
+function eventApi_(b) {
+  if (b.action === 'evList') return { ok: true, events: readAll_().events.slice().sort(evCmp_) };
+  const now = Date.now();
+  if (b.action === 'evDel') {
+    const id = String(b.id || '');
+    withLock_(() => {
+      const d = readAll_();
+      d.events = d.events.filter(e => e.id !== id); d.deleted[id] = now;
+      d.reminders = d.reminders.filter(r => { if (r.src === id) { d.deleted[r.id] = now; return false; } return true; });
+      writeAll_(d);
+    });
+    return { ok: true };
+  }
+  // evSave：沒有 id 就是新增，有 id 就是修改（u 設成現在，同步時以網頁這份為準）
+  const title = String(b.title || '').trim().slice(0, 80), date = String(b.date || '');
+  if (!title) return { ok: false, error: '請填行程名稱' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: '日期格式不對' };
+  const ev = { id: String(b.id || uid_()), title: title, date: date, time: hm_(b.time), place: String(b.place || '').trim().slice(0, 80), u: now };
+  withLock_(() => {
+    const d = readAll_();
+    const old = d.events.filter(e => e.id === ev.id)[0];
+    d.events = d.events.filter(e => e.id !== ev.id).concat([ev]);
+    // 日期、時間、名稱或地點有改，就把這筆行程的提醒照新時間重排
+    const key = x => JSON.stringify([x.date, x.time, x.title, x.place]);
+    if (!old || key(old) !== key(ev)) {
+      d.reminders = d.reminders.filter(r => r.src !== ev.id);
+      evRemind_(d, ev);
+    }
+    writeAll_(d);
+  });
+  return { ok: true, event: ev };
 }
 
 /* ============ 試算表存取 ============ */
