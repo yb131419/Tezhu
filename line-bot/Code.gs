@@ -849,7 +849,7 @@ function stratCat2_(k, cat) {
   return c.replace(/主題$/, '').slice(0, 2) || '軍師';
 }
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
-// AI 一分鐘短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
+// AI 55 秒短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
 const REEL_BTN = '🎭 短劇腳本';
 const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
@@ -858,12 +858,12 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附一分鐘短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
+  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1028,7 +1028,7 @@ function stratWrite_(k, th) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
-  // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
+  // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
   return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
@@ -1156,16 +1156,16 @@ function heroWizard_(t, raw) {
   const addSecond = slot === 1 && !reelHero2_() ? [['👤 設定第二主角']] : [];
   return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: addSecond.concat(back) };
 }
-// 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
+// 寫一支 55 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
   const heroes = [reelHero_(), reelHero2_()].filter(Boolean);
   const sys = [
-    '你是短影音編劇，幫彥彬寫一支「AI 生成的一分鐘短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 60 秒直式短片（9:16）。',
+    '你是短影音編劇，幫彥彬寫一支「AI 生成的 55 秒短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 55 秒直式短片（9:16）。',
     base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案；文案裡人物的性別和年紀照原文寫，不可以對調：\n標題：' + base.ptitle + '\n' + base.post
       : '【本次主題】' + stratGuide_(th),
     heroes.length === 2 ? '【兩位主角（使用者指定，一男一女，必須照寫）】\n主角一：' + heroes[0] + '\n主角二：' + heroes[1] + '\n兩位主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；兩位都要出現在劇情裡，characters 也要列出這兩位，每段畫面都用同一段外型描述，AI 生成時才會像同一個人；其他角色再自己設計。' : null,
     heroes.length === 1 ? '【主角（使用者指定，必須照寫）】' + heroes[0] + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
-    '【劇情結構（反過來設計）】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
+    '【劇情結構（反過來設計）】總長 55 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 55。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
     '【台詞】每一個畫面都一定要有台詞，要有人在說話，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；不需要字幕，不用寫字幕欄位。',
@@ -1173,7 +1173,7 @@ function reelWrite_(k, th, base) {
     '繁體台灣用語，不用簡體字。只輸出 JSON，hook 要先寫（前三秒的鉤子設計完才寫後面的 scenes）：{"hook":"前三秒的衝突、懸念或反差（一句）","title":"短劇標題（12 字內）","post_title":"貼文標題（15 字內，不含 hashtag，要反骨，像一句讓人停下來看的話）","post":"貼文說明：2 到 3 段，段落之間空一行，像朋友分享，一段只講一件事；不叫人留言或私訊，不寫療效、收入保證；最後一行是 3 到 5 個 hashtag（不可以有「康園道」「分享」「大健康」）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].filter(Boolean).join('\n');
   // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
-  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }];
+  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的 55 秒 AI 短劇腳本。' }];
   let r = null;
   for (let i = 0; i < 3; i++) {
     const out = callOpenAI_(sys, msgs, true, null, { maxTokens: 2000, temperature: 0.8 });
@@ -1202,7 +1202,7 @@ function reelText_(r) {
   if (pt) out.push('📌 標題', pt, '');
   if (pb) out.push('📝 說明', pb + (tags ? '\n\n' + tags : ''), '');
   if (pt || pb) out.push('━━━━━━━━', '');
-  out.push('🎭 一分鐘短劇腳本｜' + s(r.title));
+  out.push('🎭 55 秒短劇腳本｜' + s(r.title));
   if (s(r.logline)) out.push('🎯 劇情：' + s(r.logline));
   if (s(r.style)) out.push('🎨 畫面風格：' + s(r.style) + '（直式 9:16）');
   const ch = (Array.isArray(r.characters) ? r.characters : []).filter(c => c && s(c.name));
@@ -1464,16 +1464,25 @@ function cardLayout_(c, minH) {
   while (tf > 40 && lines(title, tf, TW) > 3) tf -= 2;
 
   const TITLE_Y = 104;
-  const titleH = lines(title, tf, TW) * tf * 1.45;
-  const RULE_Y = TITLE_Y + titleH + 22;
-  const BODY_Y = RULE_Y + 30;
+  const titleHOf = f => lines(title, f, TW) * f * 1.45;
   // 正文與金句：金句貼底，正文接在標題下，兩者都放不下才縮字
   let bf = 30;
-  const bodyH = f => (body ? lines(body, f, TW) * f * 1.85 : 0);
-  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.7 : 0);
-  // 正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
-  if (!cover) while (bf > 26 && BODY_Y + bodyH(bf) + (gold ? 30 + goldH(bf) : 0) > LIMIT) bf--;
-  const GOLD_Y = LIMIT - goldH(bf);
+  // 行高依 2026-10-25 截圖校正（正文 ls150 實際約 1.55 倍字級、金句 ls130 約 1.35 倍），原本估得太高，正文與金句會疊在一起
+  const bodyH = f => (body ? lines(body, f, TW) * f * 1.6 : 0);
+  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.4 : 0);
+  // 標題底到正文頂：金線 22＋間距 30；正文底到金句頂：30
+  const stackEnd = (t, f) => TITLE_Y + titleHOf(t) + 52 + bodyH(f) + (gold ? 30 + goldH(f) : 0);
+  // 先縮正文，正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
+  // 正文縮到底仍放不下，再縮標題（最小 40），確保正文與金句不重疊（2026-10-25）
+  if (!cover) {
+    while (bf > 26 && stackEnd(tf, bf) > LIMIT) bf--;
+    while (tf > 40 && stackEnd(tf, bf) > LIMIT) tf -= 2;
+  }
+  const titleH = titleHOf(tf);
+  const RULE_Y = TITLE_Y + titleH + 22;
+  const BODY_Y = RULE_Y + 30;
+  // 金句貼底；若仍放不下，金句至少排在正文底下，不與正文疊字
+  const GOLD_Y = Math.max(LIMIT - goldH(bf), BODY_Y + bodyH(bf) + 30);
   // 封面鉤子：字級固定，放在標題下方
   const hs = 32, hookH = cover ? lines(hook, hs, TW) * hs * 1.7 : 0;
   const HOOK_Y = BODY_Y + Math.max(0, ((LIMIT - 40) - BODY_Y - hookH) / 2);   // 封面鉤子置中於標題與底部之間
