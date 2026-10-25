@@ -1357,7 +1357,7 @@ function hourRemind_(d, ev) {
   if (!ev.time || d.deleted[id] || d.reminders.some(r => r.id === id)) return false;
   const t = parseAt_(ev.date + 'T' + hm_(ev.time));
   if (!t || t - 60 * 6e4 <= Date.now()) return false;
-  d.reminders.push({ id: id, text: '1 小時後：' + ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 60 * 6e4),
+  d.reminders.push({ id: id, text: ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 60 * 6e4),
     repeat: 'none', fired: false, src: ev.id, u: Date.now() });
   return true;
 }
@@ -1367,7 +1367,7 @@ function evRemind_(d, ev) {
   if (!ev.time) return false;
   const t = parseAt_(ev.date + 'T' + hm_(ev.time));
   if (!t || t - 30 * 6e4 <= Date.now()) return false;
-  d.reminders.push({ id: uid_(), text: '30 分鐘後：' + ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 30 * 6e4),
+  d.reminders.push({ id: uid_(), text: ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 30 * 6e4),
     repeat: 'none', fired: false, src: ev.id, u: Date.now() });
   return true;
 }
@@ -3651,7 +3651,7 @@ function checkReminders() {
       if (r.fired) return;
       const t = parseAt_(r.at);
       if (!t || t > now) return;
-      msgs.push('⏰ ' + r.text);
+      msgs.push('⏰ ' + r.text.replace(/^\d+ ?(分鐘|小時)後：/, ''));   // 舊的提醒文字帶有「N 分鐘後：」前綴，發出時拿掉
       if (r.repeat === 'daily' || r.repeat === 'weekly') {
         const step = (r.repeat === 'daily' ? 1 : 7) * 864e5;
         let nt = t;
