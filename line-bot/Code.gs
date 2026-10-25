@@ -2042,34 +2042,42 @@ function kitCardLayout_(kit, i) {
   const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length, C = KIT_S_.c;
   const body = (t, o) => Object.assign({ t: t, size: 23, color: C.sub, ls: 150, above: 24, align: 'START', em: C.gold }, o || {});
   if (s.kind === 'cover') return kitCoverLayout_(kit, s, ('01 — ') + ('0' + N).slice(-2), W, H);
+  // 2026-10-25 使用者：文字集中在中間 → 上、中、下三區都要用到：標題在上區、金線在中區、正文或補充貼在下區
+  const head = (t, fit, above) => ({ t: t, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START', above: above || 0 });
   if (s.kind === 'action') {
     const n = Math.max(0, '一二三'.indexOf(String(s.step || '').slice(-1)));
     // 2026-10-22 使用者：內頁文字跑版 → 字級不再固定，依字數縮到放得下（上限 46）
-    const fit = kitFit_(s.head, 400, 46, 30, 170);
-    return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 150, [body(s.body)], 'MIDDLE'));
+    const fit = kitFit_(s.head, 400, 46, 30, 140);
+    return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) => {
+      kitText_(req, slide, slide + '_top', [75, 150, 420, 140], [head(s.head, fit)], 'TOP');     // 上區：標題
+      kitRect_(req, slide, slide + '_rule', 75, 306, 60, 1.5, C.gold);                           // 中區：金線
+      kitText_(req, slide, slide + '_bot', [75, 330, 420, 168], [body(s.body, { above: 0 })], 'BOTTOM');   // 下區：正文
+    });
   }
   if (s.kind === 'reason') {
-    const fit = kitFit_(s.head, 400, 44, 28, 330);
-    return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 150, [], 'MIDDLE'));
+    const fit = kitFit_(s.head, 400, 44, 28, 300);
+    return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) => {
+      kitText_(req, slide, slide + '_top', [75, 150, 420, 300], [head(s.head, fit)], 'TOP');     // 上區：標題
+      kitRect_(req, slide, slide + '_rule', 75, 460, 60, 1.5, C.gold);                           // 下區：金線
+    });
   }
   if (s.kind === 'last') {
-    const fit = kitFit_(s.head, 400, 46, 30, 200);
+    const fit = kitFit_(s.head, 400, 46, 30, 168);
     return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
-      // 前言與標題放同一個框、垂直置中（2026-10-25）：標題在前言下方留一段距離
-      kitText_(req, slide, slide + '_main', [75, 150, 420, 348], [
-        body(s.pre, { above: 0 }),
-        { t: s.head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START', above: 40 }], 'MIDDLE');
+      kitText_(req, slide, slide + '_top', [75, 150, 420, 130], [body(s.pre, { above: 0 })], 'TOP');   // 上區：前言
+      kitRect_(req, slide, slide + '_rule', 75, 306, 60, 1.5, C.gold);                                  // 中區：金線
+      kitText_(req, slide, slide + '_bot', [75, 330, 420, 168], [head(s.head, fit)], 'BOTTOM');        // 下區：標題
     });
   }
   // 最後一張：整組只有這張引導留言（使用者 2026-10-16）
   const fit = kitFixed_(40);
-  return kitWarm_(kit, s, i, N, W, H, '送你一份 PDF', 'FREE GUIDE', 'END', (req, slide) =>
-    kitHeadBlock_(req, slide, s.head, fit, 150, [
-      { t: '留 言 關 鍵 字', size: 16, bold: true, color: C.sub, font: 'Noto Sans TC', align: 'START', above: 24 },
-      { t: kit.keyword.split('').join(' '), size: 64, bold: true, color: C.gold, align: 'START', above: 0, ls: 120 },
-      body(s.sub, { size: 18, above: 6 })], 'MIDDLE'));
+  return kitWarm_(kit, s, i, N, W, H, '送你一份 PDF', 'FREE GUIDE', 'END', (req, slide) => {
+    kitText_(req, slide, slide + '_top', [75, 150, 420, 130], [head(s.head, fit)], 'TOP');        // 上區：標題
+    kitText_(req, slide, slide + '_mid', [75, 290, 420, 120], [
+      { t: '留 言 關 鍵 字', size: 16, bold: true, color: C.sub, font: 'Noto Sans TC', align: 'START' },
+      { t: kit.keyword.split('').join(' '), size: 64, bold: true, color: C.gold, align: 'START', above: 4, ls: 120 }], 'TOP');   // 中區：關鍵字
+    kitText_(req, slide, slide + '_bot', [75, 400, 420, 98], [body(s.sub, { size: 18, above: 0 })], 'BOTTOM');   // 下區：說明
+  });
 }
 
 // 自動平均斷行：避免最後一行只剩一兩個字（例如「舒適」），每行約 maxU 個中文字寬；逗號、句號等標點不放在行首
