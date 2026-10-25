@@ -306,7 +306,7 @@ function talk(key, q, image, voice, audio64, audioType, spoken) {
     try {
       heard = transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a')), 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a'));
     } catch (e) { console.error(e.message); }
-    if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
+    if (!heard) return { say: '抱歉，我沒聽清楚，請再說一次。', show: '抱歉，我沒聽清楚，請再說一次。', buttons: [], audio: '', heard: '' };   // 聽不清楚就再問一次，不執行也不記錄
     q = heard;
   }
   const say = askByVoice_(String(q || ''), image || '', !!audio64 || !!spoken);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
@@ -3054,14 +3054,23 @@ function withVoice_(said, ans) {
   return typeof ans === 'object' ? { text: head + ans.text, buttons: ans.buttons } : head + ans;
 }
 
+// Whisper 在沒人講話、只有噪音或電視聲時，常會寫出字幕式的句子（例如「字幕志願者」「謝謝觀看」），或照抄提示詞。
+// 這種結果不能當成使用者說的話，回傳空字串，當作沒聽清楚（2026-10-25 使用者回報沒說的話被記進行程）。
+const VOICE_GHOST_ = /志願者|Amara|謝謝觀看|感謝收看|不吝點贊|常用指令|以下是繁體中文/;
 function transcribe_(blob, filename) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
-    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
+    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', response_format: 'verbose_json', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
   });
   if (res.getResponseCode() !== 200) throw new Error('語音辨識失敗（' + res.getResponseCode() + '）');
-  return voiceText_(JSON.parse(res.getContentText()).text);
+  const j = JSON.parse(res.getContentText());
+  const segs = j.segments || [];
+  // 每一段都要看：沒人說話的機率高、或信心低，就視為沒有清楚的語音
+  const clear = segs.some(s => s.no_speech_prob < 0.5 && s.avg_logprob > -1.0);
+  const text = voiceText_(j.text);
+  if (!clear || text.length < 2 || VOICE_GHOST_.test(text)) return '';
+  return text;
 }
 
 // 語音回覆模式：auto＝你傳語音才用語音回（預設）、always＝打字也用語音回、off＝只回文字
