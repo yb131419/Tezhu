@@ -40,12 +40,13 @@ const WM_BTN = '🧽 去浮水印';   // 去除浮水印（獨立功能，不經
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
-const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
+const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -863,7 +864,7 @@ function stratMenu_() {
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
+  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。\n要再加一位（一男一女）按「' + HERO2_BTN + '」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, HERO2_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1031,7 +1032,7 @@ function stratWrite_(k, th) {
   // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 只寫短劇腳本（不寫文案、不畫圖卡）
@@ -1042,7 +1043,7 @@ function reelOnly_(k) {
   if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
   try {
     const r = reelWrite_(k, th, null);
-    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, STRAT_SWITCH]].concat(MENU) };
+    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
   } catch (err) {
     console.error('短劇腳本失敗：' + err.message);
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
@@ -1136,7 +1137,7 @@ function heroWizard_(t, raw) {
   if (!step) return null;
   const menuWord = [].concat.apply([], MENU.concat(QUICK)).some(b => b.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, '') === flat);
   if (Number(prop_('HERO_UNTIL')) < Date.now() || menuWord) { heroClear_(); return null; }
-  if (flat === '取消') { heroClear_(); return { text: '好，不設定主角了。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) }; }
+  if (flat === '取消') { heroClear_(); return { text: '好，不設定主角了。', buttons: [[REEL_BTN, HERO_BTN, HERO2_BTN]].concat(MENU) }; }
   const v = String(raw || t).trim().replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕的圖示去掉：「👩 女生」→「女生」
   const draft = JSON.parse(prop_('HERO_DRAFT') || '{}');
   if (v && v !== '略過' && v !== '不指定') draft[step] = v.slice(0, step === 'look' ? 200 : 20);
@@ -1148,13 +1149,12 @@ function heroWizard_(t, raw) {
   const slot = Number(prop_('HERO_SLOT')) === 2 ? 2 : 1;
   heroClear_();
   const txt = HERO_ORDER.map(k => draft[k]).filter(Boolean).join('，');
-  const back = [[REEL_BTN, HERO_BTN]].concat(MENU);
+  const back = [[REEL_BTN, HERO_BTN, HERO2_BTN]].concat(MENU);
   if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + heroView_(), buttons: back };
   const err = heroPairCheck_(slot, txt);
   if (err) return { text: err, buttons: back };
   setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, txt.slice(0, 300));
-  const addSecond = slot === 1 && !reelHero2_() ? [['👤 設定第二主角']] : [];
-  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: addSecond.concat(back) };
+  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: back };
 }
 // 寫一支 55 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
@@ -1170,7 +1170,7 @@ function reelWrite_(k, th, base) {
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
     '【台詞】每一個畫面都一定要有台詞，要有人在說話，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；不需要字幕，不用寫字幕欄位。',
     '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
-    '【全部繁體】所有欄位（標題、劇情、畫面風格、角色、畫面描述、台詞、配樂、片尾字幕）都必須是繁體中文（台灣用語），不可以出現任何簡體字，例如「这、们、说、时、会」要寫成「這、們、說、時、會」。只輸出 JSON，hook 要先寫（前三秒的鉤子設計完才寫後面的 scenes）：{"hook":"前三秒的衝突、懸念或反差（一句）","title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）"}],"music":"配樂建議","end":"片尾字幕一句"}',
+    '【全部繁體】所有欄位（標題、劇情、畫面風格、角色、畫面描述、台詞、貼文、配樂、片尾字幕）都必須是繁體中文（台灣用語），不可以出現任何簡體字，例如「这、们、说、时、会」要寫成「這、們、說、時、會」。只輸出 JSON，hook 要先寫（前三秒的鉤子設計完才寫後面的 scenes）：{"hook":"前三秒的衝突、懸念或反差（一句）","title":"短劇標題（12 字內）","post_title":"貼文標題（15 字內，不含 hashtag，要反骨，像一句讓人停下來看的話）","post":"貼文說明：2 到 3 段，段落之間空一行，像朋友分享，一段只講一件事；不叫人留言或私訊，不寫療效、收入保證；最後一行是 3 到 5 個 hashtag（不可以有「康園道」「分享」「大健康」）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].filter(Boolean).join('\n');
   // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
   const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的 55 秒 AI 短劇腳本。' }];
@@ -1201,7 +1201,16 @@ function reelTrad_(v) {
 function reelText_(r) {
   const n = '①②③④⑤⑥⑦⑧⑨⑩';
   const s = v => String(v || '').trim();
-  const out = ['🎭 55 秒短劇腳本｜' + s(r.title)];
+  // 最上面先放貼文的標題與說明（標題不含 hashtag；說明的最後一行是 hashtag）
+  const hash = /#[^\s#]+/g;
+  const pt = s(r.post_title).replace(hash, '').replace(/\s+/g, ' ').trim();
+  const pb = s(r.post).replace(hash, '').replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+  const tags = (s(r.post).match(hash) || []).filter(t => !STRAT_NO_TAG.test(t)).slice(0, 5).join(' ');
+  const out = [];
+  if (pt) out.push('📌 標題', pt, '');
+  if (pb) out.push('📝 說明', pb + (tags ? '\n\n' + tags : ''), '');
+  if (pt || pb) out.push('━━━━━━━━', '');
+  out.push('🎭 55 秒短劇腳本｜' + s(r.title));
   if (s(r.logline)) out.push('🎯 劇情：' + s(r.logline));
   if (s(r.style)) out.push('🎨 畫面風格：' + s(r.style) + '（直式 9:16）');
   const ch = (Array.isArray(r.characters) ? r.characters : []).filter(c => c && s(c.name));
