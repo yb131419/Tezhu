@@ -60,7 +60,10 @@ function quick_(b) {
   if (b === MENU) return QUICK;
   if ([].concat.apply([], b).indexOf(MENU_BTN) >= 0) return b;
   const rest = b.filter(r => MENU.indexOf(r) < 0);
-  return rest.length === b.length ? b.concat([[MENU_BTN]]) : rest.concat(QUICK);
+  if (rest.length === b.length) return b.concat([[MENU_BTN]]);
+  // 已經排在前面的按鈕不再在 QUICK 裡重複列出（例如「行程」回覆把「📋 貼上行程」放在「📅 行程頁」後面）
+  const first = [].concat.apply([], rest);
+  return rest.concat(QUICK.map(r => r.filter(t => first.indexOf(t) < 0)).filter(r => r.length));
 }
 // 超過上限（LINE 快速回覆最多 13 個、對話頁最多 16 個）時，先省掉前面的專屬按鈕，「💎 選單」一定留著
 function capMenu_(items, max) {
@@ -3499,7 +3502,7 @@ function listDays_(a, b, label) {
   const one = from === to;
   const head = one ? '⏰ ' + label + ' ' + md(from) + '（星期' + wk(from) + '）'
     : '🗓️ ' + label + '行程（' + md(from) + '～' + md(to) + '）';
-  if (!evs.length && !rms.length) return { text: head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。', buttons: [[SCHED_BTN]].concat(MENU) };
+  if (!evs.length && !rms.length) return { text: head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。', buttons: [[SCHED_BTN, PASTE_EV_BTN]].concat(MENU) };
   const evLine = e => '・' + (hm_(e.time) || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
   const rmLine = r => '・' + String(r.at).slice(11, 16) + '　🔔 ' + r.text;
   let body = [];
@@ -3516,7 +3519,7 @@ function listDays_(a, b, label) {
       days[ds].sort((x, y) => x.k.localeCompare(y.k)).forEach(x => body.push(x.t));
     });
   }
-  return { buttons: [[SCHED_BTN]].concat(MENU), text: [head, ''].concat(body).join('\n') };
+  return { buttons: [[SCHED_BTN, PASTE_EV_BTN]].concat(MENU), text: [head, ''].concat(body).join('\n') };
 }
 
 // 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
