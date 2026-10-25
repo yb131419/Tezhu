@@ -1119,7 +1119,7 @@ def build_mag_ass(plan, segs, spans, opt, total, path):
     land = W > H
     k = opt['sub_size'] * z * (.82 if land else 1)
     px = lambda v: max(1, int(v * z))
-    fs, fs_en = int(62 * k), int(40 * k)
+    fs, fs_en = int(84 * k), int(56 * k)   # 雜誌風字幕（使用者 2026-10-22 說太小：62 放大到 84，英文同比例放大）
     mv = int(LAND_Y[opt['sub_pos']] * H) if land else int({'bottom': 430, 'lower': 640, 'middle': 820, 'upper': 1250}[opt['sub_pos']] * H / 1920)
     soft = '&H00FFFFFF,&H00FFFFFF,&H90000000,&H80000000,0,0,0,0,100,100,%d,0,1,%d,%d'   # 白字、細、淡淡的黑色暈影
     head = '\n'.join([
