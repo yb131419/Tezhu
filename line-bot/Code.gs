@@ -3662,7 +3662,11 @@ function checkReminders() {
       if (r.fired) return;
       const t = parseAt_(r.at);
       if (!t || t > now) return;
-      msgs.push('⏰ ' + r.text.replace(/^\d+ ?(分鐘|小時)後：/, ''));   // 舊的提醒文字帶有「N 分鐘後：」前綴，發出時拿掉
+      // 提醒要帶上行程的時間點與事項；舊的提醒文字帶有「N 分鐘後：」前綴，發出時拿掉
+      const ev = d.events.find(e => e.id === r.src);
+      const when = ev ? hm_(ev.time) : '';
+      const what = r.text.replace(/^\d+ ?(分鐘|小時)後：/, '');
+      msgs.push(r.id.indexOf('h1_') === 0 ? '🔔 1 小時後 ' + when + '：' + what : '⏰ ' + (when ? when + ' ' : '') + what);
       if (r.repeat === 'daily' || r.repeat === 'weekly') {
         const step = (r.repeat === 'daily' ? 1 : 7) * 864e5;
         let nt = t;
