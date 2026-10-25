@@ -306,7 +306,7 @@ function talk(key, q, image, voice, audio64, audioType, spoken) {
     try {
       heard = transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a')), 'voice.' + (/webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a'));
     } catch (e) { console.error(e.message); }
-    if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
+    if (!heard) return { say: '抱歉，我沒聽清楚，請再說一次。', show: '抱歉，我沒聽清楚，請再說一次。', buttons: [], audio: '', heard: '' };   // 聽不清楚就再問一次，不執行也不記錄
     q = heard;
   }
   const say = askByVoice_(String(q || ''), image || '', !!audio64 || !!spoken);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
