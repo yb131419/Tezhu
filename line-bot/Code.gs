@@ -1455,16 +1455,25 @@ function cardLayout_(c, minH) {
   while (tf > 40 && lines(title, tf, TW) > 3) tf -= 2;
 
   const TITLE_Y = 104;
-  const titleH = lines(title, tf, TW) * tf * 1.45;
-  const RULE_Y = TITLE_Y + titleH + 22;
-  const BODY_Y = RULE_Y + 30;
+  const titleHOf = f => lines(title, f, TW) * f * 1.45;
   // 正文與金句：金句貼底，正文接在標題下，兩者都放不下才縮字
   let bf = 30;
-  const bodyH = f => (body ? lines(body, f, TW) * f * 1.85 : 0);
-  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.7 : 0);
-  // 正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
-  if (!cover) while (bf > 26 && BODY_Y + bodyH(bf) + (gold ? 30 + goldH(bf) : 0) > LIMIT) bf--;
-  const GOLD_Y = LIMIT - goldH(bf);
+  // 行高依 2026-10-25 截圖校正（正文 ls150 實際約 1.55 倍字級、金句 ls130 約 1.35 倍），原本估得太高，正文與金句會疊在一起
+  const bodyH = f => (body ? lines(body, f, TW) * f * 1.6 : 0);
+  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.4 : 0);
+  // 標題底到正文頂：金線 22＋間距 30；正文底到金句頂：30
+  const stackEnd = (t, f) => TITLE_Y + titleHOf(t) + 52 + bodyH(f) + (gold ? 30 + goldH(f) : 0);
+  // 先縮正文，正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
+  // 正文縮到底仍放不下，再縮標題（最小 40），確保正文與金句不重疊（2026-10-25）
+  if (!cover) {
+    while (bf > 26 && stackEnd(tf, bf) > LIMIT) bf--;
+    while (tf > 40 && stackEnd(tf, bf) > LIMIT) tf -= 2;
+  }
+  const titleH = titleHOf(tf);
+  const RULE_Y = TITLE_Y + titleH + 22;
+  const BODY_Y = RULE_Y + 30;
+  // 金句貼底；若仍放不下，金句至少排在正文底下，不與正文疊字
+  const GOLD_Y = Math.max(LIMIT - goldH(bf), BODY_Y + bodyH(bf) + 30);
   // 封面鉤子：字級固定，放在標題下方
   const hs = 32, hookH = cover ? lines(hook, hs, TW) * hs * 1.7 : 0;
   const HOOK_Y = BODY_Y + Math.max(0, ((LIMIT - 40) - BODY_Y - hookH) / 2);   // 封面鉤子置中於標題與底部之間
