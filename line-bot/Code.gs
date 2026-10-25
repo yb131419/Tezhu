@@ -3516,8 +3516,7 @@ function listDays_(a, b, label) {
       days[ds].sort((x, y) => x.k.localeCompare(y.k)).forEach(x => body.push(x.t));
     });
   }
-  const dels = evs.map(evDelLabel_).concat(rms.map(r => '🗑️ 刪 ' + r.text)).slice(0, 8);
-  return { buttons: [[SCHED_BTN], dels].concat(MENU), text: [head, ''].concat(body).join('\n') };
+  return { buttons: [[SCHED_BTN]].concat(MENU), text: [head, ''].concat(body).join('\n') };
 }
 
 // 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
