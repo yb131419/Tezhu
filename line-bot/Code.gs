@@ -5419,10 +5419,16 @@ function reelsGo_(chatId, kind) {
       ? '🎞️ 開始剪大片第 1 版：' + what + '，保留完整內容，' + how + '、配樂。影片越長要越久，剪好直接傳給你。'
       : '🎬 開始試剪第 1 版：' + what + '，' + how + '、配樂。大約 3～6 分鐘剪好直接傳給你。', q.mode, kind);
 }
-// 時間軸：「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」「第 1 段刪掉」，照調整後的段落重剪（不用重聽寫、不用重問 AI，字幕照原來的句子）
+// 時間軸：段落可以刪、切頭尾、搬移、變速，照調整後的時間軸重剪（不用重聽寫、不用重問 AI；字幕在 reels.py 依段落重新對時）
+const TL_HELP_ = '⏱ 時間軸可以這樣改：\n・「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」\n・「第 3 段前面多留 0.5 秒」「第 3 段前面少留 1 秒」\n・「第 3 段移到最前」「第 3 段移到第 1 段前」「第 3 段移到最後」\n・「第 2 段慢動作」「第 2 段快轉」「第 2 段 1.5 倍速」「第 2 段正常速度」（0.5 到 2 倍）\n・「第 1 段刪掉」';
+const TL_SPEED_ = { 慢動作: .5, 慢一點: .75, 快一點: 1.25, 快轉: 2, 正常速度: 1 };
 function reelsTimeline_(chatId, doc, text) {
-  const m = String(text || '').replace(/\s+/g, '').match(/第(\d+)段(?:(多留|加長|延長|少留|縮短)(\d+(?:\.\d+)?)秒|(刪掉|刪除|拿掉|去掉))/);
-  if (!m) return tgSend_(chatId, '⏱ 時間軸可以這樣改：「第 3 段多留 1 秒」、「第 2 段少留 0.5 秒」、「第 1 段刪掉」。');
+  const k = String(text || '').replace(/\s+/g, '');
+  const mv = k.match(/第(\d+)段移到(最前|最後|第(\d+)段(前|後))/);
+  const sp = k.match(/第(\d+)段(正常速度|慢動作|慢一點|快一點|快轉|(\d+(?:\.\d+)?)倍速)/);
+  const m = k.match(/第(\d+)段(?:(前面)?(多留|加長|延長|少留|縮短)(\d+(?:\.\d+)?)秒|(刪掉|刪除|拿掉|去掉))/);
+  const hit = mv || sp || m;
+  if (!hit) return tgSend_(chatId, TL_HELP_);
   let tl;
   try {
     const info = JSON.parse(tgApi_('getFile', { file_id: doc.file_id }));
@@ -5430,21 +5436,44 @@ function reelsTimeline_(chatId, doc, text) {
     tl = JSON.parse(res.getContentText());
   } catch (err) { console.error(err); return tgSend_(chatId, '⏱ 這個時間軸檔打不開，請回覆最新一版的時間軸檔案再試一次。'); }
   if (!tl || !tl.file_id || !tl.spans) return tgSend_(chatId, '⏱ 這個時間軸檔不能用（可能是多支影片接起來剪的），請直接說「改影片 …」重剪。');
-  const spans = tl.spans, i = Number(m[1]) - 1;
-  if (!spans[i]) return tgSend_(chatId, '⏱ 這一版只有 ' + spans.length + ' 段，沒有第 ' + m[1] + ' 段。');
-  const sec = Number(m[3]) || 0;
-  if (m[4]) {
+  const spans = tl.spans, i = Number(hit[1]) - 1;
+  if (!spans[i]) return tgSend_(chatId, '⏱ 這一版只有 ' + spans.length + ' 段，沒有第 ' + hit[1] + ' 段。');
+  let ack;
+  if (mv) {   // 搬移：移到最前、最後，或某一段的前面、後面
+    const j0 = mv[3] ? Number(mv[3]) - 1 : -1;
+    if (j0 >= 0 && !spans[j0]) return tgSend_(chatId, '⏱ 這一版沒有第 ' + mv[3] + ' 段。');
+    const item = spans.splice(i, 1)[0];
+    if (mv[2] === '最前') spans.unshift(item);
+    else if (mv[2] === '最後') spans.push(item);
+    else {
+      let j = i < j0 ? j0 - 1 : j0;   // 拿掉自己之後，目標段的位置
+      if (mv[4] === '後') j += 1;
+      spans.splice(j, 0, item);
+    }
+    ack = '↔️ 第 ' + hit[1] + ' 段搬好了';
+  } else if (sp) {   // 變速：1 是正常速度（不寫速度）
+    const rate = sp[3] ? Number(sp[3]) : TL_SPEED_[sp[2]];
+    if (rate < .5 || rate > 2) return tgSend_(chatId, '⏱ 速度要在 0.5 到 2 倍之間（0.5 是慢動作，2 是快轉）。');
+    spans[i] = rate === 1 ? spans[i].slice(0, 2) : [spans[i][0], spans[i][1], rate];
+    ack = '⏩ 第 ' + hit[1] + ' 段改成 ' + rate + ' 倍速';
+  } else if (m[5]) {   // 刪掉
     if (spans.length === 1) return tgSend_(chatId, '⏱ 只剩一段了，不能再刪；要換內容請說「改影片 …」。');
     spans.splice(i, 1);
-  } else if (m[2] === '少留' || m[2] === '縮短') {
-    spans[i][1] = Math.max(spans[i][0] + 1, spans[i][1] - sec);
-  } else {
-    spans[i][1] = Math.min(spans[i + 1] ? spans[i + 1][0] : tl.dur, spans[i][1] + sec);   // 不要碰到下一段
+    ack = '🗑️ 第 ' + hit[1] + ' 段刪掉了';
+  } else {   // 切頭尾、多留少留
+    const sec = Number(m[4]) || 0, cut = m[3] === '少留' || m[3] === '縮短';
+    if (m[2]) {   // 前面：切掉開頭（或把開頭往前多留，但不碰到上一段）
+      spans[i][0] = cut ? Math.min(spans[i][1] - 1, spans[i][0] + sec) : Math.max(i ? spans[i - 1][1] : 0, spans[i][0] - sec);
+    } else if (cut) {
+      spans[i][1] = Math.max(spans[i][0] + 1, spans[i][1] - sec);
+    } else {
+      spans[i][1] = Math.min(spans[i + 1] ? spans[i + 1][0] : tl.dur, spans[i][1] + sec);   // 不要碰到下一段
+    }
+    ack = '✂️ 第 ' + hit[1] + ' 段改好了';
   }
   tl.spans = spans;
   const ver = (Number(tl.ver) || 1) + 1;
-  const ack = '✂️ 收到，照你調整的段落（共 ' + spans.length + ' 段）剪第 ' + ver + ' 版，好了直接傳給你。';
-  return reelsRun_(chatId, tl.file_id, tl.note || '', ver, ack, tl.mode, 'talk', JSON.stringify(tl));
+  return reelsRun_(chatId, tl.file_id, tl.note || '', ver, ack + '，共 ' + spans.length + ' 段，照這樣剪第 ' + ver + ' 版，好了直接傳給你。', tl.mode, 'talk', JSON.stringify(tl));
 }
 // 修改：回覆小乖傳的成品影片，或「改影片 …」「改 Reels …」；「重剪 Reels」用目前的風格重剪
 function reelsRevise_(msg, text) {

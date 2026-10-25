@@ -609,6 +609,27 @@ def least_spans(spans, gap=.6):
     return out
 
 
+def snap_spans(spans, dur):
+    """剪接點對齊到影格（像 Concat 的時間軸）：起點、終點都取整到 1/FPS 秒，不留半格的畫面和聲音。"""
+    out = []
+    for a, b, *rest in spans:
+        a = min(max(0.0, round(a * FPS) / FPS), dur)
+        b = min(max(0.0, round(b * FPS) / FPS), dur)
+        if b - a >= 1.0 / FPS:
+            out.append([a, b, *rest])
+    return out
+
+
+def speed_of(sp):
+    """段落的播放速度：[開始, 結束] 是正常速度；[開始, 結束, 速度] 是變速（0.5 慢動作到 2 快轉）。"""
+    return sp[2] if len(sp) > 2 else 1
+
+
+def out_len(sp):
+    """剪好後這段的長度：變速的段落會變長（慢）或變短（快）。"""
+    return (sp[1] - sp[0]) / speed_of(sp)
+
+
 def clips_without_speech(dur, target):
     """沒有人說話的影片：短的整段用；長的平均挑幾段，每段 4 秒。"""
     if dur <= target + 1:
@@ -834,7 +855,8 @@ def long_size(src_wh, est_sec):
 def span_shots(spans, plan, segs):
     """每段剪輯區間的鏡頭特效：看這段屬於哪一句，用 AI 給那句的 fx。回傳 [(特效, 這段在整句的開始比例, 結束比例)]。"""
     out = []
-    for a, b in spans:
+    for sp in spans:
+        a, b = sp[0], sp[1]
         mid, shot = (a + b) / 2, ('', 0, 1)
         for kp in (plan or {}).get('keep') or []:
             s = segs[kp['i']]
@@ -852,7 +874,8 @@ def span_shots(spans, plan, segs):
 
 def cut(src, spans, has_audio, work, punch=False, shots=None):
     parts, near = [], False
-    for n, (a, b) in enumerate(spans):
+    for n, sp in enumerate(spans):
+        a, b = sp[0], sp[1]
         shot = shots[n] if shots and n < len(shots) else ('', 0, 1)
         move = shot[0] if punch else ''
         if shots and punch:   # AI 有挑特效：照每句挑的；沒挑的句子不推近
@@ -869,6 +892,13 @@ def cut(src, spans, has_audio, work, punch=False, shots=None):
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12', '-r', str(FPS),
                 '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', out]
         run(cmd)
+        if speed_of(sp) != 1:   # 變速：畫面和聲音一起快或慢，聲音的音調不變（atempo）
+            sped = os.path.join(work, 'part%03d_speed.mp4' % n)
+            run(['ffmpeg', '-y', '-loglevel', 'error', '-i', out, '-filter_complex',
+                 '[0:v]setpts=PTS/%.4f[v];[0:a]atempo=%.4f[a]' % (speed_of(sp), speed_of(sp)), '-map', '[v]', '-map', '[a]',
+                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '12', '-r', str(FPS),
+                 '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-b:a', '192k', sped])
+            out = sped
         parts.append(out)
     lst = os.path.join(work, 'list.txt')
     with open(lst, 'w') as f:
@@ -895,21 +925,24 @@ def ass_color(hexc, alpha=0):
 
 
 def remapper(spans):
-    """原影片時間 → 剪好後的時間；落在被剪掉的地方，開頭往後靠、結尾往前靠。"""
-    offs, acc = [], 0.0
-    for a, b in spans:
-        offs.append((a, b, acc))
-        acc += b - a
+    """原影片時間 → 剪好後的時間。段落照清單的順序排在剪好的影片裡（可以搬移、可以變速），
+    字幕跟著段落走：落在被剪掉的地方，開頭往後靠、結尾往前靠（找原影片裡相鄰的段落）。"""
+    pos, acc = [], 0.0
+    for sp in spans:
+        a, b = sp[0], sp[1]
+        pos.append((a, b, acc, acc + out_len(sp)))   # 原影片的起迄、這段在剪好影片裡的起迄
+        acc += out_len(sp)
+    by_src = sorted(pos)
 
     def remap(t, side='start'):
-        prev = None
-        for a, b, o in offs:
+        for a, b, o0, o1 in pos:
             if a - .01 <= t <= b + .01:
-                return o + min(max(t, a), b) - a
-            if t < a:
-                return o if side == 'start' else (prev if prev is not None else o)
-            prev = o + (b - a)
-        return prev
+                return o0 + (min(max(t, a), b) - a) * (o1 - o0) / max(b - a, 1e-6)
+        if side == 'start':
+            nxt = [p for p in by_src if p[0] > t]
+            return nxt[0][2] if nxt else acc
+        prv = [p for p in by_src if p[1] < t]
+        return prv[-1][3] if prv else (by_src[0][2] if by_src else None)
     return remap
 
 
@@ -1722,12 +1755,12 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
                 spans = [[0, dur]] if MODE == 'long' else clips_without_speech(dur, opt['target'])
                 if plan is None and opt['title']:
                     plan = {'title': opt['title'], 'keep': [], 'post': '', 'tags': [], 'pops': []}
-            spans = least_spans(spans)
+            spans = snap_spans(spans if timeline is not None else least_spans(spans), dur) or [[0, dur]]   # 照時間軸時保留使用者排的順序
             tl = {'v': 1, 'dur': dur, 'segs': segs, 'plan': plan, 'spans': spans}   # 存下來，使用者可以回覆調整段落
             if MODE == 'long':
-                W, H = long_size(src_wh, sum(b - a for a, b in spans))
+                W, H = long_size(src_wh, sum(out_len(sp) for sp in spans))
             log('口播剪：原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒（%s %dx%d）'
-                % (dur, len(spans), sum(b - a for a, b in spans), MODE, W, H))
+                % (dur, len(spans), sum(out_len(sp) for sp in spans), MODE, W, H))
             shots = span_shots(spans, plan, segs) if plan and any(k.get('fx') for k in plan.get('keep') or []) else None
             joined = cut(src, spans, has_audio, work, punch=opt['fx'], shots=shots)
             total = float(json.loads(run(['ffprobe', '-v', 'error', '-show_format', '-of', 'json', joined]))['format']['duration'])
