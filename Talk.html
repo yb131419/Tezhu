@@ -317,9 +317,15 @@ const APPS=[['LINE','line://',/^(line|賴|萊恩)$/i],['Telegram','tg://',/^(tel
 function appOf(t){const m=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'').match(/^(?:幫我|請|小乖)?(?:打開|開啟|開|啟動|進入)(.+?)(?:app|應用程式)?$/i);return m?APPS.find(a=>a[2].test(m[1]))||null:null;}
 function openApp(a,w){w=w||add('','xg');w.textContent='好，幫你打開 '+a[0]+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟 '+a[0];b.onclick=()=>{location.href=a[1];};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a[1];},300);}
 // 講話就能直接做的事（導航、打電話）：在手機上打開，不用等小乖回答，也省一次往返（2026-10-25）
-function localAct(t){const s=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'');
+function localAct(t){const s=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'').replace(/[Ａ-Ｚａ-ｚ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
  let m=s.match(/^(?:幫我|請|小乖)?(?:導航到|導航去|開車去)(.+)$/);if(m)return {label:'導航到'+m[1],url:'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(m[1])};
  m=s.match(/^(?:幫我|請|小乖)?(?:打電話給|打給|撥給|撥打)(.+)$/);if(m){const n=m[1].replace(/\D/g,'');if(n.length>=8)return {label:'撥給 '+n,url:'tel:'+n};}
+ // LINE：名字沒辦法直接開聊天，所以「LINE ○○ 說 內容」開分享畫面，點 ○○ 就送；只說 LINE ID 就開好友頁；其他只開 LINE App
+ m=s.match(/^(?:幫我|請|小乖)?(打|傳|用)?line(給|跟)?(.+)$/i);if(m){const r=m[3],cmd=!!(m[1]||m[2]);
+  const id=r.match(/^~?([A-Za-z][A-Za-z0-9._-]{3,19})$/);if(id)return {label:'打開 LINE ID '+id[1],url:'https://line.me/R/ti/p/~'+id[1]};
+  if(!cmd&&!/說|講/.test(r)&&(!/^[一-鿿]{1,4}$/.test(r)||/什麼|嗎|呢|是/.test(r)))return null;   // 「LINE通知有什麼」這類問句交給小乖
+  const x=r.match(/^(.+?)(?:說|講|內容是)(.+)$/);if(x)return {label:'用 LINE 傳給'+x[1]+'（請在畫面點選'+x[1]+'）',url:'https://line.me/R/msg/text/?'+encodeURIComponent(x[2])};
+  return {label:'打開 LINE（LINE 不能直接用名字開聊天，要說「LINE ○○ 說 內容」）',url:'line://'};}
  return null;}
 function localOpen(a,w){w=w||add('','xg');w.textContent='好，'+a.label+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟';b.onclick=()=>{location.href=a.url;};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a.url;},300);}
 function P(b){return fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
