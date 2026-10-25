@@ -290,7 +290,7 @@ function optSave(){$('real').disabled=!$('spk').checked;try{localStorage.setItem
 ['spk','real','loop'].forEach(k=>$(k).addEventListener('change',optSave));optSave();
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
-let busy=false,rec=null,photo=null;
+let busy=false,rec=null,photo=null;const Q=[];setInterval(()=>{if(!busy&&Q.length){const a=Q.shift();send(a[0],a[1],a[2]);}},300);
 const QCATS=[['常用',['💎 選單','📋 試算','🛒 下單','🪶 智囊軍師','⏰ 今天行程','✅ 我的待辦','📝 我的筆記']],['交易',['📊 查看持倉','📉 平倉','📜 下單紀錄','🔔 交易提醒']],['影片與案例',['🎬 剪 Reels','🎞️ 剪大片','📕 7張＋PDF','🗂️ 案例分類','💬 見證案例','🔍 查詢案例']],['找東西',['📁 本機找','🌐 上網找']],['行程',['➕ 新增行程','🗑️ 刪除行程']],['設定與其他',['👤 設定主角','💬 自動留言','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明']]];
 const MENU=[].concat(...QCATS.map(c=>c[1]));
 // 「⚡ 最新一張」：網頁讀不到相簿，改叫 iPhone 捷徑「試算報表」自動抓最新照片
@@ -355,16 +355,16 @@ function convOff(msg){conv=false;document.body.classList.remove('conv');if(wl){w
 // 小乖講完才開麥克風（講話時不聽，免得錄到自己的聲音）
 function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(window.speechSynthesis&&speechSynthesis.speaking)return next();micStart();},250);}
 function stopTalk(){clearTimeout(ttsT);if(window.speechSynthesis)speechSynthesis.cancel();$('au').onended=null;$('au').pause();if(auSrc){const s=auSrc;auSrc=null;s.onended=null;try{s.stop();}catch(e){}}}
-function speak(t,audio){if(!$('spk').checked)return next();if(conv&&$('loop').checked)hint.textContent='小乖說話中…講完會自動再聽你說（按麥克風可以直接插話）';if(audio)return playMp3(t,audio);tts(t);}
+function speak(t,audio){if(!$('spk').checked)return next();if(conv&&$('loop').checked)hint.textContent='小乖說話中…講完會自動再聽你說（按麥克風可以直接插話）';if(audio)return playMp3(t,audio);if($('real').checked)return speakReal(t);tts(t);}
 // 真人語音用同一個音效環境播放（iPhone 用 <audio> 播完常常把麥克風弄成靜音）；不行再退回 <audio>
 function playMp3(t,b64){const ac=getAC();if(!ac||ac.state!=='running')return playEl(t,b64);
  try{const bin=atob(b64),buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
   ac.decodeAudioData(buf.buffer,ab=>{const s=ac.createBufferSource();s.buffer=ab;s.connect(ac.destination);auSrc=s;s.onended=()=>{if(auSrc===s){auSrc=null;next();}};s.start(0);},()=>playEl(t,b64));}catch(e){playEl(t,b64);}}
 // 真人語音分開合成：文字先顯示，語音另外要（不擋住回答）
-function speakReal(t){return P({action:'tts',key:KEY,text:t}).then(x=>{if(x&&x.audio)playMp3(t,x.audio);else tts(t);}).catch(()=>tts(t));}
+function speakReal(t,n){n=n||0;return P({action:'tts',key:KEY,text:t}).then(x=>{if(x&&x.audio)playMp3(t,x.audio);else throw new Error('no audio');}).catch(()=>{if(n<1)return speakReal(t,1);tts(t);});}
 function playEl(t,b64){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+b64;const p=a.play();if(p)p.catch(()=>tts(t));}
 // 手機內建聲音：有時候唸完不會通知，所以另外估時間當保險
-function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);clearTimeout(ttsT);ttsT=setTimeout(next,Math.min(90000,2000+String(t).length*320));}
+function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=window._zhV=window._zhV||speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);clearTimeout(ttsT);ttsT=setTimeout(next,Math.min(90000,2000+String(t).length*320));}
 // 用講的打開 App（使用者 2026-10-17）：說「打開 LINE」就開；iPhone 擋住自動打開時，點畫面上的按鈕
 const APPS=[['LINE','line://',/^(line|賴|萊恩)$/i],['Telegram','tg://',/^(telegram|tg|電報|紙飛機)$/i],['YouTube','youtube://',/^(youtube|油管|優兔)$/i],['IG','instagram://',/^(ig|instagram|哀居)$/i],['FB','fb://',/^(fb|facebook|臉書)$/i]];
 function appOf(t){const m=String(t||'').replace(/[\s。．.！!？?，,、]+/g,'').match(/^(?:幫我|請|小乖)?(?:打開|開啟|開|啟動|進入)(.+?)(?:app|應用程式)?$/i);return m?APPS.find(a=>a[2].test(m[1]))||null:null;}
@@ -381,13 +381,13 @@ function localAct(t){const s=String(t||'').replace(/[\s。．.！!？?，,、]+/
   return {label:'打開 LINE（LINE 不能直接用名字開聊天，要說「LINE ○○ 說 內容」）',url:'line://'};}
  return null;}
 function localOpen(a,w){w=w||add('','xg');w.textContent='好，'+a.label+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟';b.onclick=()=>{location.href=a.url;};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a.url;},300);}
-function P(b){return fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
-function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;
+function P(b){const ac=new AbortController();setTimeout(()=>ac.abort(),45000);return fetch(URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
+function send(q,img,aud){q=(q||'').trim();if(busy){if(q||img||aud){Q.push([q,img,aud]);if(q&&$('q').value.trim()===q)$('q').value='';}return;}if(!q&&!img&&!aud)return;
  if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}const la=localAct(q);if(la){add(q,'me');$('q').value='';localOpen(la);return;}}busy=true;const tm={s:Date.now()};const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
  P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;tm.t1=Date.now();const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h){busy=false;return {say:'抱歉，我沒聽清楚，請再說一次。',show:'抱歉，我沒聽清楚，請再說一次。',buttons:[]};}const ap=appOf(h);if(ap){busy=false;w.textContent='';openApp(ap,w);return null;}const la=localAct(h);if(la){busy=false;w.textContent='';localOpen(la,w);return null;}return P({action:'talk',key:KEY,ask:h,image:'',voice:false,spoken:true});})
  .then(r=>{if(!r)return;busy=false;if(aud)console.info('[小乖計時] 轉文字 '+(tm.t1-tm.s)+'ms、小乖回答＋語音 '+(Date.now()-tm.t1)+'ms');if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);if(aud){const tt=document.createElement('div');tt.style.cssText='font-size:12px;opacity:.6;margin-top:6px';tt.textContent='⏱ 轉文字 '+((tm.t1-tm.s)/1000).toFixed(1)+' 秒｜回答＋語音 '+((Date.now()-tm.t1)/1000).toFixed(1)+' 秒';w.appendChild(tt);}(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');if(aud&&$('spk').checked&&$('real').checked&&r.say)speakReal(r.say);else speak(r.say,r.audio);})
- .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+e.message+'）';});}
+ .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+(e.name==='AbortError'?'小乖回應太久，請再說一次':e.message)+'）';});}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
 let mr=null,chunks=[],stream=null,recOn=false,stopT=null,heardAny=null,relT=null,maxT=null,drop=false;
@@ -428,7 +428,7 @@ async function micStart(){
    if((heard&&quiet>2000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
-$('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();if(busy)return;convOn();micStart();};
+$('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();convOn();micStart();};
 // 結束對話：馬上停止講話和聆聽，不送出
 $('endc').onclick=()=>{stopTalk();convOff('好，有事再按麥克風叫我');if(recOn){drop=true;micStop();}};
 // 選照片／拍照（要使用者按按鈕才打得開，手機的限制）
