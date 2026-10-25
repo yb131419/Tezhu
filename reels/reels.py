@@ -609,6 +609,17 @@ def least_spans(spans, gap=.6):
     return out
 
 
+def snap_spans(spans, dur):
+    """剪接點對齊到影格（像 Concat 的時間軸）：起點、終點都取整到 1/FPS 秒，不留半格的畫面和聲音。"""
+    out = []
+    for a, b in spans:
+        a = min(max(0.0, round(a * FPS) / FPS), dur)
+        b = min(max(0.0, round(b * FPS) / FPS), dur)
+        if b - a >= 1.0 / FPS:
+            out.append([a, b])
+    return out
+
+
 def clips_without_speech(dur, target):
     """沒有人說話的影片：短的整段用；長的平均挑幾段，每段 4 秒。"""
     if dur <= target + 1:
@@ -1722,8 +1733,8 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
                 spans = [[0, dur]] if MODE == 'long' else clips_without_speech(dur, opt['target'])
                 if plan is None and opt['title']:
                     plan = {'title': opt['title'], 'keep': [], 'post': '', 'tags': [], 'pops': []}
-            spans = least_spans(spans)
-            tl = {'v': 1, 'dur': dur, 'segs': segs, 'plan': plan, 'spans': spans}   # 存下來，使用者可以回覆調整段落
+            spans = snap_spans(least_spans(spans), dur) or [[0, dur]]
+            tl ={'v': 1, 'dur': dur, 'segs': segs, 'plan': plan, 'spans': spans}   # 存下來，使用者可以回覆調整段落
             if MODE == 'long':
                 W, H = long_size(src_wh, sum(b - a for a, b in spans))
             log('口播剪：原片 %.1f 秒 → 剪成 %d 段、共 %.1f 秒（%s %dx%d）'

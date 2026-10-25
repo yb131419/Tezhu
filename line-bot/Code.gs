@@ -5421,8 +5421,8 @@ function reelsGo_(chatId, kind) {
 }
 // 時間軸：「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」「第 1 段刪掉」，照調整後的段落重剪（不用重聽寫、不用重問 AI，字幕照原來的句子）
 function reelsTimeline_(chatId, doc, text) {
-  const m = String(text || '').replace(/\s+/g, '').match(/第(\d+)段(?:(多留|加長|延長|少留|縮短)(\d+(?:\.\d+)?)秒|(刪掉|刪除|拿掉|去掉))/);
-  if (!m) return tgSend_(chatId, '⏱ 時間軸可以這樣改：「第 3 段多留 1 秒」、「第 2 段少留 0.5 秒」、「第 1 段刪掉」。');
+  const m = String(text || '').replace(/\s+/g, '').match(/第(\d+)段(?:(前面)?(多留|加長|延長|少留|縮短)(\d+(?:\.\d+)?)秒|(刪掉|刪除|拿掉|去掉))/);
+  if (!m) return tgSend_(chatId, '⏱ 時間軸可以這樣改：「第 3 段多留 1 秒」、「第 2 段少留 0.5 秒」、「第 3 段前面多留 0.5 秒」、「第 1 段刪掉」。');
   let tl;
   try {
     const info = JSON.parse(tgApi_('getFile', { file_id: doc.file_id }));
@@ -5432,11 +5432,13 @@ function reelsTimeline_(chatId, doc, text) {
   if (!tl || !tl.file_id || !tl.spans) return tgSend_(chatId, '⏱ 這個時間軸檔不能用（可能是多支影片接起來剪的），請直接說「改影片 …」重剪。');
   const spans = tl.spans, i = Number(m[1]) - 1;
   if (!spans[i]) return tgSend_(chatId, '⏱ 這一版只有 ' + spans.length + ' 段，沒有第 ' + m[1] + ' 段。');
-  const sec = Number(m[3]) || 0;
-  if (m[4]) {
+  const sec = Number(m[4]) || 0, cut = m[3] === '少留' || m[3] === '縮短';
+  if (m[5]) {
     if (spans.length === 1) return tgSend_(chatId, '⏱ 只剩一段了，不能再刪；要換內容請說「改影片 …」。');
     spans.splice(i, 1);
-  } else if (m[2] === '少留' || m[2] === '縮短') {
+  } else if (m[2]) {   // 前面：切掉開頭（或把開頭往前多留，但不碰到上一段）
+    spans[i][0] = cut ? Math.min(spans[i][1] - 1, spans[i][0] + sec) : Math.max(i ? spans[i - 1][1] : 0, spans[i][0] - sec);
+  } else if (cut) {
     spans[i][1] = Math.max(spans[i][0] + 1, spans[i][1] - sec);
   } else {
     spans[i][1] = Math.min(spans[i + 1] ? spans[i + 1][0] : tl.dur, spans[i][1] + sec);   // 不要碰到下一段
