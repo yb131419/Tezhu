@@ -4911,7 +4911,7 @@ function merge_(a, b) {
 }
 
 /* ============ 行程網頁（Schedule.html）：手機上查看、新增、修改、刪除 ============ */
-const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Schedule.html';
+const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Talk.html#sched';
 function eventApi_(b) {
   if (b.action === 'evList') return { ok: true, events: readAll_().events.slice().sort(evCmp_) };
   const now = Date.now();
