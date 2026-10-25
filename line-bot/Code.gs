@@ -333,6 +333,8 @@ function askByVoice_(q, image, spoken) {
   q = voiceText_(q);
   if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
+  // 用講的、又不像要小乖做事或問問題（例如電視或旁人的話被辨識出來）：不叫 AI，免得它回「我會幫你記下」卻沒記
+  if (VOICE_IN_ && !ADD_WORDS.test(q) && !WHEN_WORDS.test(q) && !DEL_WORDS.test(q) && !ASK_WORDS.test(q)) return '我沒有聽出要我做的事。要我記下什麼，請說「幫我記…」；想問什麼，直接問我。';
   if (/^(沒事了?|沒有了?|結束|掰掰|再見|不用了?|謝謝)[。！!]?$/.test(q)) return '好，有事再叫我。';
   CURRENT_TG_CHAT_ = ''; LINE_MODE_ = false;
   VOICE_ONLY_ = !TALK_MODE_;
@@ -3056,7 +3058,7 @@ function withVoice_(said, ans) {
 
 // Whisper 在沒人講話、只有噪音或電視聲時，常會寫出字幕式的句子（例如「字幕志願者」「謝謝觀看」），或照抄提示詞。
 // 這種結果不能當成使用者說的話，回傳空字串，當作沒聽清楚（2026-10-25 使用者回報沒說的話被記進行程）。
-const VOICE_GHOST_ = /志願者|Amara|謝謝觀看|感謝收看|不吝點贊|常用指令|以下是繁體中文/;
+const VOICE_GHOST_ = /志願者|Amara|謝謝觀看|感謝收看|不吝點贊|常用指令|以下是繁體中文|不代表本台|本台立場|字幕由|歡迎訂閱|下集見/;
 function transcribe_(blob, filename) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'post', muteHttpExceptions: true,
