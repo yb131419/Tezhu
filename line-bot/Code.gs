@@ -954,16 +954,24 @@ function ytRewrite_(th, article) {
     '你是「智囊軍師」，彥彬的 YouTube 文案高手。請把使用者貼上的文章，照下面的主題模板改寫成 YouTube 影片的「標題」和「說明」。',
     '【本次模板】' + th.guide + '（若模板要你判斷分類，照判斷的方向寫就好，不用輸出分類）',
     '【標題】繁體台灣用語，28 字內（手機上只會顯示前面一段，重點字放前面）；有點擊感但不誇大、不講假消息，不用「震驚」「必看」這類空話；可以用數字、反問或反骨句。',
-    '【說明】開頭 2 到 3 句摘要，講這支影片講什麼、觀眾會得到什麼；中間自然帶 2 到 3 個關鍵字（用一般說法，不堆砌）；結尾一句引導觀看的話即可，不叫人留言或私訊。全文約 150 到 300 字，段落之間空一行，不附時間軸。',
+    '【說明】分成 2 到 3 段，每段 1 到 2 句、只講一件事，全部約 150 到 260 字：第一段講這支影片講什麼，後面講觀眾會得到什麼；用一般說法自然帶入關鍵字，不堆砌；不附時間軸，不叫人留言或私訊。',
+    '【標籤】給 5 個合適的 YouTube 標籤：每個 2 到 6 個字，不加 # 符號，不含空白，依內容挑，不要用「康園道」「分享」「大健康」這些字。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料。',
-    '只輸出 JSON：{"title":"標題","desc":"說明全文"}',
+    '只輸出 JSON：{"title":"標題","summary":["第一段","第二段"],"tags":["標籤1","標籤2","標籤3","標籤4","標籤5"]}',
   ].join('\n');
   try {
     const out = callOpenAI_(sys, [{ role: 'user', content: '請改寫這篇文章：\n\n' + String(article).slice(0, 6000) }]);
     const c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
     const title = String(c.title || '').replace(/\s+/g, ' ').trim().slice(0, 100);
-    const desc = String(c.desc || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
-    return title && desc ? { title: title, desc: desc } : null;
+    // 說明排版：每段一行、段落之間空一行，標籤獨立一行（不跟文字黏在一起）
+    const paras = (Array.isArray(c.summary) ? c.summary : String(c.summary || c.desc || '').split(/\n+/))
+      .map(s => String(s).replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 3);
+    const tags = (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/[\s,，、]+/))
+      .map(s => String(s).replace(/^#+/, '').replace(/\s+/g, '').trim())
+      .filter(s => s && !STRAT_NO_TAG.test(s))
+      .filter((s, i, a) => a.indexOf(s) === i).slice(0, 5).map(s => '#' + s);
+    if (!title || !paras.length) return null;
+    return { title: title, desc: paras.join('\n\n') + (tags.length ? '\n\n' + tags.join(' ') : '') };
   } catch (err) {
     console.error('貼文改寫YT失敗：' + err.message);
     return null;
