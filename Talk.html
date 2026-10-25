@@ -131,8 +131,40 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 #cfgok{color:var(--soft);font-size:14px}#cfg{margin-top:10px}
 #login.first #opts,#login.first #setx,#login.first #logout{display:none}
 #qsel{flex:1 1 100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:0 12px}
+#schedb{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
+#sched,#sform{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#sform{z-index:10}
+#sched .box,#sform .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
+#sform .box{height:auto;max-height:92vh;overflow:auto}
+html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
+.sx{width:40px;height:40px;border-radius:50%;padding:0;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;line-height:1}
+.stabs{display:flex;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px}
+.stabs button{flex:1;width:auto;height:40px;border-radius:999px;background:transparent;color:var(--soft);font-size:15px}
+.stabs button.on{background:var(--champ);color:#2A2118;font-weight:700}
+.smsg{text-align:center;color:var(--gold);font-size:14px;min-height:20px;margin:4px 0}
+#slist{flex:1;overflow:auto;padding:0 2px}
+.sday{font-family:var(--serif);color:var(--gold);font-size:14px;letter-spacing:1px;margin:16px 2px 8px}
+.sitem{display:flex;gap:12px;align-items:flex-start;width:100%;height:auto;border-radius:16px;padding:14px;margin-bottom:8px;background:rgba(127,127,127,.08);border:1px solid var(--line);color:inherit;font-size:16px;text-align:left}
+.stime{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--gold);min-width:64px;padding-top:1px}
+.sti{font-weight:700;word-break:break-word}
+.spl{display:block;font-size:14px;color:var(--soft);margin-top:2px}
+.sempty{color:var(--soft);text-align:center;padding:40px 0}
+.sadd{width:100%;height:50px;border-radius:14px;margin-top:10px;background:var(--champ);color:#1A150D;font-weight:700;font-size:16px;letter-spacing:1px}
+.ff{display:block;margin-top:12px;font-size:13px;color:var(--soft);letter-spacing:1px}
+.fi{display:block;width:100%;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px;font:inherit;font-size:16px;margin-top:6px;-webkit-appearance:none;appearance:none}
+.fi:disabled{opacity:.4}
+.sw2{display:flex;align-items:center;justify-content:space-between;font-size:16px;color:inherit;letter-spacing:0}
+.sw2 input{width:22px;height:22px;accent-color:#C9A56A;margin:0}
+.ffh{font-size:13px;color:var(--soft);margin-top:12px;line-height:1.6}
+.ferr{color:#D98A6B;font-size:14px;margin-top:10px;min-height:1em}
+.frow{display:flex;gap:8px;margin-top:18px}
+.frow button{flex:1;width:auto;height:50px;border-radius:14px;background:transparent;border:1px solid var(--line);color:var(--ink);font-size:16px;font-weight:700}
+.frow .sv{background:var(--champ);color:#1A150D;border:none}
+.frow .dl{flex:0 0 92px;color:#D98A6B;border-color:rgba(217,138,107,.4)}
 </style></head><body>
-<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="gear" type="button" title="設定" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
+<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="schedb" type="button" title="行程" style="margin-left:auto">📅</button><button id="gear" type="button" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
@@ -199,6 +231,14 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
+<div id="sched"><div class="box">
+ <div class="sh"><b>📅 行程</b><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div>
+ <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
+ <div class="smsg" id="smsg"></div>
+ <div id="slist"></div>
+ <button id="sadd" type="button" class="sadd">＋ 新增行程</button>
+</div></div>
+<div id="sform"><div class="box" id="sfbox"></div></div>
 <script>
 let KEY='',URL='';const $=id=>document.getElementById(id);
 // 設定記在這支手機（localStorage），網址列不會出現密碼；小乖主頁（Assistant.html）設過同步的話直接沿用
@@ -383,4 +423,78 @@ function pickPhoto(cam){const f=$('file');if(cam)f.setAttribute('capture','envir
 $('cam').onclick=()=>pickPhoto(false);
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
+// 行程面板（併入對話頁）：沿用上面的 KEY、URL 同步設定，跟 Schedule 之前的獨立頁面用同一支 API
+let sEvents=[],sTab='next',sEditId=null,sMsgT=0;
+const sWeek=['日','一','二','三','四','五','六'];
+const sPad=n=>('0'+n).slice(-2);
+function sToday(){const n=new Date();return n.getFullYear()+'-'+sPad(n.getMonth()+1)+'-'+sPad(n.getDate());}
+function sEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function sDayLabel(ds){const [y,m,d]=ds.split('-').map(Number);return m+'/'+d+'（週'+sWeek[new Date(y,m-1,d).getDay()]+'）'+(ds===sToday()?'・今天':'');}
+function sCmp(a,b){return (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00'));}
+function sMsg(m){$('smsg').textContent=m;clearTimeout(sMsgT);sMsgT=setTimeout(()=>{$('smsg').textContent='';},1800);}
+async function sApi(b){
+ const r=await fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});
+ const o=await r.json();if(!o.ok)throw new Error(o.error||'連線失敗');return o;}
+async function sLoad(){
+ try{const o=await sApi({action:'evList'});sEvents=o.events||[];sRender();}
+ catch(e){$('slist').innerHTML='<div class="sempty">讀取失敗：'+sEsc(e.message)+'</div>';}}
+function openSched(){if(!KEY||!URL){login();return;}$('sched').style.display='flex';sRender();sLoad();}
+function closeSched(){$('sched').style.display='none';}
+function sRender(){
+ const t=sToday();
+ $('stN').classList.toggle('on',sTab==='next');$('stP').classList.toggle('on',sTab==='past');
+ let list=sEvents.filter(e=>sTab==='next'?e.date>=t:e.date<t).sort(sCmp);
+ if(sTab==='past')list.reverse();
+ if(!list.length){$('slist').innerHTML='<div class="sempty">'+(sTab==='next'?'接下來沒有行程':'沒有過去的行程')+'</div>';return;}
+ let h='',last='';
+ list.forEach(e=>{
+  if(e.date!==last){h+='<div class="sday">'+sEsc(sDayLabel(e.date))+'</div>';last=e.date;}
+  h+='<button type="button" class="sitem" data-id="'+sEsc(e.id)+'"><span class="stime">'+(e.time?sEsc(e.time):'整天')+'</span><span><span class="sti">'+sEsc(e.title)+'</span>'+(e.place?'<span class="spl">📍 '+sEsc(e.place)+'</span>':'')+'</span></button>';
+ });
+ $('slist').innerHTML=h;}
+function sOpenForm(ev){
+ sEditId=ev?ev.id:null;
+ const v=ev||{title:'',date:sToday(),time:'',place:''};
+ $('sfbox').innerHTML='<div class="sh"><b>'+(ev?'修改行程':'新增行程')+'</b><button id="sfx" type="button" class="sx" aria-label="關閉">×</button></div>'+
+  '<label class="ff">行程名稱<input id="sfT" class="fi" type="text" maxlength="80" placeholder="例如：牙醫回診" value="'+sEsc(v.title)+'"></label>'+
+  '<label class="ff">日期<input id="sfD" class="fi" type="date" value="'+sEsc(v.date)+'"></label>'+
+  '<label class="ff sw2"><span>整天</span><input id="sfA" type="checkbox"'+(v.time?'':' checked')+'></label>'+
+  '<label class="ff">時間<input id="sfM" class="fi" type="time" value="'+sEsc(v.time||'')+'"'+(v.time?'':' disabled')+'></label>'+
+  '<label class="ff">地點（選填）<input id="sfP" class="fi" type="text" maxlength="80" value="'+sEsc(v.place||'')+'"></label>'+
+  '<div class="ffh">有填時間的行程，會在開始前 30 分鐘與 1 小時前，由 LINE、Telegram 提醒你。</div>'+
+  '<div class="ferr" id="sfE"></div>'+
+  '<div class="frow">'+(ev?'<button id="sfDel" type="button" class="dl">刪除</button>':'')+'<button id="sfC" type="button">取消</button><button id="sfS" type="button" class="sv">儲存</button></div>';
+ $('sform').style.display='flex';
+ $('sfx').onclick=sCloseForm;$('sfC').onclick=sCloseForm;
+ $('sfA').onchange=()=>{$('sfM').disabled=$('sfA').checked;};
+ $('sfS').onclick=sSave;
+ if(ev)$('sfDel').onclick=sDel;}
+function sCloseForm(){$('sform').style.display='none';sEditId=null;}
+function sErr(m){$('sfE').textContent=m;}
+async function sSave(){
+ const title=$('sfT').value.trim(),date=$('sfD').value,allDay=$('sfA').checked,time=allDay?'':$('sfM').value,place=$('sfP').value.trim();
+ if(!title)return sErr('請填行程名稱');
+ if(!date)return sErr('請選日期');
+ if(!allDay&&!time)return sErr('請選時間，或勾選「整天」');
+ $('sfS').disabled=true;
+ try{
+  const o=await sApi({action:'evSave',id:sEditId||undefined,title,date,time,place});
+  const i=sEvents.findIndex(e=>e.id===o.event.id);
+  if(i>=0)sEvents[i]=o.event;else sEvents.push(o.event);
+  sCloseForm();sRender();sMsg('已儲存');
+ }catch(e){sErr('儲存失敗：'+e.message);$('sfS').disabled=false;}}
+async function sDel(){
+ const id=sEditId;if(!id)return;
+ if(!confirm('確定要刪除這筆行程嗎？'))return;
+ try{await sApi({action:'evDel',id});sEvents=sEvents.filter(e=>e.id!==id);sCloseForm();sRender();sMsg('已刪除');}
+ catch(e){sErr('刪除失敗：'+e.message);}}
+$('schedb').onclick=openSched;
+$('schedx').onclick=closeSched;
+$('sadd').onclick=()=>sOpenForm(null);
+$('stN').onclick=()=>{sTab='next';sRender();};
+$('stP').onclick=()=>{sTab='past';sRender();};
+$('slist').onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;const ev=sEvents.find(x=>x.id===b.dataset.id);if(ev)sOpenForm(ev);};
+$('sched').onclick=e=>{if(e.target.id==='sched')closeSched();};
+$('sform').onclick=e=>{if(e.target.id==='sform')sCloseForm();};
+if(location.hash==='#sched')openSched();
 </script></body></html>
