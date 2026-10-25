@@ -36,19 +36,20 @@ const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今�
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
 const REELS_LONG_BTN = '🎞️ 剪大片';
+const WM_BTN = '🧽 去浮水印';   // 去除浮水印（獨立功能，不經過剪 Reels）
 const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上一段行程文字，小乖自動整理加進行程
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'], ['📋 試算', '📅 近期行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
+  { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'],['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片']] },
+  { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
-  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 近期行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
-  { en: 'NOTES', title: '筆記', sub: '靈感、重點、待辦，隨手記、隨時看', items: [['📝 我的筆記', '全部筆記'], ['✍️ 新增筆記', '打一句就存'], ['✅ 我的待辦', '未完成事項']] },
+  { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
@@ -159,7 +160,7 @@ const HELP_MORE = [
   '',
   '【📅 行程】',
   '・按「➕ 新增行程」（或快速回覆的「📋 貼上行程」）→ 直接打或貼上行程，小乖自動排好，一次可以排好幾筆',
-  '・今天行程、近期行程：照日期時間排好，已經過了的不顯示',
+  '・今天行程、行程：照日期時間排好，已經過了的不顯示',
   '・按「🗑️ 刪除行程」點一筆就刪，刪錯可以按「↩️ 復原」；也可以說「刪除 名稱」',
   '・過了日期的行程會自動刪掉',
   '',
@@ -239,7 +240,7 @@ function doGet(e) {
   // 「嘿 Siri，小乖」：iPhone 捷徑把聽到的話用 ?key=同步密碼&ask=… 傳進來，小乖回一段可以直接念出來的文字
   if (p.ask !== undefined) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
-    return ContentService.createTextOutput(askByVoice_(String(p.ask)));
+    return ContentService.createTextOutput(askByVoice_(String(p.ask), '', true));
   }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
@@ -285,7 +286,17 @@ function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE
 function wallLink_() { return '🔎 見證庫網頁：\n' + wallUrl_() + '\n\n① 打關鍵字或點分類找見證\n② 點縮圖看影片／圖片\n③ 按「分享到 LINE」選要傳給誰\n\n常用的按 ⭐ 會排在最前面。第一次打開要輸入同步密碼。'; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
-function talk(key, q, image, voice, audio64, audioType) {
+// 對話頁（TALK_HTML，google.script.run）先只轉文字，再用 talk(..., spoken) 送出去執行
+function talkHeard(key, audio64, audioType) {
+  if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) throw new Error('同步密碼不對');
+  return { heard: transcribeAudio_(audio64, audioType) };
+}
+function transcribeAudio_(audio64, audioType) {
+  const mt = String(audioType || 'audio/mp4');
+  const ext = /webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a';
+  return transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + ext), 'voice.' + ext);
+}
+function talk(key, q, image, voice, audio64, audioType, spoken) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) return { say: '同步密碼不對。', show: '同步密碼不對。' };
   ASK_SHOW_ = ''; ASK_BTNS_ = []; ASK_IMG_ = ''; ASK_IMGS_ = []; TALK_CASES_ = []; TALK_MODE_ = true;
   let heard = '';
@@ -297,7 +308,7 @@ function talk(key, q, image, voice, audio64, audioType) {
     if (!heard) return { say: '沒聽清楚，再說一次看看。', show: '沒聽清楚，再說一次看看。', buttons: [], audio: '', heard: '' };
     q = heard;
   }
-  const say = askByVoice_(String(q || ''), image || '');
+  const say = askByVoice_(String(q || ''), image || '', !!audio64 || !!spoken);   // 對話頁按麥克風錄的音＝語音；打字或按按鈕＝不是
   let audio = '';
   if (voice && say && prop_('OPENAI_API_KEY')) {   // 用跟 LINE／Telegram 一樣的小乖聲音念
     try { audio = Utilities.base64Encode(tts_(say, 'mp3').getBytes()); } catch (e) { console.error(e.message); }
@@ -305,6 +316,7 @@ function talk(key, q, image, voice, audio64, audioType) {
   return { say: say, show: String(ASK_SHOW_ || say).replace(/\*\*/g, ''), buttons: ASK_BTNS_, audio: audio, heard: heard, img: ASK_IMG_, imgs: ASK_IMGS_, cases: TALK_CASES_ };
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
+let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
 const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
@@ -315,7 +327,8 @@ function askButtons_(ans) {
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
 function voiceText_(t) { return String(t || '').trim().replace(/[\s。．.！!？?，,、；;~～…]+$/u, ''); }
 
-function askByVoice_(q, image) {
+function askByVoice_(q, image, spoken) {
+  VOICE_IN_ = !!spoken;
   q = voiceText_(q);
   if (image) return askPhoto_(q, image);
   if (!q) return '我在，請說。';
@@ -417,16 +430,23 @@ function doPost(e) {
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
+  // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
+  if (body.action === 'transcribe') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return json_({ heard: '', say: '同步密碼不對。' });
+    try { return json_({ heard: transcribeAudio_(body.audio, body.audioType) }); }
+    catch (err) { console.error(err); return json_({ heard: '' }); }
+  }
+
   // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
   if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
-    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType)); }
+    try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType, body.spoken)); }
     catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
   }
 
   // 「嘿小乖」捷徑傳照片（POST JSON：{ action:'ask', key, ask, image: base64 }）
   if (body.action === 'ask') {
     if (!prop_('SYNC_KEY') || body.key !== prop_('SYNC_KEY')) return text_('同步密碼不對，請檢查捷徑裡的設定。');
-    return text_(askByVoice_(String(body.ask || ''), body.image || ''));
+    return text_(askByVoice_(String(body.ask || ''), body.image || '', true));
   }
 
   // 「嘿 小乖 寫文案」捷徑：POST JSON { action:'card', key, ask:'火山草本' } → { text: 可直接貼的文案, img: 圖卡 PNG 的 base64 }
@@ -537,6 +557,7 @@ function handleLineGroup_(ev, gid, type) {
   const answering = st && !called && text.length <= 15 && (/^(取消|改|加|刪|删)/.test(text) || Object.keys(quoteOpts_(text)).length);
   if (!called && !answering) return;
   if (!text) return reply_(ev.replyToken, '主人叫我嗎？在「小乖」後面接著打要我做的事喔。');
+  if (tradeAskWord_(text)) return;   // 交易指令不在群組執行，避免持倉、下單內容被群組其他人看到
   const ans = answer_(text);
   const rp = reportLine_();
   reply_(ev.replyToken, rp.short || ans, rp.msgs);
@@ -550,10 +571,8 @@ function handleLine_(ev) {
   if (src.type === 'group' || src.type === 'room') return handleLineGroup_(ev, src.groupId || src.roomId, src.type);
   const uid = ev.source && ev.source.userId;
   const owner = prop_('OWNER_USER_ID');
-  if (ev.type === 'follow') {
-    if (!owner) reply_(ev.replyToken, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
-    return;
-  }
+  // 陌生人加好友、傳訊息一律不回應（不回提示，避免洩漏資訊）；只有主人本人的訊息才會進到指令
+  if (ev.type === 'follow') return;
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image' || ev.message.type === 'video') {
     if (!owner || uid !== owner) return;
@@ -576,6 +595,7 @@ function handleLine_(ev) {
     let said = '';
     try { said = transcribe_(lineContent_(ev.message.id), 'voice.m4a'); } catch (err) { console.error(err); }
     if (!said) return reply_(ev.replyToken, '語音聽不清楚，再說一次或改打字看看。', null, true);
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       reply_(ev.replyToken, '🎤 「' + said + '」\n\n' + ans, null, true);
@@ -600,7 +620,7 @@ function handleLine_(ev) {
     setProp_('OWNER_USER_ID', uid);
     return reply_(ev.replyToken, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。', null, true);
   }
-  if (!owner) return reply_(ev.replyToken, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;          // 還沒綁定時也不回提示：主人直接傳「綁定 同步密碼」即可
   if (uid !== owner) return;   // 只回主人，其他人不回應
 
   const ans = answer_(text);
@@ -638,6 +658,7 @@ function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
   text = String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();   // 按鈕前面的圖示去掉
   if (text === '說明' || /^\/?(help|start)$/i.test(text)) return { text: HELP_TEXT, buttons: [MENU[0], MENU[1], ['📖 更多說明']] };
+  if (/^語音快捷指令$/.test(text.replace(/\s+/g, ''))) return { text: '🎙️ 語音快捷指令\n到對話頁按「🎙️ 語音快捷指令」，照一步一步的說明做，就能一鍵複製網址。\n做好後到「設定 → 輔助使用 → 語音快捷指令」綁定「嘿 小乖」。', buttons: QUICK };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
   if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
@@ -676,6 +697,8 @@ function answer_(text) {
   if (ia) return ia;
   const rl = reelsAsk_(t2);   // 「🎬 剪 Reels」：接下來 10 分鐘內傳的影片拿去剪
   if (rl) return rl;
+  const tr = typeof tradeAsk_ === 'function' ? tradeAsk_(t2) : null;   // 「📈 智能下單」卡片：要按「✅ 確認下單」才送單（Trade.gs，確定性指令，AI 不會觸發）
+  if (tr) return tr;
   if (/^見證(案例)?$/.test(t2.replace(/\s+/g, ''))) return browseCat_(caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
   if (/^新增見證$/.test(t2.replace(/\s+/g, ''))) {
     setProp_('CASE_PENDING', caseCats_().indexOf('見證案例') >= 0 ? '見證案例' : '其他');
@@ -826,7 +849,7 @@ function stratCat2_(k, cat) {
   return c.replace(/主題$/, '').slice(0, 2) || '軍師';
 }
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
-// AI 一分鐘短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
+// AI 55 秒短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
 const REEL_BTN = '🎭 短劇腳本';
 const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
@@ -835,12 +858,12 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附一分鐘短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 一分鐘短劇腳本\n\n選一個主題，我寫一支 60 秒的 AI 短劇腳本：角色外型、每一段的畫面、台詞和字幕都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
+  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
@@ -1005,7 +1028,7 @@ function stratWrite_(k, th) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
-  // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
+  // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
   return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
@@ -1026,21 +1049,60 @@ function reelOnly_(k) {
   } finally { busyEnd_('STRAT_BUSY'); }
 }
 // 短劇主角（使用者自訂，存在指令碼屬性；沒設定就由軍師照主題自己安排）
+// 最多兩位主角，且一男一女：第一位存 REEL_HERO，第二位存 REEL_HERO2
 const REEL_HERO_KEY = 'REEL_HERO';
+const REEL_HERO2_KEY = 'REEL_HERO2';
 function reelHero_() { return prop_(REEL_HERO_KEY); }
-// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存起來；「設定主角 預設」清掉；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
+function reelHero2_() { return prop_(REEL_HERO2_KEY); }
+// 描述裡的性別：找到一段只寫「男生／女生」之類的就回「男」或「女」，找不到回空字串
+function heroGender_(t) {
+  const segs = String(t || '').split(/[，,、\s]+/);
+  for (const s of segs) {
+    if (/^女(生|性|孩子|孩|人|的)?$/.test(s)) return '女';
+    if (/^男(生|性|孩子|孩|人|的)?$/.test(s)) return '男';
+  }
+  return '';
+}
+// 存主角前檢查：有第二位（或要存第二位）時，兩位都要寫明性別，而且不能同性別；回 null 表示可以存
+function heroPairCheck_(slot, v) {
+  if (slot === 2 && !reelHero_()) return '請先設定第一位主角（打「設定主角 名字、性別、年齡、外型」），再設定第二位。';
+  const other = slot === 2 ? reelHero_() : reelHero2_();
+  if (!other) return null;
+  const g = heroGender_(v), og = heroGender_(other);
+  const otherNo = slot === 2 ? '第一位' : '第二位';
+  if (!g || !og) return '兩位主角要一男一女，請在描述裡寫明男生或女生，再設定一次。';
+  if (g === og) return '兩位主角不能都是' + g + '生（' + otherNo + '已經是' + og + '生），請重新設定：這一位改成' + (g === '男' ? '女生' : '男生') + '，或打「設定主角 預設」清掉兩位重來。';
+  return null;
+}
+// 查看：兩位都列出來
+function heroView_() {
+  const lines = ['第一位：' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）')];
+  if (reelHero2_()) lines.push('第二位：' + reelHero2_());
+  return '目前的短劇主角：\n' + lines.join('\n') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要加第二位（需一男一女）請打「設定第二主角 …」，例如：\n設定第二主角 阿凱，男生，28 歲，短髮、穿黑外套\n\n要恢復預設請打「設定主角 預設」（兩位都清除）。';
+}
+// 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存第一位；「設定第二主角 …」存第二位；「設定主角 預設」兩位都清掉，「設定第二主角 預設」只清第二位；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
 function reelHeroSetting_(t) {
   const s = String(t || '').trim();
-  const m = s.match(/^(?:設定|修改|更改|改)主角[\s：:]*(.*)$/);
+  const m = s.match(/^(?:設定|修改|更改|改)(第二|第2)?主角[\s：:]*(.*)$/);
   if (!m && !/^(?:查看|看|目前)主角$/.test(s)) return null;
-  const v = m ? m[1].trim().slice(0, 300) : '';
-  if (!v) return '目前的短劇主角：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要恢復預設請打「設定主角 預設」。';
+  const slot = m && m[1] ? 2 : 1;
+  const v = m ? m[2].trim().slice(0, 300) : '';
+  if (!v) return heroView_();
   if (/^(預設|恢復預設|改回預設|清除|取消)$/.test(v)) {
+    if (slot === 2) { PropertiesService.getScriptProperties().deleteProperty(REEL_HERO2_KEY); return '好，第二位主角清掉了。\n\n' + heroView_(); }
     PropertiesService.getScriptProperties().deleteProperty(REEL_HERO_KEY);
-    return '好，短劇主角改回預設（由軍師照主題自己安排）。';
+    PropertiesService.getScriptProperties().deleteProperty(REEL_HERO2_KEY);
+    return '好，短劇主角兩位都改回預設（由軍師照主題自己安排）。';
   }
-  setProp_(REEL_HERO_KEY, v);
-  return '好，短劇主角設定好了：\n' + v + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+  const err = heroPairCheck_(slot, v);
+  if (err) return err;
+  setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, v);
+  return heroSavedText_(slot, v);
+}
+function heroSavedText_(slot, v) {
+  const head = slot === 2 ? '好，第二位主角設定好了：\n' : '好，短劇主角設定好了：\n';
+  const tail = reelHero2_() ? '\n\n現在兩位主角一男一女，之後寫的短劇腳本，兩位都照這樣寫，不會換性別或年齡。' : '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。';
+  return head + v + tail;
 }
 // 按鈕流程：「👤 設定主角」一步步問名字、性別、年齡、外型（每一步都有按鈕，也可以直接打字）；做到哪一步存在 HERO_STEP
 const HERO_ORDER = ['name', 'gender', 'age', 'look'];
@@ -1053,15 +1115,20 @@ const HERO_STEPS = {
 function heroAsk_(step) {
   setProp_('HERO_STEP', step);
   setProp_('HERO_UNTIL', String(Date.now() + 10 * 60 * 1000));
-  return { text: '👤 設定短劇主角（' + (HERO_ORDER.indexOf(step) + 1) + '／4）\n' + HERO_STEPS[step].q, buttons: HERO_STEPS[step].btn };
+  const no = Number(prop_('HERO_SLOT')) === 2 ? '第二位' : '';
+  return { text: '👤 設定' + no + '短劇主角（' + (HERO_ORDER.indexOf(step) + 1) + '／4）\n' + HERO_STEPS[step].q, buttons: HERO_STEPS[step].btn };
 }
 function heroClear_() {
-  ['HERO_STEP', 'HERO_DRAFT', 'HERO_UNTIL'].forEach(k => setProp_(k, ''));
+  ['HERO_STEP', 'HERO_DRAFT', 'HERO_UNTIL', 'HERO_SLOT'].forEach(k => setProp_(k, ''));
 }
 // 回 null 表示不是這個流程的話，照常往下處理
 function heroWizard_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
-  if (/^(👤設定主角|設定主角|修改主角|更改主角|改主角)$/.test(flat)) {
+  const start = flat.match(/^(👤)?(設定|修改|更改|改)(第二)?主角$/);
+  if (start) {
+    const slot = start[3] ? 2 : 1;
+    if (slot === 2 && !reelHero_()) return { text: '請先設定第一位主角（按「' + HERO_BTN + '」），再設定第二位。', buttons: [[HERO_BTN]].concat(MENU) };
+    setProp_('HERO_SLOT', String(slot));
     setProp_('HERO_DRAFT', '{}');
     return heroAsk_('name');
   }
@@ -1078,29 +1145,35 @@ function heroWizard_(t, raw) {
     setProp_('HERO_DRAFT', JSON.stringify(draft));
     return heroAsk_(HERO_ORDER[i + 1]);
   }
+  const slot = Number(prop_('HERO_SLOT')) === 2 ? 2 : 1;
   heroClear_();
   const txt = HERO_ORDER.map(k => draft[k]).filter(Boolean).join('，');
-  if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）'), buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
-  setProp_(REEL_HERO_KEY, txt.slice(0, 300));
-  return { text: '好，短劇主角設定好了：\n' + txt + '\n\n之後寫的短劇腳本，主角都照這樣寫，不會換性別或年齡。', buttons: [[REEL_BTN, HERO_BTN]].concat(MENU) };
+  const back = [[REEL_BTN, HERO_BTN]].concat(MENU);
+  if (!txt) return { text: '都沒有填，主角還是照原來的設定：\n' + heroView_(), buttons: back };
+  const err = heroPairCheck_(slot, txt);
+  if (err) return { text: err, buttons: back };
+  setProp_(slot === 2 ? REEL_HERO2_KEY : REEL_HERO_KEY, txt.slice(0, 300));
+  const addSecond = slot === 1 && !reelHero2_() ? [['👤 設定第二主角']] : [];
+  return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: addSecond.concat(back) };
 }
-// 寫一支 60 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
+// 寫一支 55 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
 function reelWrite_(k, th, base) {
-  const hero = reelHero_();
+  const heroes = [reelHero_(), reelHero2_()].filter(Boolean);
   const sys = [
-    '你是短影音編劇，幫彥彬寫一支「AI 生成的一分鐘短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 60 秒直式短片（9:16）。',
+    '你是短影音編劇，幫彥彬寫一支「AI 生成的 55 秒短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 55 秒直式短片（9:16）。',
     base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案；文案裡人物的性別和年紀照原文寫，不可以對調：\n標題：' + base.ptitle + '\n' + base.post
       : '【本次主題】' + stratGuide_(th),
-    hero ? '【主角（使用者指定，必須照寫）】' + hero + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
-    '【劇情結構】總長 60 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 60：0 到 3 秒一定要有讓人停下來的衝突或反常畫面；中間是一個日常生活場景裡的小誤會或小反轉；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
+    heroes.length === 2 ? '【兩位主角（使用者指定，一男一女，必須照寫）】\n主角一：' + heroes[0] + '\n主角二：' + heroes[1] + '\n兩位主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；兩位都要出現在劇情裡，characters 也要列出這兩位，每段畫面都用同一段外型描述，AI 生成時才會像同一個人；其他角色再自己設計。' : null,
+    heroes.length === 1 ? '【主角（使用者指定，必須照寫）】' + heroes[0] + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
+    '【劇情結構（反過來設計）】總長 55 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 55。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
-    '【台詞與字幕】每一段都一定要有台詞，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；每段的字幕就是那段最重要的一句話。',
+    '【台詞】每一個畫面都一定要有台詞，要有人在說話，不可以空白（使用者 2026-10-22 規定）；台詞寫成「角色名：說的話」，口語、短句，一句 15 字內；沒有人對話的畫面就用角色的自言自語或旁白，寫成「小雅（自言自語）：…」「旁白：…」；不需要字幕，不用寫字幕欄位。',
     '【不可以寫】療效、治療、改善疾病、前後對比；具體金額、收入、業績或成效保證；不指向任何產品；電話、地址等個人資料；不要叫人留言、私訊。',
-    '【全部繁體】所有欄位（標題、劇情、畫面風格、角色、畫面描述、台詞、字幕、配樂、片尾字幕）都必須是繁體中文（台灣用語），不可以出現任何簡體字，例如「这、们、说、时、会」要寫成「這、們、說、時、會」；字幕也一樣。\n只輸出 JSON：{"title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）","sub":"字幕"}],"music":"配樂建議","end":"片尾字幕一句"}',
+    '【全部繁體】所有欄位（標題、劇情、畫面風格、角色、畫面描述、台詞、配樂、片尾字幕）都必須是繁體中文（台灣用語），不可以出現任何簡體字，例如「这、们、说、时、会」要寫成「這、們、說、時、會」。只輸出 JSON，hook 要先寫（前三秒的鉤子設計完才寫後面的 scenes）：{"hook":"前三秒的衝突、懸念或反差（一句）","title":"短劇標題（12 字內）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].filter(Boolean).join('\n');
   // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
-  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的一分鐘 AI 短劇腳本。' }];
+  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的 55 秒 AI 短劇腳本。' }];
   let r = null;
   for (let i = 0; i < 3; i++) {
     const out = callOpenAI_(sys, msgs, true, null, { maxTokens: 2000, temperature: 0.8 });
@@ -1112,8 +1185,8 @@ function reelWrite_(k, th, base) {
       { role: 'user', content: '第 ' + miss.join('、') + ' 段沒有台詞。每一段都要有台詞（角色名：說的話；沒人對話就用自言自語或旁白），其他照原本的寫，整份 JSON 重新輸出。' });
   }
   if (!r || !Array.isArray(r.scenes) || !r.scenes.length) throw new Error('腳本沒有分段');
-  // 重寫 3 次還是有段落沒台詞：用那段的字幕當旁白補上，保證每段都有台詞
-  r.scenes.forEach(x => { if (x && !String(x.line || '').trim()) x.line = '旁白：' + (String(x.sub || '').trim() || '……'); });
+  // 重寫 3 次還是有段落沒台詞：用那段的畫面當旁白補上，保證每段都有台詞
+  r.scenes.forEach(x => { if (x && !String(x.line || '').trim()) x.line = '旁白：' + (String(x.visual || '').trim() || '……'); });
   return reelTrad_(r);
 }
 // 簡體轉繁體（保險用）：AI 偶爾還是會漏出簡體字，這裡把常見的簡體字換成繁體，遞迴處理整份腳本
@@ -1128,7 +1201,7 @@ function reelTrad_(v) {
 function reelText_(r) {
   const n = '①②③④⑤⑥⑦⑧⑨⑩';
   const s = v => String(v || '').trim();
-  const out = ['🎭 一分鐘短劇腳本｜' + s(r.title)];
+  const out = ['🎭 55 秒短劇腳本｜' + s(r.title)];
   if (s(r.logline)) out.push('🎯 劇情：' + s(r.logline));
   if (s(r.style)) out.push('🎨 畫面風格：' + s(r.style) + '（直式 9:16）');
   const ch = (Array.isArray(r.characters) ? r.characters : []).filter(c => c && s(c.name));
@@ -1141,7 +1214,6 @@ function reelText_(r) {
     out.push('', (n[i] || (i + 1) + '.') + ' ' + s(x.sec).replace(/-/g, '–') + ' 秒' + (s(x.shot) ? '｜' + s(x.shot) : ''));
     if (s(x.visual)) out.push('畫面：' + s(x.visual));
     if (s(x.line)) out.push('台詞：' + s(x.line));
-    if (s(x.sub)) out.push('字幕：' + s(x.sub));
   });
   out.push('', '━━━━━━━━');
   if (s(r.music)) out.push('🎵 配樂：' + s(r.music));
@@ -1226,7 +1298,7 @@ function pasteEv_(t, raw) {
   logChat_('user', '貼上行程：' + added.length + ' 筆'); logChat_('assistant', '🗓️ 已加入 ' + added.length + ' 筆行程');
   const lines = added.slice().sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')))
     .map(x => '・' + evMd_(x.date) + evWk_(x.date) + ' ' + (x.time || '整天') + '　' + x.title + (x.place ? '（' + x.place + '）' : ''));
-  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 近期行程', PASTE_EV_BTN]].concat(MENU) };
+  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 行程', PASTE_EV_BTN]].concat(MENU) };
 }
 // 交給 AI 整理成 [{date, time, title, place}]；日期、時間格式不對的丟掉，最多 30 筆
 function pasteEvParse_(text) {
@@ -1260,8 +1332,20 @@ function futureEvents_() {
   return readAll_().events.filter(e => e.date >= today).sort(evCmp_);
 }
 function evDay_(k) { return Utilities.formatDate(new Date(Date.now() + k * 86400000), TZ, 'yyyy-MM-dd'); }
+// 有時間的行程開始前 1 小時也提醒一次（2026-10-24 使用者要求）；id 固定成 h1_＋行程 id，
+// 之後補舊行程時不會重複加，使用者刪掉的提醒也不會再加回來
+function hourRemind_(d, ev) {
+  const id = 'h1_' + ev.id;
+  if (!ev.time || d.deleted[id] || d.reminders.some(r => r.id === id)) return false;
+  const t = parseAt_(ev.date + 'T' + hm_(ev.time));
+  if (!t || t - 60 * 6e4 <= Date.now()) return false;
+  d.reminders.push({ id: id, text: '1 小時後：' + ev.title + (ev.place ? '（' + ev.place + '）' : ''), at: fmtAt_(t - 60 * 6e4),
+    repeat: 'none', fired: false, src: ev.id, u: Date.now() });
+  return true;
+}
 // 有時間的行程自動加「開始前 30 分鐘」提醒（跟小乖主頁一樣；2026-10-16 使用者選「要提醒」）
 function evRemind_(d, ev) {
+  hourRemind_(d, ev);
   if (!ev.time) return false;
   const t = parseAt_(ev.date + 'T' + hm_(ev.time));
   if (!t || t - 30 * 6e4 <= Date.now()) return false;
@@ -1296,7 +1380,7 @@ function evFlow_(t, raw) {
     withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); evRemind_(d, x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
-  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 近期行程']].concat(MENU) }; }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 行程']].concat(MENU) }; }
   if (flat === '刪掉剛剛這筆') {
     const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
     const x = id && readAll_().events.find(e => e.id === id);
@@ -1379,16 +1463,25 @@ function cardLayout_(c, minH) {
   while (tf > 40 && lines(title, tf, TW) > 3) tf -= 2;
 
   const TITLE_Y = 104;
-  const titleH = lines(title, tf, TW) * tf * 1.45;
-  const RULE_Y = TITLE_Y + titleH + 22;
-  const BODY_Y = RULE_Y + 30;
+  const titleHOf = f => lines(title, f, TW) * f * 1.45;
   // 正文與金句：金句貼底，正文接在標題下，兩者都放不下才縮字
   let bf = 30;
-  const bodyH = f => (body ? lines(body, f, TW) * f * 1.85 : 0);
-  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.7 : 0);
-  // 正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
-  if (!cover) while (bf > 26 && BODY_Y + bodyH(bf) + (gold ? 30 + goldH(bf) : 0) > LIMIT) bf--;
-  const GOLD_Y = LIMIT - goldH(bf);
+  // 行高依 2026-10-25 截圖校正（正文 ls150 實際約 1.55 倍字級、金句 ls130 約 1.35 倍），原本估得太高，正文與金句會疊在一起
+  const bodyH = f => (body ? lines(body, f, TW) * f * 1.6 : 0);
+  const goldH = f => (gold ? lines(gold, f, TW) * f * 1.4 : 0);
+  // 標題底到正文頂：金線 22＋間距 30；正文底到金句頂：30
+  const stackEnd = (t, f) => TITLE_Y + titleHOf(t) + 52 + bodyH(f) + (gold ? 30 + goldH(f) : 0);
+  // 先縮正文，正文最小 26：手機上字太小會直接滑過，寧可減字也不要縮到看不清（2026-10-20）
+  // 正文縮到底仍放不下，再縮標題（最小 40），確保正文與金句不重疊（2026-10-25）
+  if (!cover) {
+    while (bf > 26 && stackEnd(tf, bf) > LIMIT) bf--;
+    while (tf > 40 && stackEnd(tf, bf) > LIMIT) tf -= 2;
+  }
+  const titleH = titleHOf(tf);
+  const RULE_Y = TITLE_Y + titleH + 22;
+  const BODY_Y = RULE_Y + 30;
+  // 金句貼底；若仍放不下，金句至少排在正文底下，不與正文疊字
+  const GOLD_Y = Math.max(LIMIT - goldH(bf), BODY_Y + bodyH(bf) + 30);
   // 封面鉤子：字級固定，放在標題下方
   const hs = 32, hookH = cover ? lines(hook, hs, TW) * hs * 1.7 : 0;
   const HOOK_Y = BODY_Y + Math.max(0, ((LIMIT - 40) - BODY_Y - hookH) / 2);   // 封面鉤子置中於標題與底部之間
@@ -2947,7 +3040,7 @@ function transcribe_(blob, filename) {
   const res = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + prop_('OPENAI_API_KEY') },
-    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、近期行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
+    payload: { file: blob.setName(filename), model: prop_('VOICE_MODEL') || 'whisper-1', language: 'zh', prompt: '以下是繁體中文（台灣）的語音。常用指令：試算、軍師、智囊軍師、今天行程、行程、我的待辦、我的筆記、本機找、上網找、案例分類、對話頁、選單、說明。' },
   });
   if (res.getResponseCode() !== 200) throw new Error('語音辨識失敗（' + res.getResponseCode() + '）');
   return voiceText_(JSON.parse(res.getContentText()).text);
@@ -3081,6 +3174,12 @@ function handleTelegram_(update) {
     setProp_('TG_LAST_UPDATE_ID', String(update.update_id));
   }
 
+  // 智能下單提醒的按鈕（Trade.gs）：只有主人的按鈕會處理
+  if (update.callback_query) {
+    if (typeof tradeTgCallback_ === 'function') tradeTgCallback_(update.callback_query);
+    return;
+  }
+
   const msg = update.message;
   if (!msg || !msg.chat || msg.chat.type !== 'private') return;
   const chatId = String(msg.chat.id);
@@ -3101,6 +3200,23 @@ function handleTelegram_(update) {
     const ig = igTg_(msg, text);
     if (ig) return tgSend_(chatId, ig);
   }
+  // 去除浮水印（獨立功能）：按「🧽 去浮水印」後傳的影片，或影片說明寫「去浮水印」，要在剪 Reels 之前判斷
+  const wmVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
+  if (owner && chatId === owner && /^[^\p{L}\p{N}]*(去浮水印|去除浮水印)\s*$/u.test(text)) return tgSend_(chatId, wmAsk_(chatId));
+  if (owner && chatId === owner && /^[^\p{L}\p{N}]*(檢查去浮水印|去浮水印狀態|即時查浮水印資料夾|查浮水印資料夾)\s*$/u.test(text)) { wmWatchFolder(); return tgSend_(chatId, wmStatus_()); }   // 立刻掃描，不等 5 分鐘
+  if (owner && chatId === owner && wmVideo && (wmPending_() || /去浮水印|去除浮水印/.test(text)) && !msg.forward_origin && !msg.forward_date) {
+    if (wmVideo.file_size && wmVideo.file_size > 20 * 1024 * 1024) {   // Telegram 機器人只能下載 20MB 以內，超過就不送去剪
+      setProp_('WM_UNTIL', '0');
+      return tgSend_(chatId, '🧽 這支影片超過 20MB，Telegram 不讓機器人下載。\n\n請改用雲端硬碟：把影片上傳到 Google 雲端硬碟，設成「知道連結的人都能看」，複製連結貼給小乖（說明可以寫位置，例如「右下」）。');
+    }
+    return wmRun_(chatId, wmVideo.file_id, text);
+  }
+  // 影片太大（超過 20MB）：把 Google 雲端硬碟的連結貼給小乖（影片要設成「知道連結的人都能看」）；只貼連結也會開始去浮水印
+  // 貼上「去浮水印」資料夾的連結：直接掃描這個資料夾（不用貼影片網址）
+  const wmFolder = /drive\.google\.com\/drive\/folders\/([\w-]+)/.exec(text);
+  if (owner && chatId === owner && wmFolder && wmFolder[1] === wmFolderId_()) { wmWatchFolder(); return tgSend_(chatId, wmStatus_()); }
+  const wmLink = /https?:\/\/(?:drive|docs)\.google\.com\/\S+/.exec(text);
+  if (owner && chatId === owner && wmLink && (wmPending_() || /去浮水印|去除浮水印/.test(text) || wmLink[0] === text.trim())) return wmRun_(chatId, '', text, wmLink[0]);
   // 剪 Reels：按了「🎬 剪 Reels」後傳的影片，或影片說明寫「剪 Reels」
   const reelsVideo = msg.video || (msg.document && /^video\//.test(msg.document.mime_type || '') ? msg.document : null);
   if (owner && chatId === owner && reelsVideo && (reelsPending_() || (REELS_WORD.test(text) && !msg.forward_origin && !msg.forward_date))) return reelsAdd_(chatId, reelsVideo, text);
@@ -3162,6 +3278,7 @@ function handleTelegram_(update) {
       said = transcribe_(blob, msg.voice ? 'voice.ogg' : (voice.file_name || 'audio.m4a'));
     } catch (err) { console.error(err); return tgSend_(chatId, '語音聽不清楚，再說一次或改打字看看。'); }
     if (!said) return tgSend_(chatId, '沒聽到內容，再說一次看看。');
+    VOICE_IN_ = true;   // 語音進來的指令：交易的買賣、確認不能直接觸發
     const ans = answer_(said);
     if (KIT_PENDING_) {
       tgSend_(chatId, '🎤 「' + said + '」\n\n' + ans);
@@ -3192,7 +3309,7 @@ function handleTelegram_(update) {
     if (chatId === owner) tgSend_(chatId, '小乖目前看得懂文字和圖片，其他類型還不行喔。');
     return;
   }
-  if (/^\/start\b/.test(text) && !owner) return tgSend_(chatId, '嗨，我是小乖！請傳「綁定 你的同步密碼」完成綁定，之後就能在這裡跟我聊天。');
+  // 陌生人（還沒綁定或不是主人）傳任何訊息都不回應
   const bind = text.match(/^(?:綁定|\/bind)\s*(\S+)$/);
   if (bind) {
     if (owner && owner !== chatId) return;   // 已經有主人：別人一律不回
@@ -3200,7 +3317,7 @@ function handleTelegram_(update) {
     setProp_('TG_OWNER_CHAT_ID', chatId);
     return tgSend_(chatId, '綁定完成！之後直接跟我說話就好。傳「說明」可以看我會做什麼。');
   }
-  if (!owner) return tgSend_(chatId, '請先傳「綁定 你的同步密碼」完成綁定。');
+  if (!owner) return;             // 還沒綁定時也不回提示
   if (chatId !== owner) return;   // 只回主人，其他人不回應
 
   tgApi_('sendChatAction', { chat_id: chatId, action: 'typing' });
@@ -3363,7 +3480,7 @@ function listDays_(a, b, label) {
 function dayAsk_(flat) {
   const t = flat.replace(/[，,。.！!？?]/g, '');
   if (/刪|取消|移除|記|加|新增|安排一|提醒我|排/.test(t.replace(/安排$/, ''))) return null;
-  const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);
+  const near = t.match(/^(?:我)?(?:的)?(近期|最近|接下來|之後)?(?:的|有)?(?:什麼|哪些)?(?:行程|安排)(?:嗎|呢)?$/);   // 「行程」「📅 行程」快速回覆按鈕＝近期行程
   if (near) return [0, 13, '近期'];
   const m = t.match(/^(?:我)?(今天|今日|明天|明日|後天|大後天|這週|這禮拜|這星期|本週|下週|下禮拜|下星期|(?:這|下)?(?:週|星期|禮拜)[一二三四五六日天]|\d{1,2}[月\/]\d{1,2}[日號]?)(?:的|有)?(?:什麼|哪些)?(?:行程|安排|事情?)(?:嗎|呢)?$/);
   if (!m) return null;
@@ -3510,6 +3627,8 @@ function checkReminders() {
     const now = Date.now();
     const msgs = [];
     const purged = purgePast_(d);   // 順便把過了日期的行程刪掉
+    let hourAdded = 0;              // 舊行程補上「1 小時前」提醒（新增的行程已在 evRemind_ 加過）
+    d.events.forEach(e => { if (hourRemind_(d, e)) hourAdded++; });
     d.reminders.forEach(r => {
       if (r.fired) return;
       const t = parseAt_(r.at);
@@ -3525,7 +3644,7 @@ function checkReminders() {
       }
       r.u = now;
     });
-    if (msgs.length || purged) writeAll_(d);
+    if (msgs.length || purged || hourAdded) writeAll_(d);
     return { msgs: msgs, title: (d.profile && d.profile.title) || '小乖' };
   });
   if (!due.msgs.length) return;
@@ -4946,7 +5065,7 @@ button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;backgrou
 #pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
 #pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
 .sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
-#chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -4968,8 +5087,9 @@ $('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{local
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;
-const MENU=['📋 試算','⏰ 今天行程','✅ 我的待辦','📝 我的筆記','📁 本機找','🌐 上網找','🗂️ 案例分類','❓ 說明'];
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=t;
+const MENU=['💎 選單', '📋 試算', '🛒 下單', '🪶 智囊軍師', '⏰ 今天行程', '✅ 我的待辦', '📝 我的筆記', '📊 查看持倉', '📉 平倉', '📜 下單紀錄', '🔔 交易提醒', '🎬 剪 Reels', '🎞️ 剪大片', '📕 7張＋PDF', '🗂️ 案例分類', '💬 見證案例', '🔍 查詢案例', '📁 本機找', '🌐 上網找', '➕ 新增行程', '🗑️ 刪除行程', '👤 設定主角', '💬 自動留言', '🎤 換聲音', '⚙️ 圖卡設定', '🎙️ 語音快捷指令', '❓ 說明'];
+const SHORT={'💎 選單': '💎選單', '📋 試算': '📋試算', '🪶 智囊軍師': '🪶軍師', '⏰ 今天行程': '⏰行程', '✅ 我的待辦': '✅待辦', '📝 我的筆記': '📝筆記', '🛒 下單': '📈下單', '📊 查看持倉': '📊持倉', '📉 平倉': '📉平倉', '📜 下單紀錄': '📜紀錄', '🔔 交易提醒': '🔔提醒', '🎬 剪 Reels': '🎬剪輯', '🎞️ 剪大片': '🎞️大片', '📕 7張＋PDF': '📕名單', '🗂️ 案例分類': '🗂️案例', '💬 見證案例': '💬見證', '🔍 查詢案例': '🔍查詢', '📁 本機找': '📁本機', '🌐 上網找': '🌐上網', '➕ 新增行程': '➕加行', '🗑️ 刪除行程': '🗑️刪行', '👤 設定主角': '👤主角', '💬 自動留言': '💬留言', '🎤 換聲音': '🎤換聲', '⚙️ 圖卡設定': '⚙️圖卡', '🎙️ 語音快捷指令': '🎙️語音', '❓ 說明': '❓說明'};
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=ask?t:(SHORT[t]||t);
  b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
@@ -4991,7 +5111,10 @@ function next(){if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(con
 function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
 function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
 function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
- google.script.run.withSuccessHandler(r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}if(aud)me.textContent='🎤 '+(r.heard||'（沒聽清楚）');w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);}).withFailureHandler(e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;}).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,aud?aud.b64:'',aud?aud.mime:'');}
+ const show=r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);};
+ const fail=e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;};
+ if(!aud){google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,'','');return;}
+ google.script.run.withFailureHandler(fail).withSuccessHandler(t=>{const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h)return show({say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]});google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,h,'',$('spk').checked,'','',true);}).talkHeard(KEY,aud.b64,aud.mime);}
 $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
 // 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
 let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null;
@@ -5026,6 +5149,154 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRe
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
 </script></body></html>`;
 
+
+/* ============ 🧽 去除浮水印：影片交給 GitHub Actions 去掉固定位置的浮水印（watermark/remove_watermark.py），去好傳回 Telegram ============ */
+// 位置寫在影片說明裡：左上／右上／左下／右下（預設）／上方／下方／中間上／中間下，或 x,y,寬,高（百分比，例如 70,84,29,12 是右下角）
+function wmPending_() { return Number(prop_('WM_UNTIL')) > Date.now(); }
+function wmAsk_(chatId) {
+  setProp_('WM_UNTIL', String(Date.now() + 10 * 60 * 1000));
+  return '🧽 好！10 分鐘內把要去浮水印的影片傳給我（按左下角的迴紋針 📎 選影片，20MB 以內）。\n\n'
+    + '影片超過 20MB 的話：把影片上傳到 Google 雲端硬碟，設成「知道連結的人都能看」，把連結貼給我就好。\n\n'
+    + '浮水印在哪一邊，可以寫在影片說明裡：左上、右上、左下、右下（預設）、上方、下方、中間上、中間下；位置不準的話寫 x,y,寬,高（百分比）。\n\n'
+    + '只會去掉浮水印，聲音和畫面其他部分都不動，不會配樂、不會剪。';
+}
+function wmRun_(chatId, fileId, note, url) {
+  setProp_('WM_UNTIL', '0');
+  if (!prop_('GITHUB_TOKEN')) return tgSend_(chatId, '🧽 去浮水印還沒設定好：請先傳「設定 GitHub金鑰 你的金鑰」給我（和剪 Reels 共用）。');
+  const m = String(note || '').replace(/\s+/g, '').match(/\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?|左上|右上|左下|右下|上方|下方|中間上|中間下/);
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: String(chatId), file_id: fileId || '', url: url || '', region: m ? m[0] : '' } }),
+  });
+  const code = res.getResponseCode();
+  if (code !== 204) {
+    console.error('去浮水印觸發失敗：' + code + ' ' + res.getContentText());
+    return tgSend_(chatId, code === 401 || code === 403 || code === 404
+      ? '🧽 GitHub 金鑰不對或權限不夠（' + code + '），請重新產生金鑰後傳「設定 GitHub金鑰 新金鑰」。'
+      : '🧽 現在沒辦法開始去浮水印（' + code + '），請等一下再傳一次。');
+  }
+  return tgSend_(chatId, '🧽 收到了，開始去浮水印（位置：' + (m ? m[0] : '右下') + '）。大約 1～3 分鐘會傳回來。');
+}
+
+/* ============ 🧽 去浮水印：雲端硬碟資料夾自動監看（每 5 分鐘）============ */
+// 影片存進「去浮水印」資料夾（手機 Drive App 上傳，不受 Telegram 20MB 限制），小乖自動去浮水印、成品傳回 Telegram，處理過的搬到「已處理」
+// 檔名可以寫位置，例如「右下_生日.mp4」「左上.mov」；沒寫就右下。第一次要在編輯器執行 wmInstallTrigger 一次。
+const WM_WATCH_ID = '1dnTmIM0OMicnL-n73tZqH-PkWzzKYt7h';   // 固定的監看資料夾；指令碼屬性 WM_FOLDER_ID 可以換
+function wmFolderId_() { return prop_('WM_FOLDER_ID') || WM_WATCH_ID; }
+// 雲端硬碟對 .mov 等檔案有時標成 application/octet-stream，所以看副檔名也算
+function wmIsVideo_(f) { return /^video\//.test(f.getMimeType()) || /\.(mp4|mov|m4v|avi|mkv|webm|3gp)$/i.test(f.getName()); }
+const WM_DONE = '已處理';
+const WM_POS_RE = /左上|右上|左下|右下|上方|下方|中間上|中間下|\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?,\d+(?:\.\d+)?/;
+function wmInstallTrigger() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'wmWatchFolder').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('wmWatchFolder').timeBased().everyMinutes(5).create();
+}
+function wmDispatch_(url, region) {   // 觸發 watermark.yml，回傳 GitHub 的狀態碼（204 是成功）
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: { chat_id: prop_('TG_OWNER_CHAT_ID'), file_id: '', url: url, region: region || '' } }),
+  });
+  return res.getResponseCode();
+}
+function wmWatchFolder() {
+  const watch = DriveApp.getFolderById(wmFolderId_());
+  const doneIt = watch.getFoldersByName(WM_DONE);
+  const done = doneIt.hasNext() ? doneIt.next() : watch.createFolder(WM_DONE);
+  const owner = prop_('TG_OWNER_CHAT_ID');
+  let pending = [];
+  try { pending = JSON.parse(prop_('WM_PENDING') || '[]'); } catch (e) { pending = []; }
+  // 1. 送去超過 30 分鐘的（GitHub 那邊應該已經下載完了），原本是「限制存取」的改回去
+  pending = pending.filter(p => {
+    if (Date.now() - p.t < 30 * 60 * 1000) return true;
+    if (p.private) try { DriveApp.getFileById(p.id).setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) { console.error(e); }
+    return false;
+  });
+  // 2. 資料夾裡新的影片：設成知道連結的人都能看 → 送去剪 → 搬到「已處理」（一次最多 5 支）
+  const files = watch.getFiles();
+  for (let n = 0; files.hasNext() && n < 5;) {
+    const f = files.next();
+    if (!wmIsVideo_(f)) continue;
+    n++;
+    const wasPrivate = f.getSharingAccess() === DriveApp.Access.PRIVATE;
+    const m = f.getName().replace(/\s+/g, '').match(WM_POS_RE);
+    const region = m ? m[0] : '';
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const code = wmDispatch_('https://drive.google.com/file/d/' + f.getId() + '/view', region);
+    if (code !== 204) {
+      console.error('去浮水印（資料夾）觸發失敗：' + code);
+      if (wasPrivate) f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '🧽 「' + f.getName() + '」沒有開始去浮水印（' + code + '），之後會再試。' });
+      continue;
+    }
+    done.addFile(f);
+    watch.removeFile(f);
+    pending.push({ id: f.getId(), t: Date.now(), private: wasPrivate });
+    if (owner) tgApi_('sendMessage', { chat_id: owner, text: '🧽 發現新影片「' + f.getName() + '」，開始去浮水印（位置：' + (region || '右下') + '）。大約 1～3 分鐘會傳回來。' });
+  }
+  setProp_('WM_PENDING', JSON.stringify(pending));
+  setProp_('WM_LAST', String(Date.now()));
+  wmSaveResults_(done, owner);
+}
+// 去浮水印成品存進雲端硬碟：看有沒有新的成功執行，把 Actions 的 watermark 成品抓回來存進「已處理」，並傳 Drive 連結
+// 第一次只記下現有的執行，不補存舊的
+function wmSaveResults_(done, owner) {
+  const repo = prop_('REELS_REPO') || 'yb131419/Tezhu';
+  const auth = { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json' };
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/watermark.yml/runs?status=success&per_page=10', { headers: auth, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) { console.error('去浮水印成品：讀取執行紀錄失敗 ' + res.getResponseCode()); return; }
+  const runs = JSON.parse(res.getContentText()).workflow_runs || [];
+  let saved = null;
+  try { saved = JSON.parse(prop_('WM_SAVED') || 'null'); } catch (e) { saved = null; }
+  if (!saved) { setProp_('WM_SAVED', JSON.stringify(runs.map(r => r.id))); return; }
+  runs.filter(r => saved.indexOf(r.id) < 0).forEach(run => {
+    saved.push(run.id);   // 先記下，失敗也不一直重試
+    try {
+      const arts = JSON.parse(UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/runs/' + run.id + '/artifacts', { headers: auth, muteHttpExceptions: true }).getContentText()).artifacts || [];
+      const art = arts.find(a => a.name === 'watermark');
+      if (!art) return;
+      // 下載網址會轉址到儲存空間，轉址後不能再帶 GitHub 的權杖，所以手動跟一次
+      const hop = UrlFetchApp.fetch(art.archive_download_url, { headers: auth, muteHttpExceptions: true, followRedirects: false });
+      const loc = hop.getHeaders()['Location'] || hop.getHeaders()['location'];
+      const zip = (loc ? UrlFetchApp.fetch(loc, { muteHttpExceptions: true }) : hop).getBlob();
+      const mp4 = Utilities.unzip(zip).find(b => /\.mp4$/i.test(b.getName()));
+      if (!mp4) return;
+      const name = '去浮水印_' + Utilities.formatDate(new Date(run.created_at), 'Asia/Taipei', 'yyyyMMdd_HHmm') + '.mp4';
+      const file = done.createFile(mp4.setName(name));
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '☁️ 去好的影片已存進雲端硬碟（已處理資料夾）：\n' + file.getUrl() });
+    } catch (e) {
+      console.error('去浮水印成品存雲端硬碟失敗：' + e);
+      if (owner) tgApi_('sendMessage', { chat_id: owner, text: '☁️ 去好的影片沒存進雲端硬碟（' + String(e).slice(0, 80) + '），影片本身還是可以在 Telegram 或 GitHub 下載。' });
+    }
+  });
+  setProp_('WM_SAVED', JSON.stringify(saved.slice(-50)));
+}
+// 「檢查去浮水印」：看資料夾裡還在等的影片、正在處理的數量，以及上次自動檢查的時間
+function wmStatus_() {
+  const watch = DriveApp.getFolderById(wmFolderId_());
+  const waiting = [];
+  const files = watch.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (wmIsVideo_(f)) waiting.push(f.getName());
+  }
+  let pending = [];
+  try { pending = JSON.parse(prop_('WM_PENDING') || '[]'); } catch (e) { pending = []; }
+  const doneIt = watch.getFoldersByName(WM_DONE);
+  const doneFiles = doneIt.hasNext() ? doneIt.next().getFiles() : null;
+  let doneCount = 0;
+  while (doneFiles && doneFiles.hasNext()) { if (wmIsVideo_(doneFiles.next())) doneCount++; }
+  const last = Number(prop_('WM_LAST'));
+  const when = last ? Utilities.formatDate(new Date(last), 'Asia/Taipei', 'M/d HH:mm') : '還沒有紀錄';
+  return '🧽 去浮水印資料夾狀態\n'
+    + '・等待處理：' + (waiting.length ? waiting.length + ' 支（' + waiting.slice(0, 5).join('、') + (waiting.length > 5 ? ' 等' : '') + '）' : '沒有')
+    + '\n・正在處理：' + pending.length + ' 支（處理完會自動傳回來）'
+    + '\n・已完成（在「已處理」）：' + doneCount + ' 支'
+    + '\n・上次自動檢查：' + when + '（每 5 分鐘檢查一次）';
+}
 
 /* ============ 🎬 剪 Reels：影片交給 GitHub Actions 剪（reels/reels.py），剪好直接傳回 Telegram ============ */
 // 需要的指令碼屬性：GITHUB_TOKEN（可以在 Telegram 打「設定 GitHub金鑰 xxx」）；REELS_REPO 可不填，預設 yb131419/Tezhu
@@ -6046,6 +6317,18 @@ function oaMatch_(text) {
     || (OA_GENERIC.test(t) ? list[0] || null : null);
 }
 // 最近 20 位朋友編上號碼，主人打「官回 3 內容」就知道回誰
+// 官方 LINE 給客人的卡片：列出可以領取的 PDF 按鈕，點了就把關鍵字傳回來、自動給 PDF（只露出 PDF，不露出主人的功能）
+function oaCardMsg_() {
+  const pdfs = oaPdfs_();
+  if (!pdfs.length) return null;
+  const btn = x => ({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: x.kw.slice(0, 20), text: x.kw } });
+  return { type: 'flex', altText: '📄 可以領取的資料', contents: {
+    type: 'bubble',
+    body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+      { type: 'text', text: '📄 免費資料', weight: 'bold', size: 'lg' },
+      { type: 'text', text: '點下面的按鈕就會收到對應的 PDF', size: 'sm', wrap: true, color: '#888888' } ] },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: pdfs.slice(0, 12).map(btn) } } };
+}
 function oaPeers_() { try { return JSON.parse(prop_('OA_PEERS') || '[]'); } catch (e) { return []; } }
 function oaPeer_(id, name) {
   const list = oaPeers_(), old = list.filter(x => x.id === id)[0];
@@ -6073,7 +6356,7 @@ function oaHandle_(ev) {
   let sent = '';
   if (hit) {
     try {
-      oaApi_('post', 'message/reply', { replyToken: ev.replyToken, messages: [{ type: 'text', text: '📄 《' + hit.title + '》在這裡：\n' + hit.url + '\n\n有任何問題，直接在這裡傳訊息給我 😊' }] });
+      oaApi_('post', 'message/reply', { replyToken: ev.replyToken, messages: [{ type: 'text', text: '📄 《' + hit.title + '》在這裡：\n' + hit.url + '\n\n有任何問題，直接在這裡傳訊息給我 😊' }].concat(oaCardMsg_() || []) });
       sent = '\n✅ 已自動回 PDF《' + hit.title + '》';
     } catch (e) { sent = '\n⚠️ 自動回 PDF 失敗：' + e.message; }
   }
@@ -6110,7 +6393,7 @@ function oaAsk_(t, raw) {
   if (rep) {
     const p = oaPeers_().filter(x => String(x.n) === rep[1])[0];
     if (!p) return '找不到 #' + rep[1] + '，打「官方LINE」看最近的朋友編號。';
-    try { oaApi_('post', 'message/push', { to: p.id, messages: [{ type: 'text', text: rep[2].trim().slice(0, 5000) }] }); return '📮 已用官方 LINE 回給 ' + p.name + '（用掉 1 則每月推播額度）。'; }
+    try { oaApi_('post', 'message/push', { to: p.id, messages: [{ type: 'text', text: rep[2].trim().slice(0, 5000) }].concat(oaCardMsg_() || []) }); return '📮 已用官方 LINE 回給 ' + p.name + '（用掉 1 則每月推播額度）。'; }
     catch (e) { return '❌ 沒送出去：' + e.message + (/limit|quota|上限/i.test(e.message) ? '\n這個月的推播額度可能用完了，請到官方 LINE App 直接回他。' : ''); }
   }
   if (/^(官方LINE|官方line|官方LINE設定|官方LINE狀態|官方帳號)$/.test(k)) return oaStatus_();
