@@ -726,6 +726,7 @@ function answer_(text) {
     KIT_PENDING_ = kp;
     return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。';
   }
+  if (/^\S*文案分析$/.test(t2.replace(/\s+/g, ''))) return captionWrite_();   // 「🏷️ 文案分析」：剛寫好的文案加上標題與說明
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
   if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
@@ -851,6 +852,8 @@ function stratCat2_(k, cat) {
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
 // AI 一分鐘短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
 const REEL_BTN = '🎭 短劇腳本';
+// 文案分析（2026-10-25）：把剛寫好的文案拆成「標題」和「說明」，說明的最後一行放 hashtag
+const CAP_BTN = '🏷️ 文案分析';
 const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
 let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各自把它畫成圖卡送出
@@ -1028,10 +1031,11 @@ function stratWrite_(k, th) {
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
   LAST_CARD_ = card;
+  setProp_('STRAT_CARD', JSON.stringify(card));   // 給「🏷️ 文案分析」用（LAST_CARD_ 會被清掉）
   // 同步附一分鐘短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, CAP_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 
 // 只寫短劇腳本（不寫文案、不畫圖卡）
@@ -1427,6 +1431,21 @@ function settingsMenu_(t, raw) {
 function postText_(c) {
   return [c.ptitle, '', c.post || c.body, '', c.post ? '' : c.gold, c.note, '', c.tags.join(' ')]
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
+}
+// 文案分析（2026-10-25）：把剛寫好的文案整理成「標題」與「說明」，方便直接貼到分開填的欄位
+// 標題不含 hashtag；說明放正文，hashtag 放說明的最後一行（依專案既有的文案風格）
+function captionWrite_() {
+  let c = null;
+  try { c = JSON.parse(prop_('STRAT_CARD') || 'null'); } catch (e) { c = null; }
+  if (!c || !c.post) return { text: '還沒有可以分析的文案，先按「🪶 智囊軍師」寫一篇吧。', buttons: MENU };
+  const hash = /#[^\s#]+/g;
+  const title = String(c.ptitle || c.title || c.theme || '').replace(hash, '').replace(/\s+/g, ' ').trim();
+  const body = String(c.post).replace(hash, '').replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+  const tags = (c.tags || []).map(s => String(s).trim()).filter(Boolean).map(s => s.charAt(0) === '#' ? s : '#' + s).join(' ');
+  const lines = [body];
+  if (c.note) lines.push('', c.note);
+  if (tags) lines.push('', tags);
+  return { text: '📌 標題\n' + title + '\n\n📝 說明\n' + lines.join('\n'), buttons: MENU };
 }
 function stratText_(c) {
   return [stratHead_() + '｜' + (c.cat2 || c.label), '', postText_(c)]
