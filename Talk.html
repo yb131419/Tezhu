@@ -361,7 +361,7 @@ function playMp3(t,b64){const ac=getAC();if(!ac||ac.state!=='running')return pla
  try{const bin=atob(b64),buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
   ac.decodeAudioData(buf.buffer,ab=>{const s=ac.createBufferSource();s.buffer=ab;s.connect(ac.destination);auSrc=s;s.onended=()=>{if(auSrc===s){auSrc=null;next();}};s.start(0);},()=>playEl(t,b64));}catch(e){playEl(t,b64);}}
 // 真人語音分開合成：文字先顯示，語音另外要（不擋住回答）
-function speakReal(t,n){n=n||0;return P({action:'tts',key:KEY,text:t}).then(x=>{if(x&&x.audio)playMp3(t,x.audio);else throw new Error('no audio');}).catch(()=>{if(n<1)return speakReal(t,1);tts(t);});}
+function speakReal(t,n){n=n||0;return P({action:'tts',key:KEY,text:t}).then(x=>{if(x&&x.audio)playMp3(t,x.audio);else throw new Error('no audio');}).catch(()=>{if(n<1)return speakReal(t,1);});}
 function playEl(t,b64){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+b64;const p=a.play();if(p)p.catch(()=>tts(t));}
 // 手機內建聲音：有時候唸完不會通知，所以另外估時間當保險
 function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=window._zhV=window._zhV||speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);clearTimeout(ttsT);ttsT=setTimeout(next,Math.min(90000,2000+String(t).length*320));}
