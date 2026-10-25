@@ -708,6 +708,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
+  if (ytr) return ytr;
   const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
   if (ap) return ap;
   const oa = oaAsk_(t2, raw);   // 「官方LINE」：接官方 LINE、關鍵字自動給 PDF、「官回 3 內容」回朋友
@@ -881,12 +883,91 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
   return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。\n要再加一位（一男一女）按「' + HERO2_BTN + '」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [HERO_BTN, HERO2_BTN, STRAT_SWITCH]] };
+}
+
+/* ============ 貼文改寫 YT：貼一篇文章，照選的主題模板改寫成 YouTube 的標題和說明 ============ */
+// 流程：按「🎬 貼文改寫YT」→ 貼文章 → 選模板（就是智囊軍師的主題）→ 回標題與說明；可以再換模板重寫
+const YT_BTN = '🎬 貼文改寫YT', YT_CANCEL = '取消';
+const YT_WAIT_MS = 10 * 60 * 1000;
+function ytBare_(s) { return String(s || '').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, ''); }
+function ytMenuWord_(flat) {
+  const words = [].concat.apply([], MENU.concat(MENU_GROUPS, QUICK, [[YT_BTN, YT_CANCEL]], [STRAT_THEMES.map(x => x.btn)]));
+  return words.some(b => ytBare_(b) === flat);
+}
+function ytPickButtons_() {
+  const b = STRAT_THEMES.map(t => t.btn);
+  return [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [YT_CANCEL]];
+}
+function ytTheme_(flat) {
+  const hit = STRAT_THEMES.filter(x => ytBare_(x.btn) === flat)[0];
+  if (hit) return hit;
+  const k = flat.length <= 10 ? stratKey_(flat) : null;   // 很長的一段（貼上的文章）不當成主題名
+  return STRAT_THEMES.filter(x => x.k === k)[0] || null;
+}
+function ytEnd_(text) { setProp_('YT_STATE', ''); return { text: text, buttons: MENU }; }
+function ytPick_(article) {
+  const body = String(article || '').trim().slice(0, 6000);
+  setProp_('YT_STATE', 'pick');
+  setProp_('YT_ARTICLE', body);
+  setProp_('YT_UNTIL', String(Date.now() + YT_WAIT_MS));
+  return { text: '好，文章收到了（' + body.length + ' 字）。\n要用哪個主題的模板改寫？選一個按鈕，我回你 YouTube 的標題和說明。', buttons: ytPickButtons_() };
+}
+// 「🎬 貼文改寫YT」的下一步：等文章 → 等模板；按了別的功能就不再等
+function ytAsk_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  const st = Number(prop_('YT_UNTIL')) > Date.now() ? prop_('YT_STATE') : '';
+  if (st && flat !== YT_CANCEL && !(st === 'pick' && ytTheme_(flat)) && ytMenuWord_(flat)) {
+    setProp_('YT_STATE', '');
+  } else if (st) {
+    if (/^(取消|不用|算了)$/.test(flat)) return ytEnd_('好，不改寫。');
+    if (st === 'article') return ytPick_(raw || t);
+    const th = ytTheme_(flat);
+    if (th) return ytWrite_(th);
+    return ytPick_(raw || t);   // 選模板時又貼了一段，就換成這篇
+  }
+  if (/^(貼文改寫(YT|yt)?|YT改寫|改寫YT)$/.test(flat)) {
+    setProp_('YT_STATE', 'article');
+    setProp_('YT_UNTIL', String(Date.now() + YT_WAIT_MS));
+    return { text: '🎬 貼文改寫 YT\n\n把要改寫的文章貼給我（整段複製貼上就好）。\n接著請你選一個模板，我回你 YouTube 的標題和說明。\n\n（打「取消」就不改）', buttons: [[YT_CANCEL]] };
+  }
+  return null;
+}
+function ytWrite_(th) {
+  if (!prop_('OPENAI_API_KEY')) return ytEnd_('還沒設定 OpenAI 金鑰，沒辦法改寫。');
+  if (busy_('YT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在改寫，寫好就傳給你，不用再按喔。';
+  try {
+    const yt = ytRewrite_(th, prop_('YT_ARTICLE') || '');
+    if (!yt) return { text: '這次沒改寫出來，再按一次模板試試看。', buttons: ytPickButtons_() };
+    setProp_('YT_UNTIL', String(Date.now() + YT_WAIT_MS));
+    return { text: ['🎬 YouTube 標題與說明（' + th.name + '）', '', '【標題】', yt.title, '', '【說明】', yt.desc, '', '想換模板就按下面的主題，再改寫一次。'].join('\n'), buttons: ytPickButtons_() };
+  } finally { busyEnd_('YT_BUSY'); }
+}
+// 照主題模板改寫：標題適合 YouTube 的長度與點擊感，說明含摘要與適度的關鍵字，語氣跟模板一致
+function ytRewrite_(th, article) {
+  const sys = [
+    '你是「智囊軍師」，彥彬的 YouTube 文案高手。請把使用者貼上的文章，照下面的主題模板改寫成 YouTube 影片的「標題」和「說明」。',
+    '【本次模板】' + th.guide + '（若模板要你判斷分類，照判斷的方向寫就好，不用輸出分類）',
+    '【標題】繁體台灣用語，28 字內（手機上只會顯示前面一段，重點字放前面）；有點擊感但不誇大、不講假消息，不用「震驚」「必看」這類空話；可以用數字、反問或反骨句。',
+    '【說明】開頭 2 到 3 句摘要，講這支影片講什麼、觀眾會得到什麼；中間自然帶 2 到 3 個關鍵字（用一般說法，不堆砌）；結尾一句引導觀看的話即可，不叫人留言或私訊。全文約 150 到 300 字，段落之間空一行，不附時間軸。',
+    '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料。',
+    '只輸出 JSON：{"title":"標題","desc":"說明全文"}',
+  ].join('\n');
+  try {
+    const out = callOpenAI_(sys, [{ role: 'user', content: '請改寫這篇文章：\n\n' + String(article).slice(0, 6000) }]);
+    const c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+    const title = String(c.title || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    const desc = String(c.desc || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    return title && desc ? { title: title, desc: desc } : null;
+  } catch (err) {
+    console.error('貼文改寫YT失敗：' + err.message);
+    return null;
+  }
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
