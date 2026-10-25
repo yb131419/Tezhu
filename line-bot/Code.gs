@@ -41,7 +41,7 @@ const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
-const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師', '🧘修行'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
@@ -747,6 +747,7 @@ function answer_(text) {
     KIT_PENDING_ = kp;
     return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。';
   }
+  if (raw.replace(/\s+/g, '') === '🧘修行') return strategist_('practice');   // 快速回覆的「🧘修行」（不加空格）
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
   if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
