@@ -974,6 +974,16 @@ function strategist_(k) {
 }
 function stratWrite_(k, th) {
   setProp_('STRAT_LAST', k);
+  const card = stratCard_(k, th);
+  if (!card) return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
+  LAST_CARD_ = card;
+  // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
+  let reel = '';
+  try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
+  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+}
+// 寫一篇文案（貼文＋3 張圖卡內容），不畫圖、不附短劇；軍師的寫作規則都在這裡，短劇也用同一份
+function stratCard_(k, th) {
   let hist = [];
   try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
   const sys = [
@@ -1001,7 +1011,7 @@ function stratWrite_(k, th) {
     c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
   } catch (err) {
     console.error('智囊軍師失敗：' + err.message);
-    return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
+    return null;
   }
   // 3 張圖卡（舊格式只有一張也接受）
   const cards = (Array.isArray(c.cards) && c.cards.length ? c.cards : [c]).slice(0, 3).map((x, i) => ({
@@ -1028,22 +1038,21 @@ function stratWrite_(k, th) {
   card.cat2 = stratCat2_(k, card.cat);
   hist.unshift(card.title);
   setProp_('STRAT_HIST', JSON.stringify(hist.slice(0, 10)));
-  LAST_CARD_ = card;
-  // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
-  let reel = '';
-  try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return card;
 }
 
-// 只寫短劇腳本（不寫文案、不畫圖卡）
+// 只寫短劇腳本：短劇前面先放一篇發文內容（同一套軍師規則），短劇照這篇改編（不畫圖卡）
 function reelOnly_(k) {
   const th = STRAT_THEMES.filter(t => t.k === k)[0];
   if (!th) return reelMenu_();
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫腳本。';
   if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
   try {
-    const r = reelWrite_(k, th, null);
-    return { text: reelText_(r), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
+    const card = stratCard_(k, th);
+    if (!card) return { text: '文案和短劇這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
+    let reel = '';
+    try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
+    return { text: stratText_(card) + '\n\n' + (reel || '短劇腳本這次沒寫出來，再按一次試試看。'), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
   } catch (err) {
     console.error('短劇腳本失敗：' + err.message);
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
