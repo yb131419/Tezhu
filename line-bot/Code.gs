@@ -2030,10 +2030,11 @@ function kitFrame_(req, slide, id, x, y, w, h, color, weight) {
     outline: { outlineFill: { solidFill: { color: { rgbColor: rgb_(color) } } }, weight: { magnitude: weight || 0.8, unit: 'PT' } } } } });
 }
 // 大標與下面幾段：置左；top 起排，底部以 498 為界（底線在 520）
-function kitHeadBlock_(req, slide, head, fit, top, rest) {
+// valign 預設靠上；內頁要垂直置中（2026-10-25 使用者：文字擠在頭頂）時傳 'MIDDLE'
+function kitHeadBlock_(req, slide, head, fit, top, rest, valign) {
   const C = KIT_S_.c;
   kitText_(req, slide, slide + '_main', [75, top, 420, 498 - top], [
-    { t: head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START' }].concat(rest || []), 'TOP');
+    { t: head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START' }].concat(rest || []), valign || 'TOP');
 }
 
 // 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
@@ -2046,27 +2047,29 @@ function kitCardLayout_(kit, i) {
     // 2026-10-22 使用者：內頁文字跑版 → 字級不再固定，依字數縮到放得下（上限 46）
     const fit = kitFit_(s.head, 400, 46, 30, 170);
     return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 150, [body(s.body)]));
+      kitHeadBlock_(req, slide, s.head, fit, 150, [body(s.body)], 'MIDDLE'));
   }
   if (s.kind === 'reason') {
     const fit = kitFit_(s.head, 400, 44, 28, 330);
     return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 150, []));
+      kitHeadBlock_(req, slide, s.head, fit, 150, [], 'MIDDLE'));
   }
   if (s.kind === 'last') {
     const fit = kitFit_(s.head, 400, 46, 30, 200);
     return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
-      kitText_(req, slide, slide + '_pre', [75, 128, 420, 122], [body(s.pre, { above: 0 })], 'TOP');
-      kitHeadBlock_(req, slide, s.head, fit, 268, []);
+      // 前言與標題放同一個框、垂直置中（2026-10-25）：標題在前言下方留一段距離
+      kitText_(req, slide, slide + '_main', [75, 150, 420, 348], [
+        body(s.pre, { above: 0 }),
+        { t: s.head, size: fit.size, bold: true, color: C.ink, em: C.gold, ls: 125, align: 'START', above: 40 }], 'MIDDLE');
     });
   }
   // 最後一張：整組只有這張引導留言（使用者 2026-10-16）
   const fit = kitFixed_(40);
   return kitWarm_(kit, s, i, N, W, H, '送你一份 PDF', 'FREE GUIDE', 'END', (req, slide) =>
-    kitHeadBlock_(req, slide, s.head, fit, 128, [
+    kitHeadBlock_(req, slide, s.head, fit, 150, [
       { t: '留 言 關 鍵 字', size: 16, bold: true, color: C.sub, font: 'Noto Sans TC', align: 'START', above: 24 },
       { t: kit.keyword.split('').join(' '), size: 64, bold: true, color: C.gold, align: 'START', above: 0, ls: 120 },
-      body(s.sub, { size: 18, above: 6 })]));
+      body(s.sub, { size: 18, above: 6 })], 'MIDDLE'));
 }
 
 // 自動平均斷行：避免最後一行只剩一兩個字（例如「舒適」），每行約 maxU 個中文字寬；逗號、句號等標點不放在行首
