@@ -133,7 +133,7 @@ const HELP_MORE = [
   '📖 更多用法',
   '',
   '【🪶 軍師】',
-  '・按「🪶 智囊軍師」選主題：軍師判定、觀念、健康、火山草本、經營、網路行銷',
+  '・按「🪶 智囊軍師」選主題：修行、軍師判定、觀念、健康、火山草本、經營、網路行銷',
   '・文案會畫成 3 張圖卡（不同切角）一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
   '・按「⚙️ 圖卡設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
   '',
@@ -829,12 +829,14 @@ function answer_(text) {
   return chat_(text);
 }
 
-/* ============ 智囊軍師：一鍵選六大主題，寫文案＋圖卡 ============ */
-// 六大主題對齊「智囊軍師」(asset/Work.html) 的資料收集分類；按主題按鈕就寫一篇文案，並畫成圖卡（跟試算報表一樣用簡報畫成圖片）
+/* ============ 智囊軍師：一鍵選主題，寫文案＋圖卡 ============ */
+// 主題對齊「智囊軍師」(asset/Work.html) 的資料收集分類，另加「修行」（使用者 2026-10-25 指定，排在第一位）；按主題按鈕就寫一篇文案，並畫成圖卡（跟試算報表一樣用簡報畫成圖片）
 const STRAT_BTN = '🪶 智囊軍師';
 // 反骨開頭（使用者 2026-10-17：停留率跟轉換率很低，開頭要改反骨）：軍師貼文、封面、7 張名單包共用
 const STRAT_HOOK = '【反骨開頭】第一句決定別人會不會停下來。貼文第一行、封面主標和鉤子都要用反骨句：直接推翻大家以為對的常識，讓人一看就想「蛤？為什麼？」。句型例如「別再⋯⋯了」「你越⋯⋯，越⋯⋯」「⋯⋯不是你的錯，是⋯⋯」「大家都說⋯⋯，我偏不」「90% 的人都做反了」。只翻轉觀念，不罵人、不恐嚇，不用療效、收入或成效保證當反骨點；第一句 20 字內、單獨一行，第二句馬上接一個讓人對號入座的生活場景，不要用「你好」「今天想跟大家聊」這類暖場開頭。';
-const STRAT_THEMES = [   // 順序（2026-10-16 使用者指定）：軍師、觀念、健康、草本、經營、行銷
+const STRAT_THEMES = [   // 順序（2026-10-16 使用者指定）：修行（2026-10-25 排第一）、軍師、觀念、健康、草本、經營、行銷
+  { k: 'practice', btn: '🧘 修行', kit: '🪷', name: '修行主題',
+    guide: '【修行分享】談日常的修行，三種切入擇一或交錯：日常覺察（注意到自己被情緒拉走的那一刻，先停一下看見它）、數息（用呼吸的一進一出默數，數到十，把注意力拉回來）、慈悲回應（對方說話帶刺時，先想「他也有他的難處」，再用平和的語氣回應）。用一個具體的生活場景切入，寫怎麼做、怎麼練，語氣溫和平實，不講玄、不講神通或開悟。不寫療效、療癒保證，不宣稱能改善失眠、焦慮等身心狀況。' },
   { k: 'auto', btn: '🪶 軍師', kit: '🎯', name: '智囊軍師判定',
     guide: '請你（智囊軍師）先在五大分類中判斷今天最適合發文的方向：觀念、健康、火山草本、經營、網路行銷，cat 填所選分類，再依該分類的規則寫：觀念只談觀念與生活道理，不寫身體、毒素、排毒；健康用大健康原理的比喻切入，案例只說個人感受、不寫療效；火山草本一次只介紹一種火山植物（薑黃、山奈、穿心蓮、雷公根、山竹果其中一種），寫它的樣子、產地、傳統用法和小知識，不寫功效、不寫成喝茶；經營寫給新手能照著做的方向，不提收入或成效保證；網路行銷只寫經營技巧，不寫業績。' },
   { k: 'concept', btn: '💡 觀念', kit: '🧠', name: '觀念主題',
@@ -862,7 +864,7 @@ function stratGuide_(th) {
   return th.guide + '\n【這次的植物】' + p + '。標題、封面、內文、PDF 都只講' + p + '；系列名用「認識' + p + '的三件事」這類說法，7 張的 action 三張 step 寫「第一件事／第二件事／第三件事」，分別講三個不同面向（例如樣子與產地、傳統用法、小知識）。';
 }
 // 文案開頭只寫分類兩個字（使用者 2026-10-16）：選哪個主題就寫哪個；選「軍師」照 AI 判斷的五大主題填
-const STRAT_CAT2 = { concept: '觀念', health: '健康', herb: '草本', biz: '經營', net: '行銷' };
+const STRAT_CAT2 = { practice: '修行', concept: '觀念', health: '健康', herb: '草本', biz: '經營', net: '行銷' };
 function stratCat2_(k, cat) {
   if (STRAT_CAT2[k]) return STRAT_CAT2[k];
   const c = String(cat || '');
@@ -879,17 +881,18 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [KIT_BTN, REEL_BTN], [AUTO_BTN]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
   const b = STRAT_THEMES.map(t => '🎭 ' + (STRAT_CAT2[t.k] || '軍師') + '短劇');
-  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。\n要再加一位（一男一女）按「' + HERO2_BTN + '」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), [HERO_BTN, HERO2_BTN, STRAT_SWITCH]] };
+  return { text: '🎭 55 秒短劇腳本\n\n選一個主題，我寫一支 55 秒的 AI 短劇腳本：角色外型、每一段的畫面和台詞都寫好，可以直接貼到 AI 影片工具生成。\n\n想自訂主角，按「' + HERO_BTN + '」一步步設定（名字、性別、年齡、外型），或直接打「設定主角 小美，女生，25 歲，短髮、穿白襯衫」。\n要再加一位（一男一女）按「' + HERO2_BTN + '」。', buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [HERO_BTN, HERO2_BTN, STRAT_SWITCH]] };
 }
 
 // 主題的說法對到主題代號（文案、短劇共用）；對不到回 null
 function stratKey_(w) {
   if (/判定|軍師|隨便|你決定|你選/.test(w)) return 'auto';
+  if (/修行/.test(w)) return 'practice';
   if (/火山|草本/.test(w)) return 'herb';
   if (/健康/.test(w)) return 'health';
   if (/觀念/.test(w)) return 'concept';
@@ -922,7 +925,7 @@ function stratPick_(text) {
   let r = t.replace(/^(智囊軍師|軍師)(?=.)/, '');
   const pre = r !== t;
   r = r.replace(/文案$/, '');
-  const map = { 軍師判定: 'auto', 智囊軍師判定: 'auto', 健康主題: 'health', 火山草本: 'herb', 觀念主題: 'concept', 經營主題: 'biz', 網路行銷: 'net', 草本主題: 'herb', 行銷主題: 'net' };
+  const map = { 修行: 'practice', 修行主題: 'practice', 軍師判定: 'auto', 智囊軍師判定: 'auto', 健康主題: 'health', 火山草本: 'herb', 觀念主題: 'concept', 經營主題: 'biz', 網路行銷: 'net', 草本主題: 'herb', 行銷主題: 'net' };
   if (map[r]) return map[r];
   if (pre) return { 判定: 'auto', 健康: 'health', 觀念: 'concept', 經營: 'biz' }[r] || null;
   return null;
@@ -1711,7 +1714,7 @@ const kitThemeStyle_ = k => KIT_STYLES.filter(x => x.t === k)[0] || KIT_STYLES[2
 
 function kitMenu_() {
   const b = STRAT_THEMES.map(t => t.kit + ' ' + t.btn.replace(/^[^\p{L}\p{N}]+/u, ''));   // 每個主題用自己的圖示（使用者 2026-10-17：不要全部用書）
-  return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份同關鍵字的 PDF。\n最後一張圖卡會請大家留言關鍵字，你把 PDF 傳給他就好。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6)] };
+  return { text: '📕 7張＋PDF\n\n選一個主題：我寫一篇貼文、7 張輪播圖卡，再做一份同關鍵字的 PDF。\n最後一張圖卡會請大家留言關鍵字，你把 PDF 傳給他就好。\n（要做 1～2 分鐘）', buttons: [b.slice(0, 3), b.slice(3, 6), b.slice(6)] };
 }
 // 「📕 7張＋PDF」→ 'menu'；「💪 健康」（舊的「📕 健康」也認得）→ 'health'；不是就回 null
 function kitPick_(raw) {
@@ -1869,7 +1872,7 @@ function noAsk_(t) {
     .replace(/\n{3,}/g, '\n\n').trim();
 }
 // 留言關鍵字：不能是主題大詞、不能跟最近重複；AI 給的不行就從系列名稱挑兩個字
-const KIT_KW_BAN = /草本|火山|健康|觀念|經營|行銷|網路|保健|養生|分享|康園/;
+const KIT_KW_BAN = /修行|草本|火山|健康|觀念|經營|行銷|網路|保健|養生|分享|康園/;
 function kitKeyword_(kw, series, recent) {
   const used = (recent || []).map(String);
   const good = w => w && w.length >= 2 && !KIT_KW_BAN.test(w) && used.indexOf(w) < 0;
