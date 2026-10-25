@@ -271,16 +271,18 @@ function talkLink_() {
 
 // 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
 const TALK_BTN = '🐾 對話頁';
+const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
   if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (t === SCHED_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: SCHEDULE_URL } };
   if (t === WALL_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: wallUrl_() } };
   return { type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } };
 }
 // 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
 const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
-function tgKey_(t) { return t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
+function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
 // 「🔎 見證庫」網頁（Cases.html）：跟對話頁一樣把小乖網址放 ?u=，密碼不放網址
 const WALL_PAGE = 'https://yb131419.github.io/Tezhu/Cases.html';
 function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE + (i >= 0 ? t.slice(i) + '&' : '?') + 'openExternalBrowser=1'; }
@@ -3497,7 +3499,7 @@ function listDays_(a, b, label) {
   const one = from === to;
   const head = one ? '⏰ ' + label + ' ' + md(from) + '（星期' + wk(from) + '）'
     : '🗓️ ' + label + '行程（' + md(from) + '～' + md(to) + '）';
-  if (!evs.length && !rms.length) return head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。\n\n✏️ 手機上新增行程：' + SCHEDULE_URL;
+  if (!evs.length && !rms.length) return { text: head + '\n\n' + label + (from === day(0) && a === 0 ? '接下來' : '') + '沒有行程，也沒有提醒。', buttons: [[SCHED_BTN]].concat(MENU) };
   const evLine = e => '・' + (hm_(e.time) || '整天') + '　' + e.title + (e.place ? '＠' + e.place : '');
   const rmLine = r => '・' + String(r.at).slice(11, 16) + '　🔔 ' + r.text;
   let body = [];
@@ -3515,7 +3517,7 @@ function listDays_(a, b, label) {
     });
   }
   const dels = evs.map(evDelLabel_).concat(rms.map(r => '🗑️ 刪 ' + r.text)).slice(0, 8);
-  return { buttons: [dels].concat(MENU), text: [head, ''].concat(body, ['', '要刪掉哪一筆，點下面的 🗑️ 按鈕就好。', '✏️ 手機上調配行程：' + SCHEDULE_URL]).join('\n') };
+  return { buttons: [[SCHED_BTN], dels].concat(MENU), text: [head, ''].concat(body).join('\n') };
 }
 
 // 「明天行程」「這週有什麼行程？」「星期五的安排」→ [起, 迄, 標題]；不是問行程就回 null
