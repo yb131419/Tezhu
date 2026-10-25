@@ -139,6 +139,16 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
+.sr{display:flex;align-items:center;gap:8px}
+.stxt{width:auto;height:40px;border-radius:999px;padding:0 14px;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:14px}
+.sck{flex:0 0 22px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold-2);display:inline-grid;place-items:center;font-size:13px;color:#1A150D;margin-top:3px}
+.sitem.pick{background:rgba(201,165,106,.16);border-color:#C9A56A}
+.sitem.pick .sck{background:var(--champ);border-color:transparent}
+.sbar{display:flex;gap:8px;margin-top:10px}
+.sbar[hidden]{display:none}
+.sbar button{height:48px;border-radius:14px;width:auto;font-size:15px;font-weight:700;padding:0 14px;background:transparent;border:1px solid var(--line);color:var(--ink)}
+.sbar #sDelSel{flex:1;color:#D98A6B;border-color:rgba(217,138,107,.4)}
+.sbar #sDelSel:disabled{opacity:.4}
 .sx{width:40px;height:40px;border-radius:50%;padding:0;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;line-height:1}
 .stabs{display:flex;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px}
 .stabs button{flex:1;width:auto;height:40px;border-radius:999px;background:transparent;color:var(--soft);font-size:15px}
@@ -232,11 +242,12 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
 <div id="sched"><div class="box">
- <div class="sh"><b>📅 行程</b><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div>
+ <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
  <div class="smsg" id="smsg"></div>
  <div id="slist"></div>
  <button id="sadd" type="button" class="sadd">＋ 新增行程</button>
+ <div class="sbar" id="sbar" hidden><button id="sAll" type="button">全選</button><button id="sDelSel" type="button" disabled>刪除已選（0 筆）</button><button id="sCancel" type="button">取消</button></div>
 </div></div>
 <div id="sform"><div class="box" id="sfbox"></div></div>
 <script>
@@ -426,7 +437,7 @@ $('cam').onclick=()=>pickPhoto(false);
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
 // 行程面板（併入對話頁）：沿用上面的 KEY、URL 同步設定，跟 Schedule 之前的獨立頁面用同一支 API
-let sEvents=[],sTab='next',sEditId=null,sMsgT=0;
+let sEvents=[],sTab='next',sEditId=null,sMsgT=0,sSelMode=false,sPicked=new Set();
 const sWeek=['日','一','二','三','四','五','六'];
 const sPad=n=>('0'+n).slice(-2);
 function sToday(){const n=new Date();return n.getFullYear()+'-'+sPad(n.getMonth()+1)+'-'+sPad(n.getDate());}
@@ -441,7 +452,7 @@ async function sLoad(){
  try{const o=await sApi({action:'evList'});sEvents=o.events||[];sRender();}
  catch(e){$('slist').innerHTML='<div class="sempty">讀取失敗：'+sEsc(e.message)+'</div>';}}
 function openSched(){if(!KEY||!URL){login();return;}$('sched').style.display='flex';sRender();sLoad();}
-function closeSched(){$('sched').style.display='none';}
+function closeSched(){$('sched').style.display='none';sSelExit();}
 function sRender(){
  const t=sToday();
  $('stN').classList.toggle('on',sTab==='next');$('stP').classList.toggle('on',sTab==='past');
@@ -451,7 +462,8 @@ function sRender(){
  let h='',last='';
  list.forEach(e=>{
   if(e.date!==last){h+='<div class="sday">'+sEsc(sDayLabel(e.date))+'</div>';last=e.date;}
-  h+='<button type="button" class="sitem" data-id="'+sEsc(e.id)+'"><span class="stime">'+(e.time?sEsc(e.time):'整天')+'</span><span><span class="sti">'+sEsc(e.title)+'</span>'+(e.place?'<span class="spl">📍 '+sEsc(e.place)+'</span>':'')+'</span></button>';
+  const pk=sPicked.has(e.id);
+  h+='<button type="button" class="sitem'+(pk?' pick':'')+'" data-id="'+sEsc(e.id)+'">'+(sSelMode?'<span class="sck">'+(pk?'✓':'')+'</span>':'')+'<span class="stime">'+(e.time?sEsc(e.time):'整天')+'</span><span><span class="sti">'+sEsc(e.title)+'</span>'+(e.place?'<span class="spl">📍 '+sEsc(e.place)+'</span>':'')+'</span></button>';
  });
  $('slist').innerHTML=h;}
 function sOpenForm(ev){
@@ -490,12 +502,43 @@ async function sDel(){
  if(!confirm('確定要刪除這筆行程嗎？'))return;
  try{await sApi({action:'evDel',id});sEvents=sEvents.filter(e=>e.id!==id);sCloseForm();sRender();sMsg('已刪除');}
  catch(e){sErr('刪除失敗：'+e.message);}}
+// 多選刪除：勾選後一次刪除；每筆仍照單筆刪除的規則（刪除紀錄、提醒一起刪）
+function sVisible(){const t=sToday();return sEvents.filter(e=>sTab==='next'?e.date>=t:e.date<t);}
+function sSelUI(){
+ $('sbar').hidden=!sSelMode;
+ $('sadd').hidden=sSelMode;
+ const n=sPicked.size, vis=sVisible();
+ const all=vis.length>0&&vis.every(e=>sPicked.has(e.id));
+ $('sAll').textContent=all?'取消全選':'全選';
+ $('sDelSel').textContent='刪除已選（'+n+' 筆）';
+ $('sDelSel').disabled=!n;}
+function sTogglePick(id){if(sPicked.has(id))sPicked.delete(id);else sPicked.add(id);sRender();sSelUI();}
+function sSelEnter(){sSelMode=true;sPicked.clear();sRender();sSelUI();}
+function sSelExit(){sSelMode=false;sPicked.clear();sRender();sSelUI();}
+$('sSel').onclick=()=>{sSelMode?sSelExit():sSelEnter();};
+$('sCancel').onclick=sSelExit;
+$('sAll').onclick=()=>{const vis=sVisible();const all=vis.length>0&&vis.every(e=>sPicked.has(e.id));
+ if(all)vis.forEach(e=>sPicked.delete(e.id));else vis.forEach(e=>sPicked.add(e.id));
+ sRender();sSelUI();};
+$('sDelSel').onclick=async()=>{
+ const ids=[...sPicked];if(!ids.length)return;
+ if(!confirm('確定要刪除這 '+ids.length+' 筆行程嗎？'))return;
+ $('sDelSel').disabled=true;
+ let done=0,failed=0;
+ for(const id of ids){
+  try{await sApi({action:'evDel',id});done++;sEvents=sEvents.filter(e=>e.id!==id);sPicked.delete(id);}
+  catch(e){failed++;}
+ }
+ sSelMode=false;sPicked.clear();sRender();sSelUI();
+ sMsg(failed?'已刪除 '+done+' 筆，'+failed+' 筆失敗，請再試一次':'已刪除 '+done+' 筆');};
 $('schedb').onclick=openSched;
 $('schedx').onclick=closeSched;
 $('sadd').onclick=()=>sOpenForm(null);
-$('stN').onclick=()=>{sTab='next';sRender();};
-$('stP').onclick=()=>{sTab='past';sRender();};
-$('slist').onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;const ev=sEvents.find(x=>x.id===b.dataset.id);if(ev)sOpenForm(ev);};
+$('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
+$('stP').onclick=()=>{sTab='past';sPicked.clear();sRender();sSelUI();};
+$('slist').onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;
+ if(sSelMode){sTogglePick(b.dataset.id);return;}
+ const ev=sEvents.find(x=>x.id===b.dataset.id);if(ev)sOpenForm(ev);};
 $('sched').onclick=e=>{if(e.target.id==='sched')closeSched();};
 $('sform').onclick=e=>{if(e.target.id==='sform')sCloseForm();};
 if(location.hash==='#sched')openSched();
