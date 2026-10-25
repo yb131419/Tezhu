@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>私人助理小乖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#12100D">
+<script>try{const t=localStorage.getItem("xg_theme");if(t==="dark")document.documentElement.dataset.theme="dark";}catch(e){}</script>
 <style>
   :root{
     --paper:#F5F0E3;
@@ -353,6 +358,152 @@
     border:1px solid rgba(217,184,115,.25);max-width:calc(100% - 32px);text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .build-tag{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:16px;letter-spacing:.5px;}
+
+  /* ================= 精品質感層（Maison）：只改外觀，功能不變 ================= */
+  :root{
+    --paper:#F3EEE5; --paper-2:#FFFDF8; --ink:#14120F; --ink-soft:#5B5246; --ink-faint:#A2967F;
+    --line:rgba(120,92,48,.16); --line-2:rgba(120,92,48,.08);
+    --gold:#B08D57; --gold-soft:#DCC394; --gold-deep:#8A6A37; --gold-wash:rgba(176,141,87,.12);
+    --onyx:linear-gradient(160deg,#25211B 0%,#12100D 70%);
+    --champagne:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --num:"Cormorant Garamond","Noto Serif TC",Georgia,serif;
+    --shadow:0 1px 1px rgba(20,18,15,.03), 0 10px 30px -12px rgba(60,44,20,.18);
+    --shadow-lg:0 30px 60px -24px rgba(20,16,10,.55);
+    --radius:22px; --radius-sm:16px;
+    --accent:#3F7D6B;
+    --c-todo:#3F7D6B; --c-sched:#3D5F86; --c-remind:#B5583A; --c-note:#A88341; --c-chat:#6A5A86;
+  }
+  body{
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .22 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(176,141,87,.14), transparent 60%),
+      var(--paper);
+    letter-spacing:.2px;
+  }
+  ::selection{background:rgba(176,141,87,.28);}
+
+  /* 頂欄：霧面黑曜石 + 金色細線 */
+  .topbar{background:rgba(18,16,13,.86);-webkit-backdrop-filter:saturate(160%) blur(18px);backdrop-filter:saturate(160%) blur(18px);
+    border-radius:0 0 26px 26px;box-shadow:0 18px 40px -18px rgba(0,0,0,.6);padding:18px 20px 18px;}
+  .topbar::after{left:28px;right:28px;background:linear-gradient(90deg,transparent,rgba(220,195,148,.7),transparent);}
+  .brand-tag{font-family:var(--num);font-size:11px;letter-spacing:6px;font-weight:600;color:var(--gold-soft);}
+  .brand-tag::before{width:22px;background:linear-gradient(90deg,transparent,var(--gold-soft));}
+  .title-edit,.mini-title{font-family:var(--serif);font-weight:700;letter-spacing:3px;}
+  .title-edit{font-size:26px;background:var(--champagne);-webkit-background-clip:text;background-clip:text;color:transparent;caret-color:var(--gold-soft);}
+  .gear,.hdr-toggle{background:rgba(255,255,255,.04);border:1px solid rgba(220,195,148,.28);border-radius:50%;color:var(--gold-soft);width:44px;height:44px;}
+  .gear svg,.hdr-toggle svg{width:20px;height:20px;}
+  .status-line{background:transparent;border:none;border-top:1px solid rgba(220,195,148,.12);border-radius:0;padding:12px 2px 0;
+    color:rgba(243,238,229,.6);font-size:12px;letter-spacing:.6px;}
+  .dot.on{background:#C9A56A;box-shadow:0 0 0 3px rgba(201,165,106,.2);animation:goldpulse 2.8s ease-in-out infinite;}
+  @keyframes goldpulse{0%,100%{box-shadow:0 0 0 3px rgba(201,165,106,.22);}50%{box-shadow:0 0 0 7px rgba(201,165,106,.05);}}
+
+  /* 段落標題：襯線字 + 置中金線 */
+  .section-label{font-family:var(--serif);font-size:13px;letter-spacing:5px;color:var(--gold-deep);font-weight:600;margin:28px 2px 14px;}
+  .section-label::before{width:22px;height:1px;background:var(--gold);}
+  .section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+
+  /* 問候卡：黑曜石 + 香檳金框 */
+  .hero{background:var(--onyx);border:1px solid rgba(220,195,148,.28);border-radius:28px;padding:28px 24px 24px;box-shadow:var(--shadow-lg);}
+  .hero::after{content:"";position:absolute;inset:7px;border:1px solid rgba(220,195,148,.12);border-radius:22px;pointer-events:none;}
+  .hero::before{background:linear-gradient(100deg,transparent,rgba(240,220,170,.09),transparent);animation-duration:8s;}
+  .hero-hi{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:2px;line-height:1.3;
+    background:var(--champagne);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero-date{font-size:12.5px;letter-spacing:1.2px;color:rgba(243,238,229,.55);margin:8px 0 20px;padding-bottom:16px;border-bottom:1px solid rgba(220,195,148,.14);}
+  .hero textarea{position:relative;z-index:1;background:rgba(255,255,255,.04);border:1px solid rgba(220,195,148,.2);border-radius:16px;}
+  .hero textarea:focus{border-color:rgba(220,195,148,.6);box-shadow:0 0 0 4px rgba(220,195,148,.08);}
+  .hero-run{position:relative;z-index:1;background:var(--champagne);color:#1A150D;border:none;border-radius:16px;letter-spacing:3px;
+    font-family:var(--serif);font-weight:700;box-shadow:0 14px 30px -10px rgba(201,165,106,.55), inset 0 1px 0 rgba(255,255,255,.6);}
+  .quick-row{position:relative;z-index:1;}
+  .quick{background:transparent;border:1px solid rgba(220,195,148,.3);color:rgba(243,238,229,.8);letter-spacing:.5px;font-weight:600;}
+
+  /* 今日 */
+  .today{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:6px 20px;}
+  .t-row{border-bottom-color:var(--line-2);padding:14px 0;}
+  .t-pin{width:6px;height:6px;box-shadow:0 0 0 3px var(--paper-2),0 0 0 4px currentColor;}
+  .t-time{font-family:var(--num);font-size:17px;font-weight:600;color:var(--gold-deep);min-width:52px;letter-spacing:.5px;}
+  .t-empty{font-family:var(--serif);letter-spacing:1px;padding:20px 4px;}
+
+  /* 功能入口 */
+  .lib-entry{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 18px 20px;gap:16px;margin-bottom:12px;
+    transition:transform .25s var(--ease-out),box-shadow .25s,border-color .25s;}
+  .lib-entry:active{transform:scale(.985);border-color:rgba(176,141,87,.45);}
+  .lib-entry .bar{display:none;}
+  .le-ic,.ws-ic{background:transparent!important;color:var(--gold-deep)!important;border:1px solid rgba(176,141,87,.45);border-radius:50%;
+    box-shadow:inset 0 0 0 4px var(--paper-2), inset 0 0 0 5px rgba(176,141,87,.14);}
+  .le-ic svg,.ws-ic svg{width:22px;height:22px;}
+  .le-no{font-family:var(--num);font-size:12px;letter-spacing:2px;color:var(--gold);font-weight:600;}
+  .le-name{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:1.5px;}
+  .le-sub{font-size:12.5px;color:var(--ink-faint);letter-spacing:.3px;}
+  .count{font-family:var(--num);font-size:20px;font-weight:600;background:none;color:var(--gold-deep);padding:0 2px;}
+  .count.zero{background:none;color:var(--ink-faint);opacity:.6;}
+  .chev{color:var(--gold);opacity:.7;font-family:var(--num);font-size:24px;}
+
+  /* 工作區 */
+  .back{border-radius:50%;background:var(--paper-2);border:1px solid var(--line);color:var(--gold-deep);font-family:var(--num);font-size:26px;}
+  .ws-title h2{font-family:var(--serif);font-size:23px;letter-spacing:2px;font-weight:700;}
+  .ws-title p{color:var(--ink-faint);letter-spacing:.5px;}
+  .input-card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .input-card:focus-within{border-color:rgba(176,141,87,.5);box-shadow:var(--shadow),0 0 0 4px var(--gold-wash);}
+  .in-grid input,.in-grid select,.search,.field input[type=text],.field input[type=password],.field select,.field textarea{
+    border:1px solid var(--line);background:#FFFEFB;border-radius:14px;}
+  .run-btn{background:var(--onyx)!important;color:var(--gold-soft);border:1px solid rgba(220,195,148,.3);letter-spacing:2px;
+    font-family:var(--serif);box-shadow:0 12px 24px -12px rgba(20,16,10,.6), inset 0 1px 0 rgba(255,255,255,.08);}
+  .f-chip{border:1px solid var(--line);font-weight:600;letter-spacing:.5px;}
+  .f-chip.on{background:var(--onyx);color:var(--gold-soft);border-color:rgba(176,141,87,.4);}
+  .item,.note-card{border:1px solid var(--line);border-radius:var(--radius-sm);box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 6px 16px -12px rgba(60,44,20,.25);}
+  .item input[type=checkbox]{accent-color:var(--gold-deep);}
+  .note-card .nt{font-family:var(--serif);letter-spacing:1px;}
+  .tag{background:var(--gold-wash);color:var(--gold-deep);}
+  .day-label{font-family:var(--serif);letter-spacing:2px;color:var(--gold-deep);}
+  .empty{font-family:var(--serif);letter-spacing:1px;background:transparent;border:1px solid var(--line);border-style:dashed;}
+  .mini{border:1px solid var(--line);font-weight:600;}
+
+  /* 對話 */
+  .chat-head{background:rgba(18,16,13,.92);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-radius:0 0 24px 24px;
+    border-bottom:1px solid rgba(220,195,148,.2);}
+  .chat-head .back,.chat-head .icon-btn{border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(220,195,148,.28);color:var(--gold-soft);}
+  .chat-av{background:var(--onyx);border:1px solid rgba(220,195,148,.6);box-shadow:none;font-family:var(--serif);font-size:19px;font-weight:700;color:var(--gold-soft);}
+  .chat-who b{font-family:var(--serif);letter-spacing:2px;}
+  .msg{border-radius:20px;font-size:15px;}
+  .msg.user{background:var(--onyx);color:#F3EEE5;border:1px solid rgba(220,195,148,.18);}
+  .msg.bot{background:var(--paper-2);border:1px solid var(--line);box-shadow:0 6px 16px -12px rgba(60,44,20,.3);}
+  .msg .act{background:var(--gold-wash);color:var(--gold-deep);border-color:rgba(176,141,87,.3);}
+  .composer{background:rgba(243,238,229,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);}
+  .c-btn{border:1px solid var(--line);color:var(--gold-deep);}
+  .c-input{border:1px solid var(--line);background:#FFFEFB;}
+  .c-input:focus{border-color:var(--gold);}
+  .c-send{background:var(--onyx);color:var(--gold-soft);border:1px solid rgba(220,195,148,.35);box-shadow:0 10px 20px -10px rgba(20,16,10,.6);}
+
+  /* 設定 */
+  .field label{font-family:var(--serif);letter-spacing:1.5px;font-weight:700;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);}
+  .note{background:var(--paper-2);border:1px solid var(--line);}
+  .save-main{background:var(--onyx);color:var(--gold-soft);font-family:var(--serif);letter-spacing:4px;border:1px solid rgba(220,195,148,.35);}
+  .toast{background:rgba(18,16,13,.94);color:#F3EEE5;border:1px solid rgba(220,195,148,.35);letter-spacing:.5px;}
+  .build-tag{font-family:var(--num);letter-spacing:3px;color:var(--ink-faint);}
+  .t-time,.count,.le-no,.build-tag,.brand-tag{font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum" 1;}
+
+  /* ================= 黑色系列（右上 ☾／☀ 切換，記在這支手機） ================= */
+  html[data-theme=dark]{color-scheme:dark;
+    --paper:#0F0D0B; --paper-2:#1A1713; --ink:#F3EEE5; --ink-soft:rgba(243,238,229,.72); --ink-faint:rgba(243,238,229,.45);
+    --line:rgba(220,195,148,.18); --line-2:rgba(220,195,148,.08); --gold-deep:#DCC394; --gold:#C9A56A; --gold-wash:rgba(201,165,106,.12);
+    --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 14px 34px -16px rgba(0,0,0,.8);}
+  html[data-theme=dark] body{background:
+      radial-gradient(ellipse 120% 55% at 50% -10%, rgba(201,165,106,.16), transparent 60%), var(--paper);}
+  html[data-theme=dark] .topbar{background:rgba(10,9,7,.88);border-bottom:1px solid rgba(220,195,148,.14);}
+  html[data-theme=dark] .hero{background:linear-gradient(160deg,#211D17 0%,#14110E 70%);}
+  html[data-theme=dark] .in-grid input,html[data-theme=dark] .in-grid select,html[data-theme=dark] .search,
+  html[data-theme=dark] .field input[type=text],html[data-theme=dark] .field input[type=password],html[data-theme=dark] .field select,
+  html[data-theme=dark] .field textarea,html[data-theme=dark] .c-input{background:#13110E;color:var(--ink);}
+  html[data-theme=dark] .item,html[data-theme=dark] .note-card{box-shadow:0 8px 20px -14px rgba(0,0,0,.8);}
+  html[data-theme=dark] .msg.user{background:linear-gradient(160deg,#3A3226,#2A241C);}
+  html[data-theme=dark] .msg.bot{background:#1F1B16;}
+  html[data-theme=dark] .composer{background:rgba(15,13,11,.9);}
+  html[data-theme=dark] .run-btn,html[data-theme=dark] .save-main,html[data-theme=dark] .c-send,html[data-theme=dark] .f-chip.on{background:var(--champagne)!important;color:#1A150D;border-color:transparent;}
+  html[data-theme=dark] .count.zero{color:var(--ink-faint);}
+  html[data-theme=dark] .tag.hot{background:rgba(224,97,59,.2);color:#F0A285;}
+  html[data-theme=dark] .lightbox{background:rgba(0,0,0,.92);}
 </style>
 </head>
 <body>
@@ -365,6 +516,9 @@
       <input id="titleInput" class="title-edit" value="小乖" maxlength="20" spellcheck="false">
       <button class="hdr-toggle" onclick="toggleHeader()" aria-label="收合標題">
         <svg class="chev-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+      </button>
+      <button class="gear" id="themeBtn" onclick="toggleTheme()" aria-label="切換白色／黑色">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
       </button>
       <button class="gear" onclick="openView('settings')" aria-label="設定">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -402,7 +556,7 @@
   <section id="view-todos" class="view">
     <div class="ws-head">
       <button class="back" onclick="openView('home')">‹</button>
-      <div class="ws-ic" style="background:rgba(31,138,114,.14)">✅</div>
+      <div class="ws-ic" style="background:rgba(31,138,114,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.2l2.5 2.5 4.9-5.2"/></svg></div>
       <div class="ws-title"><h2>待辦清單</h2><p>想到就記，做完就勾</p></div>
     </div>
     <div class="input-card">
@@ -426,7 +580,7 @@
   <section id="view-schedule" class="view">
     <div class="ws-head">
       <button class="back" onclick="openView('home')">‹</button>
-      <div class="ws-ic" style="background:rgba(46,111,176,.14)">🗓️</div>
+      <div class="ws-ic" style="background:rgba(46,111,176,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></div>
       <div class="ws-title"><h2>行程表</h2><p>依日期排好，一眼看完</p></div>
     </div>
     <div class="input-card">
@@ -451,7 +605,7 @@
   <section id="view-reminders" class="view">
     <div class="ws-head">
       <button class="back" onclick="openView('home')">‹</button>
-      <div class="ws-ic" style="background:rgba(224,97,59,.14)">⏰</div>
+      <div class="ws-ic" style="background:rgba(224,97,59,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg></div>
       <div class="ws-title"><h2>提醒</h2><p>時間到了小乖會叫你</p></div>
     </div>
     <div class="note" id="notifNote"></div>
@@ -476,7 +630,7 @@
   <section id="view-notes" class="view">
     <div class="ws-head">
       <button class="back" onclick="openView('home')">‹</button>
-      <div class="ws-ic" style="background:rgba(199,144,43,.14)">📝</div>
+      <div class="ws-ic" style="background:rgba(199,144,43,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12.5 6.5l5 5"/></svg></div>
       <div class="ws-title"><h2>筆記</h2><p>靈感、清單、隨手記</p></div>
     </div>
     <div class="input-card">
@@ -495,7 +649,7 @@
   <section id="view-chat" class="view">
     <div class="chat-head">
       <button class="back" onclick="openView('home')" aria-label="返回">‹</button>
-      <div class="chat-av">🐾</div>
+      <div class="chat-av" id="chatAv">乖</div>
       <div class="chat-who"><b id="chatTitle">小乖</b><span>看得到你的待辦、行程、提醒和筆記</span></div>
       <button class="icon-btn" onclick="clearChat()" aria-label="清空對話">🗑️</button>
     </div>
@@ -529,7 +683,7 @@
     </div>
 
     <div class="note">
-      🔑 OpenAI 金鑰放在你自己的 Google Apps Script，不存在瀏覽器裡。對話內容經由你的 Apps Script 送到 OpenAI，其他資料只存在這台裝置的瀏覽器。<br>
+      🔑 OpenAI 金鑰放在你自己的 Google Apps Script，不存在瀏覽器裡。對話內容經由你的 Apps Script 送到 OpenAI，其他資料只存在這台裝置的瀏覽器。開啟下方的「LINE／Telegram 與雲端同步」後，待辦、行程、提醒、筆記會另外存一份到你自己的 Google 試算表。<br>
       ⚠️ 通行碼請勿分享給他人；外洩時到 Apps Script 的指令碼屬性換一組即可。
     </div>
 
@@ -553,6 +707,15 @@
         <option value="gpt-4o-mini">⚡ 快速（gpt-4o-mini · 便宜快，支援圖片）</option>
         <option value="gpt-5-mini">🧠 智慧（gpt-5-mini · 更聰明，支援圖片）</option>
       </select>
+    </div>
+
+    <div class="field">
+      <label>LINE／Telegram 與雲端同步</label>
+      <input type="text" id="syncUrl" inputmode="url" placeholder="Apps Script 網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+      <input type="password" id="syncKey" placeholder="同步密碼" autocomplete="off" spellcheck="false" style="margin-top:9px">
+      <div class="btn-row" style="margin-top:9px"><button class="mini" onclick="saveSync()">🔄 儲存並立即同步</button></div>
+      <div class="hint" id="syncStatus"></div>
+      <div class="hint">照 line-bot/README.md 架好 Apps Script 後，把網址和同步密碼貼在這裡。之後待辦、行程、提醒、筆記會和 LINE、Telegram 上的小乖共用，換手機也不怕資料不見。</div>
     </div>
 
     <div class="field">
@@ -598,7 +761,7 @@ const STORE_KEY = "xiaoguai_v1";
 const MODELS = {"gpt-4o-mini":"gpt-4o-mini","gpt-5-mini":"gpt-5-mini"};
 const DEFAULTS = {
   schema:1,
-  build:"2026.10.14-v4-openai",
+  build:"2026.10.15-v7-theme",
   title:"小乖",
   nick:"",
   about:"",
@@ -607,8 +770,16 @@ const DEFAULTS = {
   events:[],    // {id, title, date, time, place, time0}
   reminders:[], // {id, text, at, repeat, fired, src}
   notes:[],     // {id, title, body, time}
-  chat:[]       // {role, content, acts?}
+  chat:[],      // {role, content, acts?}
+  // 雲端同步（與 LINE、Telegram 上的小乖共用資料）：每筆資料多一個 u（更新時間），刪除記在 deleted
+  syncUrl:"",
+  syncKey:"",
+  deleted:{},   // {id: 刪除時間}
+  profileU:0,   // 名字、稱呼、關於我的更新時間
+  lastSync:0,
+  syncErr:""
 };
+const SYNC_COLS = ["todos","events","reminders","notes"];
 
 /* ============ AI 代理：OpenAI 金鑰放在 Google Apps Script，不在瀏覽器 ============ */
 // AI 集團、交易助手、小乖三個頁面共用這組設定（同一個網站，填一次就好）
@@ -659,6 +830,7 @@ function load(){
       const s = JSON.parse(raw);
       const m = {...DEF, ...s};
       ["todos","events","reminders","notes","chat"].forEach(k=>{ if(!Array.isArray(m[k])) m[k]=[]; });
+      if(!m.deleted || typeof m.deleted!=="object") m.deleted={};
       if(!MODELS[m.model]) m.model=DEFAULTS.model;
       m.build = DEFAULTS.build;
       delete m.apiKey;
@@ -667,7 +839,107 @@ function load(){
   }catch(e){}
   return DEF;
 }
-function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast("儲存失敗：瀏覽器空間不足"); } }
+function save(){ stampChanges(); persist(); scheduleSync(); }
+
+/* ============ 雲端同步（與 LINE 共用） ============ */
+// 每次儲存時比對每筆資料：有變動就蓋上更新時間 u，消失的就記進 deleted。
+// 合併規則與 line-bot/Code.gs 的 merge_() 相同：同一 id 取 u 較新者，刪除時間比資料新就刪掉。
+let seen=null, profileSig="";
+function itemSig(x){ const {u,...r}=x; return JSON.stringify(r); }
+function stampChanges(){
+  const now=Date.now(), next={};
+  SYNC_COLS.forEach(c=>state[c].forEach(x=>{
+    const s=itemSig(x); next[x.id]=s;
+    if(seen && seen[x.id]!==s) x.u=now;
+    else if(!x.u) x.u=x.time||x.time0||now;
+  }));
+  if(seen) Object.keys(seen).forEach(id=>{ if(!(id in next)) state.deleted[id]=now; });
+  seen=next;
+  const ps=JSON.stringify([state.title,state.nick,state.about]);
+  if(profileSig && ps!==profileSig) state.profileU=now;
+  profileSig=ps;
+}
+function resetSeen(){ seen=null; profileSig=""; stampChanges(); }
+function syncData(){
+  const d={deleted:state.deleted,profile:{title:state.title,nick:state.nick,about:state.about,u:state.profileU}};
+  SYNC_COLS.forEach(c=>d[c]=state[c]);
+  return d;
+}
+function mergeSync(a,b){
+  const out={deleted:{}};
+  [a.deleted||{},b.deleted||{}].forEach(src=>Object.keys(src).forEach(id=>{
+    if(!(out.deleted[id]>=src[id])) out.deleted[id]=Number(src[id])||0;
+  }));
+  const cut=Date.now()-60*864e5;
+  Object.keys(out.deleted).forEach(id=>{ if(out.deleted[id]<cut) delete out.deleted[id]; });
+  SYNC_COLS.forEach(c=>{
+    const m={};
+    [...(a[c]||[]),...(b[c]||[])].forEach(x=>{ if(!x||!x.id) return; const p=m[x.id]; if(!p||(x.u||0)>(p.u||0)) m[x.id]=x; });
+    out[c]=Object.values(m).filter(x=>!(out.deleted[x.id]>=(x.u||0)));
+    if(c==="todos"||c==="notes") out[c].sort((x,y)=>(y.time||0)-(x.time||0));
+  });
+  const pa=a.profile||{}, pb=b.profile||{};
+  out.profile=(pb.u||0)>(pa.u||0)?pb:pa;
+  return out;
+}
+function syncOn(){ return !!(state.syncUrl && state.syncKey); }
+let syncing=false, syncAgain=false, syncTimer=null;
+function scheduleSync(){
+  if(!syncOn()) return;
+  clearTimeout(syncTimer); syncTimer=setTimeout(()=>syncNow(),2500);
+}
+async function syncNow(manual){
+  if(!syncOn()){ if(manual) toast("請先填好 Apps Script 網址和同步密碼"); return; }
+  if(syncing){ syncAgain=true; return; }
+  syncing=true;
+  try{
+    stampChanges();
+    let res;
+    try{
+      // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
+      res=await fetch(state.syncUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({action:"sync",key:state.syncKey,data:syncData()})});
+    }catch(e){ throw new Error("連不上 Apps Script，請檢查網址或網路"); }
+    let out;
+    try{ out=await res.json(); }catch(e){ throw new Error("Apps Script 回應格式不對，請確認部署的存取權是「所有人」"); }
+    if(!out.ok) throw new Error(out.error||"同步失敗");
+    stampChanges();   // 等待回應期間的新修改也要算進去
+    const m=mergeSync(syncData(),out.data||{});
+    SYNC_COLS.forEach(c=>state[c]=m[c]);
+    state.deleted=m.deleted;
+    if(purgePast()) syncAgain=true;
+    const p=m.profile||{};
+    if((p.u||0)>(state.profileU||0)){
+      state.title=p.title||state.title; state.nick=p.nick||""; state.about=p.about||""; state.profileU=p.u;
+    }
+    resetSeen();
+    state.lastSync=Date.now(); state.syncErr="";
+    if(manual) toast("已同步，LINE 和網頁的資料一致了");
+  }catch(e){
+    state.syncErr=e.message;
+    if(manual) toast("同步失敗："+e.message,5000);
+  }
+  syncing=false; persist(); refreshView();
+  if(syncAgain){ syncAgain=false; scheduleSync(); }
+}
+// 同步回來後重畫目前畫面（設定與對話畫面不重畫，避免打斷輸入）
+function refreshView(){
+  const v=document.querySelector(".view.active")?.id?.replace("view-","");
+  ({home:renderHome, todos:renderTodos, schedule:renderEvents, reminders:renderReminders, notes:renderNotes})[v]?.();
+  renderSyncStatus();
+}
+function renderSyncStatus(){
+  const el=document.getElementById("syncStatus"); if(!el) return;
+  el.textContent = !syncOn() ? "尚未開啟同步。"
+    : state.syncErr ? "⚠️ 上次同步失敗："+state.syncErr
+    : state.lastSync ? "✓ 上次同步："+timeStr(state.lastSync) : "尚未同步過。";
+}
+function saveSync(){
+  state.syncUrl=document.getElementById("syncUrl").value.trim();
+  state.syncKey=document.getElementById("syncKey").value.trim();
+  persist(); renderSyncStatus(); syncNow(true);
+}
 
 /* ============ 工具 ============ */
 function toast(msg,ms){
@@ -705,6 +977,17 @@ function openView(v){
   if(v==="chat") scrollChat(true);
 }
 function toggleHeader(){ document.getElementById("topbar").classList.toggle("min"); }
+// 白色／黑色系列：記在這支手機，小乖主頁和對話頁共用
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+function paintTheme(){ const d=document.documentElement.dataset.theme==="dark";
+  document.getElementById("themeBtn").innerHTML=d?SUN:MOON;
+  document.querySelector('meta[name=theme-color]').content=d?"#0A0907":"#12100D"; }
+function toggleTheme(){ const d=document.documentElement.dataset.theme!=="dark";
+  if(d) document.documentElement.dataset.theme="dark"; else delete document.documentElement.dataset.theme;
+  try{ localStorage.setItem("xg_theme",d?"dark":"light"); }catch(e){}
+  paintTheme(); toast(d?"已切換成黑色系列":"已切換成白色系列"); }
+paintTheme();
 
 /* ============ Header ============ */
 function renderHeader(){
@@ -712,6 +995,7 @@ function renderHeader(){
   document.getElementById("miniTitle").textContent=state.title;
   document.title="私人助理"+state.title;
   document.getElementById("chatTitle").textContent=state.title;
+  document.getElementById("chatAv").textContent=(state.title||"乖").slice(-1);
   const on=aiOn();
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent = on
@@ -728,6 +1012,7 @@ function greet(){
   const g = h<5?"夜深了":h<11?"早安":h<14?"午安":h<18?"午後好":"晚安";
   return `${g}${state.nick?"，"+state.nick:""}！`;
 }
+const IC={todo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.2l2.5 2.5 4.9-5.2"/></svg>',sched:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',remind:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12.5 6.5l5 5"/></svg>',chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.3-4.2A7.5 7.5 0 1 1 20 12z"/></svg>'};
 function renderHome(){
   renderHeader();
   const now=new Date();
@@ -761,22 +1046,22 @@ function renderHome(){
   const nextRm=state.reminders.filter(r=>!r.fired).sort((a,b)=>a.at.localeCompare(b.at))[0];
   const lastChat=[...state.chat].reverse().find(m=>m.role==="assistant");
   const E=[
-    {v:"todos",ic:"✅",c:"var(--c-todo)",bg:"rgba(31,138,114,.14)",name:"待辦清單",n:openTodos,
+    {v:"todos",ic:IC.todo,c:"var(--c-todo)",bg:"rgba(31,138,114,.14)",name:"待辦清單",n:openTodos,
       sub: openTodos? `還有 ${openTodos} 件沒做完` : "想到就記，做完就勾"},
-    {v:"schedule",ic:"🗓️",c:"var(--c-sched)",bg:"rgba(46,111,176,.14)",name:"行程表",n:upEv,
+    {v:"schedule",ic:IC.sched,c:"var(--c-sched)",bg:"rgba(46,111,176,.14)",name:"行程表",n:upEv,
       sub: nextEv? `下一個：${dateLabel(nextEv.date)} ${nextEv.time||""} ${nextEv.title}` : "依日期排好，一眼看完"},
-    {v:"reminders",ic:"⏰",c:"var(--c-remind)",bg:"rgba(224,97,59,.14)",name:"提醒",n:upRm,
+    {v:"reminders",ic:IC.remind,c:"var(--c-remind)",bg:"rgba(224,97,59,.14)",name:"提醒",n:upRm,
       sub: nextRm? `下一個：${dtLabel(nextRm.at)} ${nextRm.text}` : "時間到了小乖會叫你"},
-    {v:"notes",ic:"📝",c:"var(--c-note)",bg:"rgba(199,144,43,.14)",name:"筆記",n:state.notes.length,
+    {v:"notes",ic:IC.note,c:"var(--c-note)",bg:"rgba(199,144,43,.14)",name:"筆記",n:state.notes.length,
       sub: state.notes.length? `最近：${state.notes[0].title||"（無標題）"}` : "靈感、清單、隨手記"},
-    {v:"chat",ic:"💬",c:"var(--c-chat)",bg:"rgba(107,78,158,.14)",name:"和"+state.title+"聊聊",n:null,
+    {v:"chat",ic:IC.chat,c:"var(--c-chat)",bg:"rgba(107,78,158,.14)",name:"和"+state.title+"聊聊",n:null,
       sub: lastChat? (lastChat.content||"").replace(/\s+/g," ").slice(0,40) : "問問題、排計畫、口述記事都可以"}
   ];
-  document.getElementById("entryList").innerHTML=E.map(e=>`
+  document.getElementById("entryList").innerHTML=E.map((e,i)=>`
     <div class="lib-entry" onclick="openView('${e.v}')">
       <span class="bar" style="background:${e.c}"></span>
       <div class="le-ic" style="background:${e.bg};color:${e.c}">${e.ic}</div>
-      <div class="le-meta"><div class="le-name">${esc(e.name)}</div><div class="le-sub">${esc(e.sub)}</div></div>
+      <div class="le-meta"><div class="le-no">0${i+1}</div><div class="le-name">${esc(e.name)}</div><div class="le-sub">${esc(e.sub)}</div></div>
       ${e.n===null?"":`<span class="count ${e.n?"":"zero"}">${e.n}</span>`}
       <span class="chev">›</span>
     </div>`).join("");
@@ -851,6 +1136,16 @@ function addEventReminder(ev){
   const at=new Date(`${ev.date}T${ev.time}`); at.setMinutes(at.getMinutes()-30);
   if(at.getTime()>Date.now())
     state.reminders.push({id:uid(),text:`30 分鐘後：${ev.title}${ev.place?"（"+ev.place+"）":""}`,at:localDT(at),repeat:"none",fired:false,src:ev.id});
+}
+// 過了日期的行程自動刪掉（連同它的 30 分鐘前提醒），記進刪除紀錄，同步時 LINE 那邊也會刪
+function purgePast(){
+  const t=ymd(), now=Date.now();
+  const gone=state.events.filter(e=>e.date&&e.date<t).map(e=>e.id);
+  if(!gone.length) return false;
+  state.events=state.events.filter(e=>gone.indexOf(e.id)<0);
+  state.reminders=state.reminders.filter(r=>gone.indexOf(r.src)<0);
+  gone.forEach(id=>{ state.deleted[id]=now; });
+  return true;
 }
 function deleteEvent(id){
   state.events=state.events.filter(e=>e.id!==id);
@@ -993,18 +1288,18 @@ function renderNotes(){
 function snapshot(){
   const t=ymd();
   const todos=state.todos.filter(x=>!x.done).slice(0,40)
-    .map(x=>`- ${x.text}${x.due?`（期限 ${x.due}）`:""}${x.pri==="high"?"［重要］":""}`).join("\n")||"（無）";
+    .map(x=>`- [${x.id}] ${x.text}${x.due?`（期限 ${x.due}）`:""}${x.pri==="high"?"［重要］":""}`).join("\n")||"（無）";
   const evs=state.events.filter(e=>e.date>=t).sort(evCmp).slice(0,30)
-    .map(e=>`- ${e.date} ${e.time||"整天"} ${e.title}${e.place?"＠"+e.place:""}`).join("\n")||"（無）";
+    .map(e=>`- [${e.id}] ${e.date} ${e.time||"整天"} ${e.title}${e.place?"＠"+e.place:""}`).join("\n")||"（無）";
   const rms=state.reminders.filter(r=>!r.fired).sort((a,b)=>a.at.localeCompare(b.at)).slice(0,30)
-    .map(r=>`- ${r.at.replace("T"," ")} ${r.text}${r.repeat!=="none"?`（${r.repeat==="daily"?"每天":"每週"}）`:""}`).join("\n")||"（無）";
-  const notes=state.notes.slice(0,15)
-    .map(n=>`- ${n.title||"（無標題）"}：${(n.body||"").replace(/\s+/g," ").slice(0,120)}`).join("\n")||"（無）";
+    .map(r=>`- [${r.id}] ${r.at.replace("T"," ")} ${r.text}${r.repeat!=="none"?`（${r.repeat==="daily"?"每天":"每週"}）`:""}`).join("\n")||"（無）";
+  const notes=state.notes.slice(0,40)
+    .map(n=>`- [${n.id}] ${n.title||"（無標題）"}：${(n.body||"").replace(/\s+/g," ").slice(0,120)}`).join("\n")||"（無）";
   return {todos,evs,rms,notes};
 }
 function buildSys(){
   const now=new Date(); const s=snapshot();
-  return `你是「${state.title}」，${state.nick||"使用者"}的私人助理。個性貼心、可靠、說話簡潔溫暖，一律用繁體中文（台灣用語）。
+  return `你是「${state.title}」，${state.nick||"使用者"}的私人助理。你是溫柔親切的年輕女生助理，個性貼心、可靠，說話簡潔溫暖、帶點女生的柔軟語氣（可以自然用「喔」「呢」「啦」，但不要每句都用、不要撒嬌過頭），自稱「小乖」或「我」。一律用繁體中文（台灣用語）。
 現在時間：${ymd(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}（星期${WEEK[now.getDay()]}）。
 
 【關於使用者】
@@ -1022,17 +1317,21 @@ ${s.rms}
 【最近筆記】
 ${s.notes}
 
-【你可以直接幫使用者新增資料】
-當使用者要你記下、安排、提醒某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 \`\`\`actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：
+【你可以直接幫使用者新增、刪除資料】
+當使用者要你記下、安排、提醒、刪除或完成某件事時，先用一兩句話回覆確認，然後在回覆最後附上一個 \`\`\`actions 程式碼區塊，內容是 JSON 陣列，格式如下（只放需要的項目，日期時間一律換算成絕對值）：
 \`\`\`actions
 [
   {"type":"todo","text":"繳電話費","due":"YYYY-MM-DD","pri":"normal 或 high"},
   {"type":"event","title":"牙醫回診","date":"YYYY-MM-DD","time":"HH:MM","place":"地點"},
   {"type":"reminder","text":"打電話給媽媽","at":"YYYY-MM-DDTHH:MM","repeat":"none 或 daily 或 weekly"},
-  {"type":"note","title":"標題","body":"內容"}
+  {"type":"note","title":"標題","body":"內容"},
+  {"type":"delete","id":"上面清單方括號裡的 id"},
+  {"type":"done","id":"待辦的 id（標記完成）"}
 ]
 \`\`\`
-沒有要新增東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。
+刪除或完成時，id 一定要照抄上面清單方括號裡的值，找不到對應的項目就問使用者是哪一筆，不要假裝已經刪掉。
+使用者已經說要刪除、而且你知道是哪一筆時，直接附 actions 刪除，不用再問要不要確認；使用者回「是／好／確定」確認時，這一則就要附 actions 執行，不要只說「稍等，我會處理」。
+沒有要新增或刪除東西時，不要附 actions 區塊。不要捏造使用者沒提過的行程。
 
 【使用者傳來的附件】
 使用者可能傳圖片、影片擷取的畫面（依時間排列，沒有聲音）、PDF 或文字檔。請仔細看內容再回答；若附件裡有日期、時間、待辦或值得記下的資訊（例如邀請函、收據、課表），主動問要不要記下，或在使用者要求時用 actions 新增。`;
@@ -1065,6 +1364,18 @@ function applyActions(acts){
     }else if(a.type==="note" && (a.title||a.body)){
       state.notes.unshift({id:uid(),title:String(a.title||"").slice(0,60),body:String(a.body||""),time:Date.now()});
       done.push("📝 筆記："+(a.title||"（無標題）"));
+    }else if((a.type==="delete"||a.type==="done") && a.id){
+      // 從清單拿掉後，save() 會把它記進刪除紀錄並同步到雲端
+      const id=String(a.id).replace(/^\[|\]$/g,"").trim();
+      const names={todos:"待辦",events:"行程",reminders:"提醒",notes:"筆記"};
+      Object.keys(names).some(c=>{
+        const i=state[c].findIndex(x=>x.id===id);
+        if(i<0) return false;
+        const x=state[c][i], label=x.text||x.title||"（無標題）";
+        if(a.type==="done" && c==="todos"){ x.done=true; x.doneAt=Date.now(); done.push("☑️ 完成待辦："+label); }
+        else{ state[c].splice(i,1); done.push("🗑️ 刪除"+names[c]+"："+label); }
+        return true;
+      });
     }
   });
   return done;
@@ -1186,6 +1497,16 @@ function attHTML(atts){
     ? `<div class="m-att"><img src="${a.thumb}" alt="" onclick="zoom(this.src)">${a.kind==="video"?`<span class="badge">🎬 ${a.dur?Math.round(a.dur)+" 秒":"影片"}</span>`:""}</div>`
     : `<div class="m-att m-file">${a.kind==="pdf"?"📄":a.kind==="text"?"📝":"🖼️"}<span>${esc(a.name)}</span></div>`).join("")}</div>`;
 }
+// 使用者沒說要加／刪就不動資料（AI 偶爾會自己加行程或把看過的圖存成筆記）；跟 Code.gs 的 allowedActs_ 同一套規則
+function allowedActs(text,acts,prev){
+  let t=String(text||"");
+  if(/^(是|是的|對|對的|好|好的|嗯|確定|確認|沒錯|可以|要|對啊|好啊|ok|OK|Ok|yes|刪吧|刪掉吧|刪掉)[\s!！。.～~啊呀喔吧]*$/.test(t.trim())) t+=" "+(prev||[]).join(" ");
+  const addOk=/記|加入|加上|加一|新增|添加|安排|提醒|排入|排進|排一|預約|約了|約好|寫下|存起來|存下|建立|設定|叫我|通知我|別忘|不要忘|待辦|要做|鬧鐘/.test(t)
+    ||(/明天|後天|大後天|今天|今晚|晚上|早上|中午|下午|下週|下禮拜|下星期|星期|禮拜|週[一二三四五六日天]|\d+\s*[點:：]|\d+\s*[月號日]|[一二三四五六七八九十兩]+點/.test(t)
+      &&!/什麼|甚麼|嗎|？|\?|幾點|有沒有|有哪些|哪些|查|看看|列出|是不是/.test(t));
+  const delOk=/刪|取消|移除|拿掉|去掉|清掉|清除|清空|完成|做完|搞定|弄好了|不用了|不要了|結束了/.test(t);
+  return (acts||[]).filter(a=>a&&((a.type==="delete"||a.type==="done")?delOk:addOk));
+}
 function zoom(src){ document.getElementById("lightboxImg").src=src; document.getElementById("lightbox").classList.add("open"); }
 function renderChat(){
   const box=document.getElementById("chatBox");
@@ -1233,9 +1554,10 @@ async function sendChat(){
     });
     const out=await callOpenAI(buildSys(),msgs);
     const {clean,acts}=parseActions(out);
-    const done=applyActions(acts);
+    const prevUser=hist.filter(m=>m.role==="user"&&m!==userMsg).slice(-2).map(m=>m.content||"");
+    const done=applyActions(allowedActs(text,acts,prevUser));
     state.chat.push({role:"assistant",content:clean||"好的！",acts:done,t:Date.now()});
-    if(done.length) toast(`已幫你新增 ${done.length} 項`);
+    if(done.length) toast(`已幫你處理 ${done.length} 項`);
   }catch(e){
     state.chat.push({role:"assistant",content:"抱歉，出了點問題：「"+e.message+"」",err:true,t:Date.now()});
   }
@@ -1313,6 +1635,9 @@ function fillSettings(){
   document.getElementById("titleSet").value=state.title;
   document.getElementById("nickSet").value=state.nick;
   document.getElementById("aboutSet").value=state.about;
+  document.getElementById("syncUrl").value=state.syncUrl;
+  document.getElementById("syncKey").value=state.syncKey;
+  renderSyncStatus();
   document.getElementById("buildTag").textContent="版本 "+state.build;
 }
 function toggleKey(){
@@ -1325,10 +1650,13 @@ function saveSettings(){
   state.title=document.getElementById("titleSet").value.trim()||"小乖";
   state.nick=document.getElementById("nickSet").value.trim();
   state.about=document.getElementById("aboutSet").value.trim();
+  state.syncUrl=document.getElementById("syncUrl").value.trim();
+  state.syncKey=document.getElementById("syncKey").value.trim();
   save(); renderHeader(); toast("設定已儲存"); setTimeout(()=>openView("home"),500);
 }
 function exportData(){
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const {syncKey,...data}=state;
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download=`小乖備份-${ymd()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   toast("備份已下載");
@@ -1342,8 +1670,9 @@ function importData(inp){
       if(!d || !Array.isArray(d.todos)) throw 0;
       if(!confirm("匯入會覆蓋目前的待辦、行程、提醒、筆記與對話，確定嗎？")) return;
       delete d.apiKey;
-      localStorage.setItem(STORE_KEY,JSON.stringify(d));
-      state=load(); renderHeader(); fillSettings(); toast("匯入完成");
+      const {syncUrl,syncKey}=state;
+      localStorage.setItem(STORE_KEY,JSON.stringify({...d,syncUrl,syncKey}));
+      state=load(); resetSeen(); scheduleSync(); renderHeader(); fillSettings(); toast("匯入完成");
     }catch(e){ toast("這不是有效的小乖備份檔"); }
     inp.value="";
   };
@@ -1351,14 +1680,18 @@ function importData(inp){
 }
 function resetAll(){
   if(!confirm("確定清空所有資料並回復出廠預設？此動作無法復原。（AI 代理設定會保留）")) return;
-  localStorage.removeItem(STORE_KEY); state=load(); fillSettings(); renderHeader(); toast("已回復出廠預設");
+  localStorage.removeItem(STORE_KEY); state=load(); resetSeen(); fillSettings(); renderHeader(); toast("已回復出廠預設");
 }
 
 /* ============ 啟動 ============ */
+if(purgePast()) persist();
+resetSeen();
 renderHome();
+syncNow();
+setInterval(()=>{ if(!document.hidden) syncNow(); },60000);
 checkReminders();
 setInterval(checkReminders,20000);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ syncNow(); checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
 </script>
 </body>
 </html>

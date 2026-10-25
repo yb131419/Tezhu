@@ -1,0 +1,89 @@
+# 小乖剪 Reels：在 Telegram 傳影片給小乖並寫「剪 Reels」，小乖的 Apps Script 會觸發這個流程，
+# 自動剪成直式 9:16、剪掉停頓、上字幕和動畫字卡、配樂，再傳回 Telegram；回覆成品可以再改一版。程式在 reels/reels.py。
+# 需要在 GitHub 的 Settings → Secrets and variables → Actions 設好 TELEGRAM_BOT_TOKEN、OPENAI_API_KEY。
+name: 小乖剪 Reels
+
+on:
+  workflow_dispatch:
+    inputs:
+      chat_id:
+        description: Telegram 聊天編號
+        required: true
+      file_id:
+        description: Telegram 影片檔案編號
+        required: true
+      note:
+        description: 影片說明（例如「剪 Reels 30秒」）
+        required: false
+        default: ''
+      style:
+        description: 從截圖學到的字幕風格（JSON）
+        required: false
+        default: ''
+      version:
+        description: 第幾版
+        required: false
+        default: '1'
+      mode:
+        description: 剪法（reels 直式短影音／long 剪大片）
+        required: false
+        default: 'reels'
+      music:
+        description: 你在 Telegram 傳的配樂（音樂檔編號，可空白）
+        required: false
+        default: ''
+      kind:
+        description: 種類（talk 口播／silent 靜音／auto 自動判斷）
+        required: false
+        default: 'auto'
+      timeline:
+        description: 上一版的時間軸（JSON，使用者調整過段落後照這個重剪；可空白）
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reels
+  cancel-in-progress: false
+
+jobs:
+  reels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: reels
+
+      - name: 去背模型（環繞特效用，存起來下次不用再下載）
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use
+
+      - name: 安裝 ffmpeg 與中文字型
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-cjk > /dev/null
+          python3 -m pip install -q --break-system-packages edge-tts==7.3.1   # 台灣腔配音（微軟台灣聲音）
+          python3 -m pip install -q --break-system-packages opencv-python-headless onnxruntime   # 環繞／標題牆卡片特效（人像去背）
+          fc-cache -f > /dev/null
+          fc-list :lang=zh-tw family | head -3
+
+      - name: 剪輯並傳回 Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.REELS_MODEL }}
+          CHAT_ID: ${{ inputs.chat_id }}
+          FILE_ID: ${{ inputs.file_id }}
+          NOTE: ${{ inputs.note }}
+          STYLE: ${{ inputs.style }}
+          VERSION: ${{ inputs.version }}
+          MODE: ${{ inputs.mode }}
+          MUSIC_FILE: ${{ inputs.music }}
+          KIND: ${{ inputs.kind }}
+          TIMELINE: ${{ inputs.timeline }}
+        run: python3 reels/reels.py --out "$RUNNER_TEMP/reels.mp4"
