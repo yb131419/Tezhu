@@ -434,6 +434,13 @@ function doPost(e) {
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
+  // 對話頁真人語音：文字先出來，語音另外合成（不擋住回答）
+  if (body.action === 'tts') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return json_({ audio: '' });
+    try { return json_({ audio: Utilities.base64Encode(tts_(String(body.text || ''), 'mp3').getBytes()) }); }
+    catch (err) { console.error(err); return json_({ audio: '' }); }
+  }
+
   if (body.action === 'transcribe') {
     if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return json_({ heard: '', say: '同步密碼不對。' });
     try { return json_({ heard: transcribeAudio_(body.audio, body.audioType) }); }
