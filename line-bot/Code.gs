@@ -2039,25 +2039,25 @@ function kitHeadBlock_(req, slide, head, fit, top, rest) {
 // 一張輪播圖卡（540×675，跟 3 張圖卡同尺寸）
 function kitCardLayout_(kit, i) {
   const W = 540, H = 675, s = kit.slides[i], N = kit.slides.length, C = KIT_S_.c;
-  const body = (t, o) => Object.assign({ t: t, size: 21, color: C.sub, ls: 145, above: 24, align: 'START', em: C.gold }, o || {});
+  const body = (t, o) => Object.assign({ t: t, size: 23, color: C.sub, ls: 150, above: 24, align: 'START', em: C.gold }, o || {});
   if (s.kind === 'cover') return kitCoverLayout_(kit, s, ('01 — ') + ('0' + N).slice(-2), W, H);
   if (s.kind === 'action') {
     const n = Math.max(0, '一二三'.indexOf(String(s.step || '').slice(-1)));
     // 2026-10-22 使用者：內頁文字跑版 → 字級不再固定，依字數縮到放得下（上限 46）
     const fit = kitFit_(s.head, 400, 46, 30, 170);
     return kitWarm_(kit, s, i, N, W, H, s.step || '動作', 'STEP ' + KIT_EN[n], 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 128, [body(s.body)]));
+      kitHeadBlock_(req, slide, s.head, fit, 150, [body(s.body)]));
   }
   if (s.kind === 'reason') {
     const fit = kitFit_(s.head, 400, 44, 28, 330);
     return kitWarm_(kit, s, i, N, W, H, s.label || '真正的原因', 'THE REASON', 'NEXT  →', (req, slide) =>
-      kitHeadBlock_(req, slide, s.head, fit, 136, []));
+      kitHeadBlock_(req, slide, s.head, fit, 150, []));
   }
   if (s.kind === 'last') {
-    const fit = kitFit_(s.head, 400, 46, 30, 210);
+    const fit = kitFit_(s.head, 400, 46, 30, 200);
     return kitWarm_(kit, s, i, N, W, H, '寫在最後', 'TAKEAWAY', 'NEXT  →', (req, slide) => {
-      kitText_(req, slide, slide + '_pre', [75, 128, 420, 110], [body(s.pre, { above: 0 })], 'TOP');
-      kitHeadBlock_(req, slide, s.head, fit, 250, []);
+      kitText_(req, slide, slide + '_pre', [75, 128, 420, 122], [body(s.pre, { above: 0 })], 'TOP');
+      kitHeadBlock_(req, slide, s.head, fit, 268, []);
     });
   }
   // 最後一張：整組只有這張引導留言（使用者 2026-10-16）
