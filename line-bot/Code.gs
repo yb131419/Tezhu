@@ -1249,6 +1249,10 @@ function heroPairCheck_(slot, v) {
 }
 // 佛祖外型（使用者 2026-10-26：角色不對，要能自訂）：存在指令碼屬性；沒設定就不指定具體造型
 const BUDDHA_KEY = 'BUDDHA_LOOK';
+// 修行版彥彬的服裝（使用者 2026-10-26 指定：白色禪服）；蓋過主角設定裡的服裝，「設定修行服裝 …」可改
+const PRACTICE_OUTFIT_KEY = 'PRACTICE_OUTFIT';
+const PRACTICE_OUTFIT_DEFAULT = '白色禪服';
+function practiceOutfit_() { return prop_(PRACTICE_OUTFIT_KEY) || PRACTICE_OUTFIT_DEFAULT; }
 // 預設是使用者截圖的「大準提佛（女相）」（2026-10-26 指定）；男相之後由使用者另外設定
 const BUDDHA_DEFAULT = '大準提佛（女相）：慈悲、溫和、寧靜、莊嚴；準提印（三），雙掌合十於胸前，指尖朝上；嬰兒肥臉相、大耳垂、額頭第三眼（淡金色彩繪）、髮髻高束、白色素面長袍、淡金披帛、無首飾、赤足。';
 function buddhaLook_() { return prop_(BUDDHA_KEY) || BUDDHA_DEFAULT; }
@@ -1258,11 +1262,22 @@ function heroView_() {
   const lines = ['第一位：' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）')];
   if (reelHero2_()) lines.push('第二位：' + reelHero2_());
   lines.push('佛祖：' + (prop_(BUDDHA_KEY) || '大準提佛（女相，預設）'));
+  lines.push('修行版彥彬的服裝：' + practiceOutfit_());
   return '目前的短劇主角：\n' + lines.join('\n') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要加第二位（需一男一女）請打「設定第二主角 …」，例如：\n設定第二主角 阿凱，男生，28 歲，短髮、穿黑外套\n\n要改佛祖的外型請打「設定佛祖 …」，例如：\n設定佛祖 女相，白色素面長袍，淡金披帛，髮髻高束\n\n要恢復預設請打「設定主角 預設」（兩位都清除）。';
 }
 // 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存第一位；「設定第二主角 …」存第二位；「設定主角 預設」兩位都清掉，「設定第二主角 預設」只清第二位；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
 function reelHeroSetting_(t) {
   const s = String(t || '').trim();
+  const om = s.match(/^(?:設定|修改|更改|改)修行(?:服裝|衣服|穿著)[\s：:]*(.*)$/);
+  if (om) {
+    const ov = om[1].trim().slice(0, 100);
+    if (!ov || /^(預設|恢復預設|改回預設|清除|取消)$/.test(ov)) {
+      PropertiesService.getScriptProperties().deleteProperty(PRACTICE_OUTFIT_KEY);
+      return '好，修行版彥彬的服裝改回預設（白色禪服）。';
+    }
+    setProp_(PRACTICE_OUTFIT_KEY, ov);
+    return '好，修行版彥彬的服裝設定好了：' + ov + '\n\n之後寫修行的短劇，彥彬都穿這個。';
+  }
   const bm = s.match(/^(?:設定|修改|更改|改)佛祖(?:外型)?[\s：:]*(.*)$/);
   if (bm) {
     const bv = bm[1].trim().slice(0, 300);
@@ -1355,7 +1370,7 @@ function reelWrite_(k, th, base, pair) {
       : '【本次主題】' + stratGuide_(th),
     heroes.length === 2 ? '【兩位主角（使用者指定，一男一女，必須照寫）】\n主角一：' + heroes[0] + '\n主角二：' + heroes[1] + '\n兩位主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；兩位都要出現在劇情裡，characters 也要列出這兩位，每段畫面都用同一段外型描述，AI 生成時才會像同一個人；其他角色再自己設計。' : null,
     heroes.length === 1 ? '【主角（使用者指定，必須照寫）】' + heroes[0] + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
-    pair ? '【對話組合（必須照寫）】本支短劇是「' + pair + '」：兩位角色就是「彥彬」和「' + pairWho_(pair) + '」，劇情和台詞都是這兩人的對話（一問一答），characters 只列這兩位，每一段的台詞都由其中一位說，不要加其他有台詞的角色（旁白可以有）。' + (heroes.length ? '彥彬的外型照上面的主角設定；' : pairWho_(pair) === '佛祖' ? '彥彬穿白色禪服（修行版的外型；想換就用「設定主角」自訂）；' : '彥彬的外型自己設計一段固定描述；') + (pairWho_(pair) === '佛祖' ? buddhaRule_() : '') + PAIR_TONE_[pairWho_(pair)] : null,
+    pair ? '【對話組合（必須照寫）】本支短劇是「' + pair + '」：兩位角色就是「彥彬」和「' + pairWho_(pair) + '」，劇情和台詞都是這兩人的對話（一問一答），characters 只列這兩位，每一段的台詞都由其中一位說，不要加其他有台詞的角色（旁白可以有）。' + (heroes.length ? '彥彬的名字、性別、年齡、髮型照上面的主角設定；' : '彥彬的外型自己設計一段固定描述；') + (pairWho_(pair) === '佛祖' ? '但彥彬的服裝一律是「' + practiceOutfit_() + '」（修行版），蓋過主角設定裡的服裝，每一段都穿這個；' : '') + (pairWho_(pair) === '佛祖' ? buddhaRule_() : '') + PAIR_TONE_[pairWho_(pair)] : null,
     '【劇情結構（反過來設計）】總長 55 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 55。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
