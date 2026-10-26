@@ -1246,15 +1246,15 @@ function heroPairCheck_(slot, v) {
 }
 // 佛祖外型（使用者 2026-10-26：角色不對，要能自訂）：存在指令碼屬性；沒設定就不指定具體造型
 const BUDDHA_KEY = 'BUDDHA_LOOK';
-function buddhaLook_() { return prop_(BUDDHA_KEY); }
-function buddhaRule_() {
-  return buddhaLook_() ? '佛祖的外型照這段寫（使用者指定，必須照寫）：' + buddhaLook_() + '。' : '佛祖的外型使用者還沒指定，先不要寫具體造型（不寫年齡、鬍鬚、服裝這類固定描述），只寫神情和動作。';
-}
+// 預設是使用者截圖的「大準提佛（女相）」（2026-10-26 指定）；男相之後由使用者另外設定
+const BUDDHA_DEFAULT = '大準提佛（女相）：慈悲、溫和、寧靜、莊嚴；準提印（三），雙掌合十於胸前，指尖朝上；嬰兒肥臉相、大耳垂、額頭第三眼（淡金色彩繪）、髮髻高束、白色素面長袍、淡金披帛、無首飾、赤足。';
+function buddhaLook_() { return prop_(BUDDHA_KEY) || BUDDHA_DEFAULT; }
+function buddhaRule_() { return '佛祖的外型照這段寫（必須照寫）：' + buddhaLook_() + '。'; }
 // 查看：兩位都列出來
 function heroView_() {
   const lines = ['第一位：' + (reelHero_() || '（還沒設定，由軍師照主題自己安排）')];
   if (reelHero2_()) lines.push('第二位：' + reelHero2_());
-  lines.push('佛祖：' + (buddhaLook_() || '（還沒設定，不指定具體造型）'));
+  lines.push('佛祖：' + (prop_(BUDDHA_KEY) || '大準提佛（女相，預設）'));
   return '目前的短劇主角：\n' + lines.join('\n') + '\n\n要改請打「設定主角 名字、性別、年齡、外型」，例如：\n設定主角 小美，女生，25 歲，短髮、穿白襯衫，個性開朗\n\n要加第二位（需一男一女）請打「設定第二主角 …」，例如：\n設定第二主角 阿凱，男生，28 歲，短髮、穿黑外套\n\n要改佛祖的外型請打「設定佛祖 …」，例如：\n設定佛祖 女相，白色素面長袍，淡金披帛，髮髻高束\n\n要恢復預設請打「設定主角 預設」（兩位都清除）。';
 }
 // 「設定主角 小美，女生，25 歲，短髮、白襯衫」→ 存第一位；「設定第二主角 …」存第二位；「設定主角 預設」兩位都清掉，「設定第二主角 預設」只清第二位；「查看主角」看目前的（單打「設定主角」或按「👤 設定主角」走一步步問的流程）
@@ -1265,7 +1265,7 @@ function reelHeroSetting_(t) {
     const bv = bm[1].trim().slice(0, 300);
     if (!bv || /^(預設|恢復預設|改回預設|清除|取消)$/.test(bv)) {
       PropertiesService.getScriptProperties().deleteProperty(BUDDHA_KEY);
-      return '好，佛祖的外型改回預設（先不指定具體造型）。';
+      return '好，佛祖的外型改回預設（大準提佛女相）。';
     }
     setProp_(BUDDHA_KEY, bv);
     return '好，佛祖的外型設定好了：\n' + bv + '\n\n之後寫「彥彬與佛祖的對話」的短劇，佛祖都照這樣畫。';
