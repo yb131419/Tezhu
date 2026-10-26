@@ -751,6 +751,7 @@ function answer_(text) {
   }
   if (raw.replace(/\s+/g, '') === '🧘修行') return strategist_('practice');   // 快速回覆的「🧘修行」（不加空格）
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
+  if (sp === 'firstcmt') return firstCmtText_();
   if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
   if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
   if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
@@ -875,6 +876,17 @@ function stratCat2_(k, cat) {
   return c.replace(/主題$/, '').slice(0, 2) || '軍師';
 }
 const STRAT_AGAIN = '🔁 再寫一篇', STRAT_SWITCH = '🪶 換主題';
+// 首次留言模板（使用者 2026-10-26 指定）：影片「引果」的首次留言，三種版本；直接給文字，不叫 AI、不發到任何平台
+const FIRST_CMT_BTN = '💬 首次留言';
+const FIRST_CMT_VERSIONS = [
+  { name: '引導式提問', text: '看完這支影片，想問大家一個問題：平常生氣的時候，你最先察覺到的是身體的感覺，還是心裡冒出的那個念頭？說說看你的經驗吧。' },
+  { name: '分享式', text: '引果讓我想到，今天心裡冒出的每一個念頭，都是一顆種子。我還在練習的是：先停一下、看見它，再決定要不要跟著走。' },
+  { name: '邀請互動式', text: '很喜歡影片裡「因果不只在過去」這句話。想邀請大家分享：最近一次你用慈悲心回應別人，是怎麼做到的？很想聽聽你的故事。' },
+];
+function firstCmtText_() {
+  const list = FIRST_CMT_VERSIONS.map((v, i) => (i + 1) + '｜' + v.name + '\n' + v.text).join('\n\n');
+  return { text: '💬 首次留言（三種版本）\n\n' + list + '\n\n挑一句複製到影片的留言區就好，想換語氣再按一次。', buttons: [[FIRST_CMT_BTN, STRAT_SWITCH]].concat(MENU) };
+}
 // AI 55 秒短劇腳本（2026-10-22 使用者：要拿去生成 AI 短劇）：軍師寫文案時同步附一份；也可以按「🎭 短劇腳本」單獨寫
 const REEL_BTN = '🎭 短劇腳本';
 const STRAT_FOLDER = '小乖軍師圖卡';
@@ -884,7 +896,7 @@ let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各�
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
@@ -995,6 +1007,7 @@ function stratKey_(w) {
 function stratPick_(text) {
   // 主題按鈕（兩個字，前面有圖示）：照按鈕文字對應；單打「健康」「經營」這類字不會誤觸
   const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (/首次留言/.test(raw)) return 'firstcmt';
   const hit = STRAT_THEMES.filter(x => x.btn === raw)[0];
   if (hit) return hit.k;
   // 語音聽寫會帶標點，也常說「小乖寫文案」「幫我寫一篇火山草本的文案」：先去掉標點和稱呼
