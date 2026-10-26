@@ -749,12 +749,14 @@ function answer_(text) {
     KIT_PENDING_ = kp;
     return '⏳ 收到！正在寫貼文、畫 7 張圖卡、做 PDF，大約 1～2 分鐘，好了就傳給你。';
   }
-  if (raw.replace(/\s+/g, '') === '🧘修行') return strategist_('practice');   // 快速回覆的「🧘修行」（不加空格）
+  if (raw.replace(/\s+/g, '') === '🧘修行') return pairMenu_('practice');   // 快速回覆的「🧘修行」（不加空格）
+  const pp = stratPairPick_(raw);   // 「👥 修行・彥彬與佛祖的對話」：主題＋對話都選好了，直接寫
+  if (pp) return strategist_(pp.k, pp.pair);
   const sp = stratPick_(raw) || stratPick_(t2);   // 先用原文對主題按鈕（「🌿 健康」要帶圖示才算按鈕）
   if (sp === 'firstcmt') return firstCmtText_();
   if (sp === 'reel') return VOICE_ONLY_ ? reelOnly_('auto') : reelMenu_();
   if (sp && sp.indexOf('reel:') === 0) return reelOnly_(sp.slice(5));
-  if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : strategist_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
+  if (sp) return sp === 'menu' ? (VOICE_ONLY_ ? strategist_('auto') : stratMenu_()) : pairMenu_(sp);   // 只用聲音（嘿 小乖）沒按鈕可選，就讓軍師判定
   // 專案：列出你的各個專案，或問某一個專案（只讀，不會改任何資料）
   const pj = text.replace(/\s+/g, '').match(/^(?:我的)?專案(?:清單|列表)?(.*)$/);
   if (pj) return projectInfo_(pj[1]);
@@ -893,6 +895,32 @@ const STRAT_FOLDER = '小乖軍師圖卡';
 const STRAT_NO_TAG = /康園道|分享|大健康/;   // 使用者指定：標籤不要出現這些字
 let LAST_CARD_ = null;   // 剛寫好的文案；LINE／Telegram／對話頁各自把它畫成圖卡送出
 
+// 對話組合（使用者 2026-10-26 指定）：選主題後先問要寫哪一種對話；「不指定」就照主題自己安排
+const STRAT_PAIRS = { practice: ['彥彬與佛祖的對話'] };
+const STRAT_PAIRS_DEFAULT = ['彥彬與若熙', '彥彬與小孩的對話'];
+const STRAT_PAIR_NONE = '不指定';
+function pairsOf_(k) { return [STRAT_PAIR_NONE].concat(STRAT_PAIRS[k] || STRAT_PAIRS_DEFAULT); }
+function pairMenu_(k) {
+  const th = STRAT_THEMES.filter(t => t.k === k)[0];
+  if (!th) return stratMenu_();
+  const word = th.btn.replace(/^[^\p{L}\p{N}]+/u, '');
+  const b = pairsOf_(k).map(p => '👥 ' + word + '・' + p);
+  return { text: '👥 ' + th.name.replace(/主題$/, '') + '：要寫哪一種對話？\n\n選「' + STRAT_PAIR_NONE + '」就照主題自己安排。', buttons: [b.slice(0, 2)].concat(b.length > 2 ? [b.slice(2)] : [], [[STRAT_SWITCH]]) };
+}
+// 「👥 修行・彥彬與佛祖的對話」→ { k, pair }；不是就回 null
+function stratPairPick_(text) {
+  const m = String(text || '').replace(/\s+/g, ' ').trim().match(/^👥 (\S+?)・(.+)$/);
+  if (!m) return null;
+  const th = STRAT_THEMES.filter(x => x.btn.replace(/^[^\p{L}\p{N}]+/u, '') === m[1])[0];
+  if (!th || pairsOf_(th.k).indexOf(m[2]) < 0) return null;
+  return { k: th.k, pair: m[2] === STRAT_PAIR_NONE ? '' : m[2] };
+}
+// 寫給 AI 的對話規則：主角是彥彬，另一方照組合決定
+function stratPairRule_(pair) {
+  const who = pair.indexOf('佛祖') >= 0 ? '佛祖' : pair.indexOf('若熙') >= 0 ? '若熙' : '小孩';
+  const tone = { 佛祖: '佛祖溫和、慈悲、話少，一句點到為止；只講觀念與覺察，不講神通、不講開悟、不宣稱任何療效。', 若熙: '若熙的口吻自然、生活化，不編造她的職業、年紀或經歷。', 小孩: '小孩的口吻天真直接，不寫具體年齡、姓名或學校，不寫孩子的隱私或身體狀況。' }[who];
+  return '【對話組合】本篇寫「' + pair + '」：主角是彥彬（用「我」或彥彬的口吻），另一方是' + who + '。用兩人的對話或對話片段來寫，一問一答的感覺，每一段讓對話往前推一步。' + tone + '對話內容仍要守【不可以寫】的規則。';
+}
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
@@ -1092,16 +1120,16 @@ function pickStructure_() {
     + '；結尾：' + pick(ENDING_STYLES_)
     + '。照這些寫法寫，不要改成其他寫法；每個元素寫進內容裡，不要標出元素名稱。';
 }
-function strategist_(k) {
+function strategist_(k, pair) {
   const th = STRAT_THEMES.filter(t => t.k === k)[0];
   if (!th) return stratMenu_();
   if (!prop_('OPENAI_API_KEY')) return '還沒設定 OpenAI 金鑰，沒辦法寫文案。';
   if (busy_('STRAT_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在寫，寫好就傳給你，不用再按喔。';
-  try { return stratWrite_(k, th); } finally { busyEnd_('STRAT_BUSY'); }
+  try { return stratWrite_(k, th, pair); } finally { busyEnd_('STRAT_BUSY'); }
 }
-function stratWrite_(k, th) {
+function stratWrite_(k, th, pair) {
   setProp_('STRAT_LAST', k);
-  const card = stratCard_(k, th);
+  const card = stratCard_(k, th, pair);
   if (!card) return { text: '文案這次沒寫出來，再按一次試試看。', buttons: [[STRAT_AGAIN, STRAT_SWITCH]] };
   LAST_CARD_ = card;
   // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
@@ -1110,7 +1138,7 @@ function stratWrite_(k, th) {
   return { text: stratReply_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 // 寫一篇文案（貼文＋3 張圖卡內容），不畫圖、不附短劇；軍師的寫作規則都在這裡，短劇也用同一份
-function stratCard_(k, th) {
+function stratCard_(k, th, pair) {
   let hist = [];
   try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
   const sys = [
@@ -1120,6 +1148,7 @@ function stratCard_(k, th) {
     pickStructure_(),
     RETENTION_RULES_,
     '【本次主題】' + stratGuide_(th),
+    pair ? stratPairRule_(pair) : '',
     STRAT_HOOK,
     '【要寫兩個版本，內容不能一樣】',
     '①文字貼文（post）：直接貼在 FB／IG／LINE 的完整文案，包含下面這些元素，順序以【本篇寫法】為準：標題（post_title，15 字內，也要反骨）；一個具體場景（不寫抽象的處境）；一個改變的做法（只寫做法與觀念，不指向任何產品、草本或療法）；今天就能做的動作（幾個、怎麼寫依【本篇寫法】）；一句觀察；收尾（依【本篇寫法】）；全文 160 到 240 字，段落間空一行，長短句交錯；不要叫人留言或私訊（使用者 2026-10-16：圖卡文案不用引導留言）。',
@@ -1150,7 +1179,7 @@ function stratCard_(k, th) {
   })).filter(x => x.body || x.gold || x.hook);
   if (!cards.length) cards.push({ title: th.name, body: '', gold: '' });
   const card = {
-    theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), cards: cards,
+    theme: th.name, cat: String(c.cat || '').replace(/主題$/, ''), cards: cards, pair: pair || '',
     title: cards[0].title, body: cards[0].body, gold: cards[0].gold,
     ptitle: String(c.post_title || c.title || th.name).trim(),
     post: noAsk_(String(c.post || '').replace(/\r/g, '')).replace(/\n{3,}/g, '\n\n').trim(),
@@ -1589,7 +1618,7 @@ function stratText_(c) {
 }
 // 給對話的回覆：文案＋留言建議（留言建議是貼在貼文下面的第一則留言，不進發社群的內文）
 function stratReply_(c) {
-  return stratText_(c) + (c.comment ? '\n\n💬 留言建議（貼在貼文下面）：\n' + c.comment : '');
+  return stratText_(c) + (c.pair ? '\n\n👥 對話：' + c.pair : '') + (c.comment ? '\n\n💬 留言建議（貼在貼文下面）：\n' + c.comment : '');
 }
 
 // 圖卡版面（直式 4:5）；2026-10-22 使用者：軍師圖卡都改淺色系、要有質感 → 用該主題配套款的暖光淺色底（kit/<款式>/card3_bg.jpg，沒有桌面）＋雙層金框，字用該款深色
