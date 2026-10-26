@@ -915,11 +915,13 @@ function stratPairPick_(text) {
   if (!th || pairsOf_(th.k).indexOf(m[2]) < 0) return null;
   return { k: th.k, pair: m[2] === STRAT_PAIR_NONE ? '' : m[2] };
 }
-// 寫給 AI 的對話規則：主角是彥彬，另一方照組合決定
+// 對話組合的另一方（佛祖、若熙、小孩）與口吻；主角一定是彥彬
+function pairWho_(pair) { return pair.indexOf('佛祖') >= 0 ? '佛祖' : pair.indexOf('若熙') >= 0 ? '若熙' : '小孩'; }
+const PAIR_TONE_ = { 佛祖: '佛祖溫和、慈悲、話少，一句點到為止；只講觀念與覺察，不講神通、不講開悟、不宣稱任何療效。', 若熙: '若熙的口吻自然、生活化，不編造她的職業、年紀或經歷。', 小孩: '小孩的口吻天真直接，不寫具體年齡、姓名或學校，不寫孩子的隱私或身體狀況。' };
+// 寫給 AI 的文案對話規則
 function stratPairRule_(pair) {
-  const who = pair.indexOf('佛祖') >= 0 ? '佛祖' : pair.indexOf('若熙') >= 0 ? '若熙' : '小孩';
-  const tone = { 佛祖: '佛祖溫和、慈悲、話少，一句點到為止；只講觀念與覺察，不講神通、不講開悟、不宣稱任何療效。', 若熙: '若熙的口吻自然、生活化，不編造她的職業、年紀或經歷。', 小孩: '小孩的口吻天真直接，不寫具體年齡、姓名或學校，不寫孩子的隱私或身體狀況。' }[who];
-  return '【對話組合】本篇寫「' + pair + '」：主角是彥彬（用「我」或彥彬的口吻），另一方是' + who + '。用兩人的對話或對話片段來寫，一問一答的感覺，每一段讓對話往前推一步。' + tone + '對話內容仍要守【不可以寫】的規則。';
+  const who = pairWho_(pair);
+  return '【對話組合】本篇寫「' + pair + '」：主角是彥彬（用「我」或彥彬的口吻），另一方是' + who + '。用兩人的對話或對話片段來寫，一問一答的感覺，每一段讓對話往前推一步。' + PAIR_TONE_[who] + '對話內容仍要守【不可以寫】的規則。';
 }
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
@@ -1134,7 +1136,7 @@ function stratWrite_(k, th, pair) {
   LAST_CARD_ = card;
   // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
-  try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
+  try { reel = reelText_(reelWrite_(k, th, card, pair)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
   return { text: stratReply_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 // 寫一篇文案（貼文＋3 張圖卡內容），不畫圖、不附短劇；軍師的寫作規則都在這裡，短劇也用同一份
@@ -1324,14 +1326,16 @@ function heroWizard_(t, raw) {
   return { text: heroSavedText_(slot, txt.slice(0, 300)), buttons: back };
 }
 // 寫一支 55 秒 AI 短劇腳本；base 是剛寫好的文案（有就照它改編，沒有就照主題自己發想）
-function reelWrite_(k, th, base) {
-  const heroes = [reelHero_(), reelHero2_()].filter(Boolean);
+function reelWrite_(k, th, base, pair) {
+  // 有對話組合：角色只有彥彬（主角設定）和組合的另一方，不加第二主角
+  const heroes = pair ? [reelHero_()].filter(Boolean) : [reelHero_(), reelHero2_()].filter(Boolean);
   const sys = [
     '你是短影音編劇，幫彥彬寫一支「AI 生成的 55 秒短劇」腳本，之後會把每一段的畫面描述貼到 AI 影片工具生成，再剪成 55 秒直式短片（9:16）。',
     base ? '【改編來源】照這篇文案的觀念改編成劇情，不要照念文案；文案裡人物的性別和年紀照原文寫，不可以對調：\n標題：' + base.ptitle + '\n' + base.post
       : '【本次主題】' + stratGuide_(th),
     heroes.length === 2 ? '【兩位主角（使用者指定，一男一女，必須照寫）】\n主角一：' + heroes[0] + '\n主角二：' + heroes[1] + '\n兩位主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；兩位都要出現在劇情裡，characters 也要列出這兩位，每段畫面都用同一段外型描述，AI 生成時才會像同一個人；其他角色再自己設計。' : null,
     heroes.length === 1 ? '【主角（使用者指定，必須照寫）】' + heroes[0] + '\n主角的名字、性別、年齡、外型都照這段寫，不可以換成別的性別或年齡；其他角色再自己設計。' : null,
+    pair ? '【對話組合（必須照寫）】本支短劇是「' + pair + '」：兩位角色就是「彥彬」和「' + pairWho_(pair) + '」，劇情和台詞都是這兩人的對話（一問一答），characters 只列這兩位，每一段的台詞都由其中一位說，不要加其他有台詞的角色（旁白可以有）。' + (heroes.length ? '彥彬的外型照上面的主角設定；' : '彥彬的外型自己設計一段固定描述；') + PAIR_TONE_[pairWho_(pair)] : null,
     '【劇情結構（反過來設計）】總長 55 秒，分 6 到 8 段，每段 5 到 10 秒，秒數加起來剛好 55。先設計前三秒：第 0 到 3 秒的畫面和台詞要立刻抓住注意力，用衝突、懸念或反差（例如一個反常的動作、一句讓人想追問的話、一個正在發生的誤會），第一個畫面就要看得出問題；前三秒定好後，再依序排後面的劇情：第 3 秒之後接上這個懸念，中間是一個日常生活場景裡的小誤會或小反轉，把前三秒的懸念一步步解開；最後 10 秒給一個觀念上的翻轉，用一句台詞或一個畫面收尾，不說教。',
     '【角色】最多 2 到 3 個角色，每個角色寫一段固定的外型描述（年紀、性別、髮型、衣服顏色），每一段都用同一段描述，AI 生成時才會像同一個人；不用真實名人。',
     '【畫面描述】每段寫給 AI 影片工具看：場景、角色動作、表情、鏡頭（特寫／中景／全景、推近、跟拍）、光線；一段只寫一個動作，具體、看得到，不寫心理活動。',
@@ -1340,7 +1344,7 @@ function reelWrite_(k, th, base) {
     '【全部繁體】所有欄位（標題、劇情、畫面風格、角色、畫面描述、台詞、貼文、配樂、片尾字幕）都必須是繁體中文（台灣用語），不可以出現任何簡體字，例如「这、们、说、时、会」要寫成「這、們、說、時、會」。只輸出 JSON，hook 要先寫（前三秒的鉤子設計完才寫後面的 scenes）：{"hook":"前三秒的衝突、懸念或反差（一句）","title":"短劇標題（12 字內）","post_title":"貼文標題（15 字內，不含 hashtag，要反骨，像一句讓人停下來看的話）","post":"貼文說明：2 到 3 段，段落之間空一行，像朋友分享，一段只講一件事；說明裡不得出現任何主角名稱（例如彥彬、若熙、小雅等角色名字），改用「我們」「兩位朋友」或「你」；不叫人留言或私訊，不寫療效、收入保證；最後一行是 3 到 5 個 hashtag（不可以有「康園道」「分享」「大健康」）","logline":"一句話劇情（30 字內）","style":"整體畫面風格（例如：寫實、暖色調、日系生活感）","characters":[{"name":"角色名","look":"固定外型描述"}],"scenes":[{"sec":"0-3","shot":"鏡頭","visual":"畫面描述","line":"角色名：台詞（每段都要有）"}],"music":"配樂建議","end":"片尾字幕一句"}',
   ].filter(Boolean).join('\n');
   // 每一段都要有台詞：缺的話告訴 AI 是哪幾段，請它重寫（最多寫 3 次）
-  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的 55 秒 AI 短劇腳本。' }];
+  const msgs = [{ role: 'user', content: '請寫一支「' + th.name + '」的 55 秒 AI 短劇腳本' + (pair ? '，對話是「' + pair + '」' : '') + '。' }];
   let r = null;
   for (let i = 0; i < 3; i++) {
     const out = callOpenAI_(sys, msgs, true, null, { maxTokens: 2000, temperature: 0.8 });
