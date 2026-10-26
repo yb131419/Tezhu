@@ -1107,7 +1107,7 @@ function stratWrite_(k, th) {
   // 同步附 55 秒短劇腳本（照這篇文案改編）；腳本沒寫出來也不影響文案和圖卡
   let reel = '';
   try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-  return { text: stratText_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
+  return { text: stratReply_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 // 寫一篇文案（貼文＋3 張圖卡內容），不畫圖、不附短劇；軍師的寫作規則都在這裡，短劇也用同一份
 function stratCard_(k, th) {
@@ -1128,9 +1128,10 @@ function stratCard_(k, th) {
     '第 1 張封面：title 主標每行最多四字、最多三行（用 \\n 分行），跟貼文標題不同；主標要是反骨句；hook 一句鉤子 16 字內，接著反骨點製造懸念（例如「問題不在你，在順序」），讓人想往下滑；封面不寫 body、gold。',
     '第 2、3 張：title 主標每行最多四字、最多三行，只講一個重點；body 正文 2 到 3 行、每行一句短句 10 字內（整張最多 36 字）；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
+    '③留言建議（comment）：貼文發出後，彥彬自己貼在下面的第一則留言。用一個具體的問題或觀察，請讀者說說自己的經驗；一句，20 到 60 字；不叫人私訊、不索取東西，不寫療效或成效保證，不重複貼文標題。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
-    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"],"comment":"留言建議"}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
@@ -1156,6 +1157,7 @@ function stratCard_(k, th) {
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s))
       .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
+    comment: String(c.comment || '').replace(/\s+/g, ' ').trim().slice(0, 120),   // 留言建議：貼在貼文下面，不放進發社群的內文
   };
   // 火山草本（含軍師判定成火山草本）：結尾一定要附「以上是個人感受」
   card.note = k === 'herb' || /火山草本/.test(card.cat) ? '以上是個人感受' : '';
@@ -1179,7 +1181,7 @@ function reelOnly_(k) {
     if (!card) return { text: '文案和短劇這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
     let reel = '';
     try { reel = reelText_(reelWrite_(k, th, card)); } catch (err) { console.error('短劇腳本失敗：' + err.message); }
-    return { text: stratText_(card) + '\n\n' + (reel || '短劇腳本這次沒寫出來，再按一次試試看。'), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
+    return { text: stratReply_(card) + '\n\n' + (reel || '短劇腳本這次沒寫出來，再按一次試試看。'), buttons: [['🎭 ' + (STRAT_CAT2[k] || '軍師') + '短劇', REEL_BTN], [HERO_BTN, HERO2_BTN, STRAT_SWITCH]].concat(MENU) };
   } catch (err) {
     console.error('短劇腳本失敗：' + err.message);
     return { text: '短劇腳本這次沒寫出來，再按一次試試看。', buttons: [[REEL_BTN, STRAT_SWITCH]] };
@@ -1584,6 +1586,10 @@ function postText_(c) {
 function stratText_(c) {
   return [stratHead_() + '｜' + (c.cat2 || c.label), '', postText_(c)]
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
+}
+// 給對話的回覆：文案＋留言建議（留言建議是貼在貼文下面的第一則留言，不進發社群的內文）
+function stratReply_(c) {
+  return stratText_(c) + (c.comment ? '\n\n💬 留言建議（貼在貼文下面）：\n' + c.comment : '');
 }
 
 // 圖卡版面（直式 4:5）；2026-10-22 使用者：軍師圖卡都改淺色系、要有質感 → 用該主題配套款的暖光淺色底（kit/<款式>/card3_bg.jpg，沒有桌面）＋雙層金框，字用該款深色
