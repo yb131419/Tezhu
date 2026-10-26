@@ -1872,7 +1872,7 @@ function kitWrite_(k) {
     '【結構】主題是「○○的三個動作」這種能照著做的三步驟（series，10 字內，例如「邀約的三個動作」；火山草本改成「認識○○的三件事」，○○是這次的植物）；關鍵字 keyword 是 2 個字（例如「邀約」），讓人在最後一張留言索取 PDF。',
     '【關鍵字】keyword 要從這次的具體內容取（例如「熬夜」「早餐」「排便」「開口」），不可以用主題或分類名稱（火山草本、草本、健康、觀念、經營、行銷這類大詞），每次都要不一樣。' + (kws.length ? '最近用過：' + kws.join('、') + '，這次不可以再用。' : ''),
     '【7 張輪播 slides】剛好 7 張，依序 kind 為：cover、action、action、action、reason、last、cta。',
-    'cover：head 標題最多三行、每行 5 字內、整體 14 字內，反骨鉤子（例如「約不到人，\\n不是你\\n**不會說**」）；sub 副標最多兩行、每行 20 字內（點出問題＋三個動作今天就用得上）。',
+    'cover：head 是一句反骨金句，字數要少：整體 8 字內，分 1 到 2 行，每行 4 字內（例如「不會說。」「先動，才清楚。」「不是懶，是怕。」），要大字一眼看完；sub 副標一句 12 字內（點出三個動作，例如「三個動作，今天就用」）。',
     'action ×3：step 寫「動作一／動作二／動作三」，head 兩行標題（每行 8 字內），body 3 到 5 行示範，可以用「~~錯誤說法~~」對比「**好的說法**」，全部 45 字內。',
     'reason：label 寫「○○，真正的原因」，head 四行內，點出真正的原因。',
     'last：pre 兩行鋪陳，head 兩行收尾金句。',
@@ -2055,6 +2055,8 @@ function kitText_(req, slide, id, box, paras, valign) {
 }
 // 底圖：網址讀不到（例如還沒上傳到 GitHub Pages，回 404）時改用純色底，不讓整組圖卡失敗
 function kitBg_(req, slide, file, W, H) {
+  // 2026-10-25 封面不要圖片：file 為空就直接用純白底
+  if (!file) { req.push({ updatePageProperties: { objectId: slide, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_('#FFFFFF') } } } }, fields: 'pageBackgroundFill.solidFill.color' } }); return; }
   const url = kitUrl_(KIT_S_.d + file);
   if (!kitReachable_(url)) {
     console.error('底圖讀不到，改用純色底：' + url);
@@ -2102,12 +2104,12 @@ const KIT_EN = ['ONE', 'TWO', 'THREE'];
 // 固定字級（2026-10-18 使用者指定：字體固定，不再依字數自動縮放）
 function kitFixed_(size) { return { size: size, h: size * 1.5 * 2 }; }
 // 暖光生活筆記版面（2026-10-18 依參考圖 IMG_0208／0209 重排）：雙層框、左上標籤＋短金線、右上頁碼與 SWIPE、字體固定、全部置左
-function kitWarm_(kit, s, i, N, W, H, lab, en, right, main) {
+function kitWarm_(kit, s, i, N, W, H, lab, en, right, main, bg) {
   const C = KIT_S_.c, num = ('0' + (i + 1)).slice(-2) + ' — ' + ('0' + N).slice(-2);
   const sp = t => String(t).replace(/\s+/g, '').split('').join(' ');   // 標籤一律拉開字距
   return { W: W, H: H, build: slide => {
     const req = [];
-    kitBg_(req, slide, i ? 'card_bg.jpg' : 'cover_bg.jpg', W, H);
+    kitBg_(req, slide, bg === undefined ? 'card_bg.jpg' : bg, W, H);
     kitFrame_(req, slide, slide + '_fo', 28, 28, W - 56, H - 56, C.gold, 1);     // 外框
     kitFrame_(req, slide, slide + '_fi', 35, 35, W - 70, H - 70, C.gold, 0.5);   // 內框（細）
     kitText_(req, slide, slide + '_lab', [82, 78, 320, 24], [
@@ -2205,21 +2207,14 @@ function balanceLines_(t, maxU) {
 }
 // 封面（2026-10-18 依參考圖）：標題固定 72、副標 21；只有標題加副標會壓到底線時，標題才往下縮（最小 52）
 function kitCoverLayout_(kit, s, num, W, H) {
+  // 2026-10-25 使用者：封面不要圖片，字要大，字數少的反骨金句；底色白
   const cat = String(kit.cat || kit.theme || '').replace(/分享|主題/g, '').trim(), C = KIT_S_.c;
-  const units = l => Array.from(l).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1.05), 0);
-  const SUB = 18;
-  const sub = balanceLines_(s.sub, 18);
-  const subLines = sub.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) * SUB / 420)), 0);
-  const subH = subLines * SUB * 1.5;
-  const gap = 24;
-  const IMG_Y = 110, IMG_H = 152, TOP = 282, BOX_H = 512 - TOP;   // 2026-10-22 使用者：封面要有圖片，上方放插圖，標題在下面
-  const maxH = BOX_H - subH - gap - 10;
-  const fit = kitFit_(s.head, 420, 60, 30, maxH);
+  // 標題留在 140～380，副標接在下面，不碰到底部金線（y 520）
+  const fit = kitFit_(s.head, 420, 96, 56, 240);
+  const SUB = 20;
   return kitWarm_(kit, s, 0, Number(num.slice(-2)) || 7, W, H, '生活筆記・' + cat, KIT_S_.en || 'LIFE NOTES', 'SWIPE  →', (req, slide) => {
-    kitImg_(req, slide, slide + '_art', KIT_S_.d + 'cover_art.jpg', 75, IMG_Y, 390, IMG_H);
-    kitFrame_(req, slide, slide + '_af', 75, IMG_Y, 390, IMG_H, C.gold, 0.8);
-    kitHeadBlock_(req, slide, s.head, fit, TOP, [{ t: sub, size: SUB, color: C.sub, ls: 150, above: gap, align: 'START', em: C.gold }]);
-  });
+    kitHeadBlock_(req, slide, s.head, fit, 140, [{ t: balanceLines_(s.sub, 18), size: SUB, color: C.sub, ls: 150, above: 24, align: 'START', em: C.gold }]);
+  }, null);
 }
 
 // PDF 實作手冊（A4 直式 595×842）
