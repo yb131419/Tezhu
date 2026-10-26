@@ -44,6 +44,17 @@ jobs:
         run: |
           ffmpeg -y -loglevel error -f lavfi -i testsrc2=size=720x1280:rate=24:d=6 -c:v libx264 /tmp/v2.mp4
           python3 reels/reels.py --input /tmp/in.mp4,/tmp/v2.mp4 --transcript reels/selftest.json --out /tmp/m.mp4 --selftest
+      - name: 照時間軸重剪（使用者調整段落後，只留下的段落、字幕照舊）
+        run: |
+          python3 reels/reels.py --input /tmp/in.mp4 --transcript reels/selftest.json --out /tmp/t1.mp4 --timeline-out /tmp/tl.json --selftest
+          python3 -c "import json;t=json.load(open('/tmp/tl.json'));t['spans']=[[0.0,3.0],[5.0,8.0]];json.dump(t,open('/tmp/tl2.json','w'),ensure_ascii=False)"
+          TIMELINE="$(cat /tmp/tl2.json)" python3 reels/reels.py --input /tmp/in.mp4 --transcript reels/selftest.json --out /tmp/t2.mp4 --selftest
+          test "$(python3 -c "import subprocess;print(int(float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','/tmp/t2.mp4']))))")" = 6
+      - name: 照時間軸搬移與變速重剪（字幕要跟著段落對上，字幕檢查要過）
+        run: |
+          python3 -c "import json;t=json.load(open('/tmp/tl.json'));t['spans']=[[5.0,8.0],[0.0,3.0,2.0]];json.dump(t,open('/tmp/tl3.json','w'),ensure_ascii=False)"
+          TIMELINE="$(cat /tmp/tl3.json)" python3 reels/reels.py --input /tmp/in.mp4 --transcript reels/selftest.json --out /tmp/t3.mp4 --selftest
+          python3 -c "import subprocess;d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','/tmp/t3.mp4']));assert 4.0<=d<=5.0,d"
       - name: 靜音剪（配樂卡點、轉場、運鏡、文字動畫）
         run: |
           ffmpeg -y -loglevel error -f lavfi -i testsrc=size=1280x720:rate=30:d=40 -c:v libx264 /tmp/sil.mp4
