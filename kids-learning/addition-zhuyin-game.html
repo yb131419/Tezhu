@@ -79,8 +79,15 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
   <h1 id="title"></h1>
   <div class="mascots" id="mascots"></div>
 
-  <!-- 設定頁 -->
-  <div class="screen on" id="s-setup">
+  <!-- 首頁：兩大分類 -->
+  <div class="screen on" id="s-home">
+    <button class="btn pink" id="mathBtn" style="font-size:1.3em"></button>
+    <br>
+    <button class="btn" id="zyBtn" style="font-size:1.3em;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;box-shadow:0 4px 0 #8a6d12"></button>
+  </div>
+
+  <!-- 數字練習設定頁 -->
+  <div class="screen" id="s-setup">
     <p id="t-lv"></p>
     <div class="lv-row">
       <button class="btn green" id="lvK"></button>
@@ -96,7 +103,7 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
     <div><button class="btn" id="sound"></button></div>
     <button class="btn pink" id="start" style="font-size:1.3em"></button>
     <br>
-    <button class="btn" id="zyBtn" style="background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;box-shadow:0 4px 0 #8a6d12"></button>
+    <button class="btn" id="setupHome"></button>
   </div>
 
   <!-- 遊戲頁 -->
@@ -268,7 +275,9 @@ function setStatic() {
   $('t-count').innerHTML = R('題數');
   $('sound').innerHTML = R('音效開');
   $('start').innerHTML = R('開始遊戲');
-  $('zyBtn').innerHTML = '✨ ' + R('注音符號練習');
+  $('mathBtn').innerHTML = R('數字練習');
+  $('zyBtn').innerHTML = '✨ ' + R('注音練習');
+  $('setupHome').innerHTML = R('回首頁');
   $('next').innerHTML = R('下一題');
   $('again').innerHTML = R('再玩一次');
   $('home1').innerHTML = R('回首頁');
@@ -310,7 +319,9 @@ $('sound').onclick = () => {
 };
 
 $('start').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
-$('home1').onclick = () => show('s-setup');
+$('home1').onclick = () => show('s-home');
+$('mathBtn').onclick = () => show('s-setup');
+$('setupHome').onclick = () => show('s-home');
 $('again').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
 
 // ===== 加法遊戲 =====
@@ -477,7 +488,7 @@ function zAnswer(v, btn) {
 
 $('zNext').onclick = zNext;
 $('zyBtn').onclick = startZy;
-$('zHome').onclick = () => show('s-setup');
+$('zHome').onclick = () => show('s-home');
 
 function zFinish() {
   $('zPrompt').innerHTML = R('練習完成');
