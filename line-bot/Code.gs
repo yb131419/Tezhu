@@ -753,6 +753,12 @@ function 清理暫時狀態() {
   Logger.log('已清理 ' + STALE.length + ' 筆，目前剩 ' + Object.keys(p.getProperties()).length + ' 筆');
 }
 
+// 檢查 YouTube 金鑰有沒有存進這個專案：在編輯器選「檢查YouTube金鑰」按「執行」，看執行記錄。只記長度，不顯示金鑰本身。
+function 檢查YouTube金鑰() {
+  const key = prop_('YOUTUBE_API_KEY');
+  Logger.log(key ? 'YOUTUBE_API_KEY 有值，長度 ' + key.length : 'YOUTUBE_API_KEY 沒有值（找不到）');
+}
+
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
