@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>加法寶貝扭蛋教室（注音版）</title>
+<title>寶貝怪獸加法教室（注音版）</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:#fff7e6;font-family:"DFKai-SB","BiauKai","標楷體","Kaiti TC","Noto Sans TC",sans-serif;color:#333;display:flex;justify-content:center;padding:16px}
@@ -44,6 +44,9 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
 .opt.wrong{background:#ffd1dc;border-color:#ff7aa2}
 .opt:disabled{cursor:default}
 .big{font-size:2.6em}
+.grp svg{width:44px;height:44px;margin:2px}
+.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.mascots svg{width:48px;height:48px}
 #next{display:none}
 .lv-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
 .lv-row .btn{flex:1;max-width:200px}
@@ -74,6 +77,7 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
 <body>
 <div class="app">
   <h1 id="title"></h1>
+  <div class="mascots" id="mascots"></div>
 
   <!-- 設定頁 -->
   <div class="screen on" id="s-setup">
@@ -159,7 +163,7 @@ const ZY = {
   長:'ㄔㄤˊ',頸:'ㄐㄧㄥˇ',鹿:'ㄌㄨˋ',海:'ㄏㄞˇ',豚:'ㄊㄨㄣˊ',獨:'ㄉㄨˊ',角:'ㄐㄩㄝˇ',
   獸:'ㄕㄡˋ',企:'ㄑㄧˇ',鵝:'ㄜˊ',蝴:'ㄏㄨˊ',蝶:'ㄉㄧㄝˊ',蜜:'ㄇㄧˋ',蜂:'ㄈㄥ',
   小:'ㄒㄧㄠˇ',恐:'ㄎㄨㄥˇ',龍:'ㄌㄨㄥˊ',彩:'ㄘㄞˇ',虹:'ㄏㄨㄥˊ',星:'ㄒㄧㄥ',
-  皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',
+  皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',怪:'ㄍㄨㄞˋ',獸:'ㄕㄡˋ',神:'ㄕㄣˊ',奇:'ㄑㄧˊ',
   請:'ㄑㄧㄥˇ',正:'ㄓㄥˋ',確:'ㄑㄩㄝˋ',出:'ㄔㄨ',字:'ㄗˋ',讀:'ㄉㄨˊ',這:'ㄓㄜˋ',
   練:'ㄌㄧㄢˋ',習:'ㄒㄧˊ',按:'ㄢˋ',後:'ㄏㄡˋ',繼:'ㄐㄧˋ',續:'ㄒㄩˋ',
   幼:'ㄧㄡˋ',稚:'ㄓˋ',園:'ㄩㄢˊ',國:'ㄍㄨㄛˊ',級:'ㄐㄧˊ',分:'ㄈㄣ',類:'ㄌㄟˋ',
@@ -178,9 +182,23 @@ const numZh = n => n < 10 ? NUM[n]
   : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
 const N = n => R(numZh(n));
 
+// 原創小怪獸圖案（SVG，非既有角色，無版權問題）
+const sv = inner => `<svg viewBox="0 0 80 80">${inner}</svg>`;
+const CREATURE = {
+  fire: sv('<circle cx="40" cy="44" r="26" fill="#ff8c42"/><path d="M40 20 L46 4 L50 22 Z" fill="#ffd166"/><circle cx="31" cy="38" r="4" fill="#fff"/><circle cx="49" cy="38" r="4" fill="#fff"/><circle cx="31" cy="38" r="2" fill="#333"/><circle cx="49" cy="38" r="2" fill="#333"/><path d="M34 50 Q40 56 46 50" stroke="#333" stroke-width="2" fill="none"/>'),
+  water: sv('<ellipse cx="40" cy="46" rx="28" ry="22" fill="#5bc0eb"/><circle cx="28" cy="28" r="9" fill="#fff"/><circle cx="52" cy="28" r="9" fill="#fff"/><circle cx="28" cy="28" r="4" fill="#333"/><circle cx="52" cy="28" r="4" fill="#333"/><path d="M28 50 Q40 60 52 50" stroke="#333" stroke-width="2.5" fill="none"/>'),
+  grass: sv('<rect x="18" y="56" width="10" height="8" rx="3" fill="#7bd389"/><rect x="52" y="56" width="10" height="8" rx="3" fill="#7bd389"/><ellipse cx="40" cy="48" rx="26" ry="16" fill="#4fa865"/><path d="M18 48 Q40 24 62 48 Z" fill="#2f7d4a"/><circle cx="40" cy="22" r="9" fill="#9be7a7"/><circle cx="37" cy="21" r="2" fill="#333"/><circle cx="43" cy="21" r="2" fill="#333"/>'),
+  electric: sv('<path d="M22 30 L26 8 L38 26 Z" fill="#ffd93d"/><path d="M58 30 L54 8 L42 26 Z" fill="#ffd93d"/><path d="M20 22 L26 12 L28 24 Z" fill="#333"/><path d="M52 22 L54 12 L60 22 Z" fill="#333"/><circle cx="40" cy="46" r="22" fill="#ffd93d"/><circle cx="33" cy="44" r="3" fill="#333"/><circle cx="47" cy="44" r="3" fill="#333"/><circle cx="26" cy="52" r="3" fill="#ff7aa2"/><circle cx="54" cy="52" r="3" fill="#ff7aa2"/><path d="M36 52 Q40 56 44 52" stroke="#333" stroke-width="2" fill="none"/>'),
+  star: sv('<polygon points="40,6 49,28 73,30 54,45 61,70 40,56 19,70 26,45 7,30 31,28" fill="#ffd93d" stroke="#e0ac2b" stroke-width="2"/><circle cx="34" cy="38" r="2.5" fill="#333"/><circle cx="46" cy="38" r="2.5" fill="#333"/>'),
+  moon: sv('<ellipse cx="40" cy="48" rx="20" ry="18" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="32" cy="16" rx="5" ry="16" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="48" cy="16" rx="5" ry="16" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="32" cy="16" rx="2" ry="11" fill="#ffb3c6"/><ellipse cx="48" cy="16" rx="2" ry="11" fill="#ffb3c6"/><circle cx="34" cy="46" r="2.5" fill="#333"/><circle cx="46" cy="46" r="2.5" fill="#333"/><path d="M37 52 L43 52 L40 55 Z" fill="#ffb3c6"/>'),
+};
+// 寶貝球（一般的球形圖案，依顏色區分）
+const ball = color => sv(`<circle cx="40" cy="40" r="30" fill="#fff" stroke="#333" stroke-width="3"/><path d="M10 40 A30 30 0 0 1 70 40 Z" fill="${color}" stroke="#333" stroke-width="3"/><rect x="10" y="37" width="60" height="6" fill="#333"/><circle cx="40" cy="40" r="8" fill="#fff" stroke="#333" stroke-width="3"/>`);
+
 // 加法題的圖式：每一組用同一種東西來數
 const OBJ_PAIRS = [
-  ['🍎','🍌'], ['⭐','🌟'], ['🐶','🐱'], ['🍪','🍩'], ['🐟','🐠'], ['🌸','🌼'],
+  [CREATURE.fire, CREATURE.water], [CREATURE.grass, CREATURE.electric], [CREATURE.star, CREATURE.moon],
+  [ball('#ff6b6b'), ball('#5bc0eb')], [ball('#ffd93d'), ball('#7bd389')],
 ];
 
 // 注音練習題庫：[字, 注音, 圖示]
@@ -239,7 +257,8 @@ function show(id) {
 }
 
 function setStatic() {
-  $('title').innerHTML = R('加法寶貝扭蛋教室') + '<br><small>' + R('注音版') + '</small>';
+  $('title').innerHTML = R('寶貝怪獸加法教室') + '<br><small>' + R('注音版') + '</small>';
+  $('mascots').innerHTML = [CREATURE.fire, CREATURE.water, CREATURE.grass, CREATURE.electric, CREATURE.star, CREATURE.moon].join('');
   $('t-lv').innerHTML = R('學習') + R('分類') + '：';
   $('lvK').innerHTML = R('幼稚園');
   $('lvE').innerHTML = R('國小');
