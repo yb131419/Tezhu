@@ -5,54 +5,63 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>寶貝怪獸加法教室（注音版）</title>
 <style>
+:root{--gold:#d4af37;--gold-hi:#f7e7a1;--ink:#f5e6b8;--muted:#a8956a}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:#fff7e6;font-family:"DFKai-SB","BiauKai","標楷體","Kaiti TC","Noto Sans TC",sans-serif;color:#333;display:flex;justify-content:center;padding:16px}
-.app{width:100%;max-width:460px;background:#fff;border-radius:24px;box-shadow:0 6px 24px #0001;padding:20px;text-align:center}
-h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#4b3486 0%,#1a1130 55%,#0a0712 100%);font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;color:var(--ink);display:flex;justify-content:center;padding:16px}
+.app{width:100%;max-width:460px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));border:1px solid #d4af3766;border-radius:28px;box-shadow:0 0 0 6px #120c1f,0 0 0 7px #d4af3744,0 18px 50px #0009;padding:22px 18px;text-align:center}
+h1{font-size:1.6em;margin:6px 0 10px;color:var(--gold-hi);letter-spacing:.08em;text-shadow:0 0 18px #d4af3788}
+h1 small{font-size:.6em;color:#e9d9a6;letter-spacing:.2em}
+p{color:#e9d9a6;letter-spacing:.05em}
 .screen{display:none}.screen.on{display:block}
-.btn{font-size:1.1em;border:none;border-radius:16px;padding:12px 18px;margin:6px;cursor:pointer;background:#ffd166;color:#333;font-family:inherit;box-shadow:0 4px 0 #e0ac2b}
-.btn:active{transform:translateY(3px);box-shadow:none}
-.btn.pink{background:#ff7aa2;color:#fff;box-shadow:0 4px 0 #c94f7a}
-.btn.blue{background:#5bc0eb;color:#fff;box-shadow:0 4px 0 #2a8ab5}
-.btn.green{background:#7bd389;color:#fff;box-shadow:0 4px 0 #4fa865}
-.btn.sel{outline:4px solid #ff7aa2}
-.btn:disabled{opacity:.5;cursor:default}
+.btn{font-family:inherit;font-size:1.1em;letter-spacing:.12em;border:1px solid var(--gold);border-radius:999px;padding:12px 24px;margin:6px;cursor:pointer;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;font-weight:bold;box-shadow:0 6px 18px #d4af3755;transition:transform .08s}
+.btn:active{transform:translateY(2px)}
+.btn.pink{background:linear-gradient(90deg,#b8456e,#ff8fb1,#b8456e);color:#fff;border-color:#ffb3c9;box-shadow:0 6px 18px #ff7aa255}
+.btn.blue{background:linear-gradient(90deg,#1f6f8b,#7fd3f0,#1f6f8b);color:#fff;border-color:#9ee3ff;box-shadow:0 6px 18px #5bc0eb55}
+.btn.green{background:linear-gradient(90deg,#1f6b4a,#7ef0b8,#1f6b4a);color:#06271a;border-color:#a8ffd6;box-shadow:0 6px 18px #7ef0b855}
+.btn.sel{box-shadow:0 0 0 3px #15101f,0 0 0 5px #f7e7a1,0 6px 18px #d4af3788}
+.btn:disabled{opacity:.45;cursor:default}
 
 /* 注音疊在中文字上方 */
 .zc{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;vertical-align:middle;margin:0 1px}
-.zz{font-size:.42em;color:#e0457b;font-weight:normal}
-.zh{font-size:1em}
+.zz{font-size:.42em;color:#f0cf6a;font-weight:normal}
+.zh{font-size:1em;color:var(--ink)}
 
-.students{display:flex;gap:12px;justify-content:center;margin:10px 0}
-.stu{flex:1;font-size:2.4em;padding:14px;border-radius:20px;border:3px solid #eee;background:#fafafa;cursor:pointer;font-family:inherit}
-.stu.sel{border-color:#ff7aa2;background:#ffeef4}
-.stu .n{display:block;margin-top:4px}
-.bar{display:flex;justify-content:space-around;align-items:center;font-size:1em;margin-bottom:10px;background:#f7f7f7;border-radius:14px;padding:8px}
-.qtext{font-size:1.2em;margin:8px 0}
+.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:8px 0 16px;padding:10px 6px;border-radius:24px;background:#ffffff0d;border:1px solid #d4af3733}
+.mascots svg{width:50px;height:50px;filter:drop-shadow(0 4px 6px #0008)}
 
-/* 加法題：圖式 + 數字 */
-.pic{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;margin:10px auto 6px;max-width:420px;min-height:70px}
-.grp{display:inline-flex;flex-wrap:wrap;justify-content:center;max-width:190px;font-size:1.7em;line-height:1.25}
-.pic .sym{font-size:2em;font-weight:bold;color:#ff7aa2;margin:0 6px}
-.nums{font-size:1.9em;font-weight:bold;color:#4a6cf7;margin:6px 0 4px}
-.nums .op{color:#ff7aa2;margin:0 6px}
-
-.fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold}
-.opts{display:flex;flex-wrap:wrap;justify-content:center}
-.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:#f4f9ff;border:3px solid #bfe3ff;border-radius:20px;margin:6px;cursor:pointer;font-family:inherit;color:#333}
-.opt.correct{background:#bdf5dc;border-color:#06d6a0}
-.opt.wrong{background:#ffd1dc;border-color:#ff7aa2}
-.opt:disabled{cursor:default}
-.big{font-size:2.6em}
-.grp svg{width:44px;height:44px;margin:2px}
-.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.mascots svg{width:48px;height:48px}
-#next{display:none}
 .lv-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
 .lv-row .btn{flex:1;max-width:200px}
-.speak{font-size:1.4em;border:none;background:transparent;cursor:pointer;margin-left:6px;vertical-align:middle}
+.students{display:flex;gap:12px;justify-content:center;margin:10px 0}
+.stu{flex:1;font-size:2.4em;padding:12px;border-radius:22px;border:2px solid #d4af3744;background:#ffffff0d;color:var(--ink);cursor:pointer;font-family:inherit}
+.stu.sel{border-color:var(--gold-hi);background:#d4af3722;box-shadow:0 0 22px #d4af3755}
+.stu .n{display:block;margin-top:4px;font-size:.4em;letter-spacing:.1em}
+#counts .btn{font-size:1em;padding:10px 18px}
 
-/* ===== 萬元質感 注音練習 ===== */
+.bar{display:flex;justify-content:space-around;align-items:center;font-size:1em;margin-bottom:10px;background:#00000055;border:1px solid #d4af3733;border-radius:16px;padding:8px;color:var(--gold-hi)}
+.qtext{font-size:1.25em;margin:10px 0;color:var(--ink)}
+.speak{font-size:1.4em;border:none;background:transparent;cursor:pointer;margin-left:6px;vertical-align:middle;filter:drop-shadow(0 0 6px #d4af37aa)}
+
+/* 加法題：圖式 + 數字 */
+.pic{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;margin:10px auto 6px;max-width:420px;min-height:80px;padding:10px;border-radius:22px;background:#00000040;border:1px solid #d4af3733}
+.grp{display:inline-flex;flex-wrap:wrap;justify-content:center;max-width:190px;font-size:1.7em;line-height:1.25}
+.grp svg{width:44px;height:44px;margin:2px}
+.pic .sym{font-size:2em;font-weight:bold;color:var(--gold-hi);margin:0 6px}
+.nums{font-size:1.9em;font-weight:bold;color:var(--gold-hi);margin:8px 0 4px;text-shadow:0 0 14px #d4af3766}
+.nums .op{color:#ff9fbf;margin:0 6px}
+
+.fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold;color:var(--gold-hi)}
+.opts{display:flex;flex-wrap:wrap;justify-content:center}
+.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:linear-gradient(180deg,#3a2f1f,#1d1710);border:2px solid #d4af37aa;border-radius:22px;margin:6px;cursor:pointer;font-family:inherit;color:var(--gold-hi);box-shadow:0 4px 14px #0008}
+.opt:active{transform:translateY(2px)}
+.opt.correct{background:linear-gradient(180deg,#1f5a43,#0f2f23);border-color:#7ef0b8;color:#d9ffe9}
+.opt.wrong{background:linear-gradient(180deg,#5a1f2c,#2f0f17);border-color:#ff8a9a;color:#ffd6dd}
+.opt:disabled{cursor:default}
+#next{display:none}
+
+.big{font-size:2.6em;color:var(--gold-hi);text-shadow:0 0 22px #d4af37aa;margin:10px 0}
+.mascots + .screen .big{margin-top:0}
+
+/* ===== 注音練習 ===== */
 #s-zy{background:radial-gradient(circle at 50% 0%,#3a2a55 0%,#15101f 60%,#0a0810 100%);color:#f5e6b8;border-radius:22px;padding:22px 16px;font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;box-shadow:inset 0 0 0 1px #d4af3755}
 .zbar{display:flex;justify-content:space-between;align-items:center;font-size:.95em;margin-bottom:12px;color:#d4af37}
 .zcard{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01));border:1px solid #d4af3788;border-radius:20px;padding:18px 12px;box-shadow:0 0 30px #d4af3722,inset 0 1px 0 #fff2}
@@ -83,7 +92,7 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
   <div class="screen on" id="s-home">
     <button class="btn pink" id="mathBtn" style="font-size:1.3em"></button>
     <br>
-    <button class="btn" id="zyBtn" style="font-size:1.3em;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;box-shadow:0 4px 0 #8a6d12"></button>
+    <button class="btn" id="zyBtn" style="font-size:1.3em"></button>
   </div>
 
   <!-- 數字練習設定頁 -->
@@ -127,7 +136,7 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
     <button class="btn" id="home1"></button>
   </div>
 
-  <!-- 注音練習頁（萬元質感） -->
+  <!-- 注音練習頁 -->
   <div class="screen" id="s-zy">
     <div class="zbar">
       <span id="zProg"></span>
@@ -170,7 +179,7 @@ const ZY = {
   長:'ㄔㄤˊ',頸:'ㄐㄧㄥˇ',鹿:'ㄌㄨˋ',海:'ㄏㄞˇ',豚:'ㄊㄨㄣˊ',獨:'ㄉㄨˊ',角:'ㄐㄩㄝˇ',
   獸:'ㄕㄡˋ',企:'ㄑㄧˇ',鵝:'ㄜˊ',蝴:'ㄏㄨˊ',蝶:'ㄉㄧㄝˊ',蜜:'ㄇㄧˋ',蜂:'ㄈㄥ',
   小:'ㄒㄧㄠˇ',恐:'ㄎㄨㄥˇ',龍:'ㄌㄨㄥˊ',彩:'ㄘㄞˇ',虹:'ㄏㄨㄥˊ',星:'ㄒㄧㄥ',
-  皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',怪:'ㄍㄨㄞˋ',獸:'ㄕㄡˋ',神:'ㄕㄣˊ',奇:'ㄑㄧˊ',
+  皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',怪:'ㄍㄨㄞˋ',神:'ㄕㄣˊ',奇:'ㄑㄧˊ',
   請:'ㄑㄧㄥˇ',正:'ㄓㄥˋ',確:'ㄑㄩㄝˋ',出:'ㄔㄨ',字:'ㄗˋ',讀:'ㄉㄨˊ',這:'ㄓㄜˋ',
   練:'ㄌㄧㄢˋ',習:'ㄒㄧˊ',按:'ㄢˋ',後:'ㄏㄡˋ',繼:'ㄐㄧˋ',續:'ㄒㄩˋ',
   幼:'ㄧㄡˋ',稚:'ㄓˋ',園:'ㄩㄢˊ',國:'ㄍㄨㄛˊ',級:'ㄐㄧˊ',分:'ㄈㄣ',類:'ㄌㄟˋ',
@@ -318,10 +327,11 @@ $('sound').onclick = () => {
   if (!soundOn && 'speechSynthesis' in window) speechSynthesis.cancel();
 };
 
-$('start').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
-$('home1').onclick = () => show('s-home');
 $('mathBtn').onclick = () => show('s-setup');
 $('setupHome').onclick = () => show('s-home');
+$('zyBtn').onclick = () => startZy();
+$('start').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
+$('home1').onclick = () => show('s-home');
 $('again').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
 
 // ===== 加法遊戲 =====
@@ -401,7 +411,7 @@ function finish() {
   speak(S.correct === S.total ? '太棒了！全部答對！' : '再接再厲！');
 }
 
-// ===== 注音練習（萬元質感） =====
+// ===== 注音練習 =====
 function startZy() {
   Z.q = 0; Z.correct = 0;
   show('s-zy');
@@ -487,7 +497,6 @@ function zAnswer(v, btn) {
 }
 
 $('zNext').onclick = zNext;
-$('zyBtn').onclick = startZy;
 $('zHome').onclick = () => show('s-home');
 
 function zFinish() {
