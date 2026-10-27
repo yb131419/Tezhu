@@ -397,20 +397,24 @@ $('opts').onclick = e => {
 };
 
 function answer(v, btn) {
-  S.answered = true;
   const ok = v === S.ans;
-  if (ok) { S.correct++; save.points++; persist(); beep(880); speak('答對了！'); }
-  else { beep(220); speak('再想想喔，答案是' + numZh(S.ans)); }
+  if (!ok) {
+    // 點錯：標示錯的數字，請小朋友再想一想，不直接公布答案
+    beep(220); speak('不是這個，再想一想');
+    btn.classList.add('wrong');
+    btn.disabled = true;
+    $('fb').innerHTML = R('不是這個，再想一想');
+    return;
+  }
 
+  S.answered = true;
+  S.correct++; save.points++; persist(); beep(880); speak('答對了！');
   document.querySelectorAll('.opt').forEach(o => {
     if (+o.dataset.v === S.ans) o.classList.add('correct');
-    else if (o === btn && !ok) o.classList.add('wrong');
     o.disabled = true;
   });
 
-  $('fb').innerHTML = ok
-    ? R('答對了！') + ' 🎉'
-    : R('再想想喔') + '　' + R('答案是') + N(S.ans);
+  $('fb').innerHTML = R('答對了！') + ' 🎉';
   $('next').style.display = 'inline-block';
   bar();
 }
