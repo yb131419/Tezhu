@@ -43,6 +43,7 @@ const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名�
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
 const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師', '🧘修行'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
+const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
@@ -52,6 +53,7 @@ const MENU_CARDS = [
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
+  { en: 'CHANNEL', title: '頻道', sub: 'YouTube 頻道數據，與依數據給的改善建議', items: [[CHAN_BTN, '訂閱・觀看・最近影片'], [CHAN_ADV_BTN, '依數據給建議']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
 // 回覆按鈕裡的整組常用選單換成精簡的 5 個（試算問題等專屬按鈕照留）；每組快速回覆都要有「💎 選單」，沒有就補一列
@@ -674,6 +676,75 @@ function lineImage_(messageId) {
   return dataUrl_(res.getBlob());
 }
 
+/* ============ YouTube 頻道：查頻道數據、依數據給改善建議（YouTube Data API v3，金鑰在指令碼屬性 YOUTUBE_API_KEY） ============ */
+const CHAN_ID_DEFAULT = 'UCE4E-lnj5eEvFy2l-Ut-NHQ';
+function chanReply_(t) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanData_();
+  if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanAdvice_();
+  return null;
+}
+function chanGet_(path, params) {
+  const key = prop_('YOUTUBE_API_KEY');
+  if (!key) throw new Error('NO_KEY');
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/' + path + '?' + qs, {
+    muteHttpExceptions: true, headers: { 'x-goog-api-key': key },
+  });
+  const data = JSON.parse(res.getContentText());
+  if (res.getResponseCode() !== 200) throw new Error('YT ' + res.getResponseCode() + ' ' + ((data.error && data.error.message) || ''));
+  return data;
+}
+function chanFetch_() {
+  const id = prop_('YOUTUBE_CHANNEL_ID') || CHAN_ID_DEFAULT;
+  const ch = (chanGet_('channels', { part: 'snippet,statistics,contentDetails', id: id }).items || [])[0];
+  if (!ch) throw new Error('NO_CHANNEL');
+  const recent = chanGet_('playlistItems', { part: 'contentDetails', playlistId: ch.contentDetails.relatedPlaylists.uploads, maxResults: 20 }).items || [];
+  const ids = recent.map(i => i.contentDetails.videoId).join(',');
+  const vids = ids ? (chanGet_('videos', { part: 'snippet,statistics', id: ids }).items || []) : [];
+  vids.sort((a, b) => (a.snippet.publishedAt < b.snippet.publishedAt ? 1 : -1));
+  return {
+    title: ch.snippet.title,
+    subs: ch.statistics.hiddenSubscriberCount ? null : Number(ch.statistics.subscriberCount),
+    views: Number(ch.statistics.viewCount || 0),
+    videoCount: Number(ch.statistics.videoCount || 0),
+    videos: vids.map(v => ({
+      title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10),
+      views: Number(v.statistics.viewCount || 0), likes: Number(v.statistics.likeCount || 0), comments: Number(v.statistics.commentCount || 0),
+    })),
+  };
+}
+function chanErr_(e) {
+  const m = String((e && e.message) || e);
+  if (m === 'NO_KEY') return '還沒設定 YouTube 金鑰，請到 Apps Script 的指令碼屬性新增 YOUTUBE_API_KEY。';
+  if (m === 'NO_CHANNEL') return '找不到這個 YouTube 頻道，請確認頻道 ID 是否正確。';
+  return '查 YouTube 時出了點問題：' + m + '\n請確認已啟用 YouTube Data API v3，且金鑰的 API 限制有包含它。';
+}
+function chanNum_(x) { return x == null ? '（隱藏）' : String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function chanText_(d) {
+  const lines = ['📺 ' + d.title, '', '訂閱：' + chanNum_(d.subs), '總觀看：' + chanNum_(d.views), '影片數：' + chanNum_(d.videoCount)];
+  if (d.videos.length) {
+    const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
+    lines.push('', '最近 ' + d.videos.length + ' 支影片平均觀看：' + chanNum_(avg), '', '最近影片：');
+    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.date + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
+  }
+  return lines.join('\n');
+}
+function chanData_() {
+  try { return { text: chanText_(chanFetch_()), buttons: [[CHAN_ADV_BTN, MENU_BTN]] }; }
+  catch (e) { return { text: chanErr_(e), buttons: MENU }; }
+}
+function chanAdvice_() {
+  if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
+  let d;
+  try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
+  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每點先寫結論，再寫依據（引用數據裡的影片或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  let text;
+  try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
+  catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
@@ -710,6 +781,8 @@ function answer_(text) {
   if (ad) return ad;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
+  const chn = chanReply_(t2);   // 「📺 頻道數據」「💡 改善建議」：查 YouTube 頻道數據、依數據給建議
+  if (chn) return chn;
   const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
   if (ap) return ap;
   const oa = oaAsk_(t2, raw);   // 「官方LINE」：接官方 LINE、關鍵字自動給 PDF、「官回 3 內容」回朋友
