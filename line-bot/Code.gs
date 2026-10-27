@@ -739,10 +739,11 @@ function chanAdvice_() {
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
   d.videos = d.videos.slice(0, 3);   // 只根據最新的三支影片給建議
-  const sys = '你是有經驗的 YouTube 頻道經營顧問，請用專業經營者的角度，根據下面的頻道數據（JSON，只含最新三支影片），用繁體中文（台灣用語）給出改善建議。請依序用四個小標題整理：【標題】、【內容】、【結尾引導】、【留言】。每個小標題寫 1 到 2 點具體建議，每點先寫結論，再寫依據（引用數據裡的影片標題或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  const sys = '你是有經驗的 YouTube 頻道經營顧問，請用專業經營者的角度，根據下面的頻道數據（JSON，只含最新三支影片），用繁體中文（台灣用語）給出改善建議。請依序用四個小標題整理：【標題】、【內容】、【結尾引導】、【留言】。每個小標題寫 1 到 2 點具體建議，每點單獨一行、以「・」開頭，先寫結論，再寫依據（引用數據裡的影片標題或數字）。各段之間空一行，不要寫成長段落。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
   let text;
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
+  text = text.replace(/\s*(【[^】]+】)\s*/g, '\n\n$1\n').replace(/\n{3,}/g, '\n\n').trim();   // 四個小標題各自換行、段落之間空一行
   return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
