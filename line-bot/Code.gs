@@ -745,6 +745,14 @@ function chanAdvice_() {
   return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
+// 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
+function 清理暫時狀態() {
+  const STALE = ['YT_STATE', 'YT_ARTICLE', 'YT_UNTIL', 'SEARCH_UNTIL', 'SEARCH_MODE', 'CASE_PENDING', 'CASE_UNTIL', 'CASE_FIND_UNTIL', 'CASE_EDIT_UNTIL', 'QUOTE_UNTIL', 'HERO_UNTIL', 'HERO_STEP', 'HERO_DRAFT', 'HERO_SLOT', 'ADD_PENDING', 'ADD_UNTIL', 'PASTE_UNTIL', 'SET_PENDING', 'SET_UNTIL', 'EV_UNDO', 'EV_LAST', 'KIT_RUN', 'KIT_JOB', 'LINE_LAST_IMG'];
+  const p = PropertiesService.getScriptProperties();
+  STALE.forEach(k => p.deleteProperty(k));
+  Logger.log('已清理 ' + STALE.length + ' 筆，目前剩 ' + Object.keys(p.getProperties()).length + ' 筆');
+}
+
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
 function answer_(text) {
   const raw = String(text || '').trim();   // 原文（「改標題」後打的新標題可能用表情符號開頭）
