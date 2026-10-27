@@ -738,7 +738,8 @@ function chanAdvice_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
-  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每點先寫結論，再寫依據（引用數據裡的影片或數字）。建議可以涵蓋：最近影片的觀看表現、哪幾支影片表現最好、下一支可以試的主題或做法。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  d.videos = d.videos.slice(0, 3);   // 只根據最新的三支影片給建議
+  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON，只含最新三支影片），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每點先寫結論，再寫依據（引用數據裡的影片或數字）。建議可以涵蓋：最近影片的觀看表現、哪幾支影片表現最好、下一支可以試的主題或做法。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
   let text;
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
