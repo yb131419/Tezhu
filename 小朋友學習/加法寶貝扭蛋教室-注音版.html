@@ -43,12 +43,6 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
 .opt.correct{background:#bdf5dc;border-color:#06d6a0}
 .opt.wrong{background:#ffd1dc;border-color:#ff7aa2}
 .opt:disabled{cursor:default}
-.gifts{display:flex;flex-wrap:wrap;justify-content:center;margin-top:8px}
-.gift{width:76px;height:88px;margin:4px;border-radius:14px;background:#f4f4f4;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.8em}
-.gift small{font-size:.5em;color:#555}
-.gift.locked{filter:grayscale(1);opacity:.4}
-.draw-res{min-height:120px;margin:10px 0}
-.draw-res .big{font-size:3.6em}
 .big{font-size:2.6em}
 #next{display:none}
 .lv-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
@@ -98,15 +92,13 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
     <div><button class="btn" id="sound"></button></div>
     <button class="btn pink" id="start" style="font-size:1.3em"></button>
     <br>
-    <button class="btn blue" id="gachaBtn"></button>
-    <br>
     <button class="btn" id="zyBtn" style="background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;box-shadow:0 4px 0 #8a6d12"></button>
   </div>
 
   <!-- 遊戲頁 -->
   <div class="screen" id="s-game">
     <div class="bar">
-      <span id="prog"></span><span id="pts"></span><span id="gifts"></span>
+      <span id="prog"></span><span id="pts"></span>
     </div>
     <div class="qtext"><span id="qtext"></span><button class="speak" id="speakQ" title="重聽">🔊</button></div>
     <div class="pic" id="pic"></div>
@@ -121,18 +113,7 @@ h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
     <div class="big" id="res"></div>
     <p id="msg"></p>
     <button class="btn pink" id="again"></button>
-    <button class="btn blue" id="toGacha1"></button>
     <button class="btn" id="home1"></button>
-  </div>
-
-  <!-- 扭蛋頁 -->
-  <div class="screen" id="s-gacha">
-    <p id="gpts"></p>
-    <button class="btn pink" id="draw"></button>
-    <div class="draw-res" id="drawRes"></div>
-    <h3 id="cstat"></h3>
-    <div class="gifts" id="coll"></div>
-    <button class="btn" id="home2"></button>
   </div>
 
   <!-- 注音練習頁（萬元質感） -->
@@ -197,17 +178,6 @@ const numZh = n => n < 10 ? NUM[n]
   : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
 const N = n => R(numZh(n));
 
-// 扭蛋禮物：[表情, 名稱, 稀有度 0一般 1稀有 2傳說]
-const GIFTS = [
-  ['🐰','兔子',0],['🐶','小狗',0],['🐱','小貓',0],['🐥','小雞',0],['🐢','小烏龜',0],['🐸','小青蛙',0],
-  ['🐷','小豬',0],['🐻','小熊',0],['🐼','熊貓',0],['🐨','無尾熊',0],['🐵','猴子',0],['🐮','小牛',0],
-  ['🦊','狐狸',1],['🐯','老虎',1],['🦁','獅子',1],['🐘','大象',1],['🦒','長頸鹿',1],['🐬','海豚',1],
-  ['🦄','獨角獸',1],['🐧','企鵝',1],['🦋','蝴蝶',1],['🐝','蜜蜂',1],
-  ['🐉','小龍',2],['🦖','恐龍',2],['🌈','彩虹',2],['🌟','星星',2],['👑','皇冠',2],['💎','寶石',2],
-];
-const RARE = ['一般','稀有','傳說'];
-const RARE_PTS = ['一到三點','五點','十點'];
-
 // 加法題的圖式：每一組用同一種東西來數
 const OBJ_PAIRS = [
   ['🍎','🍌'], ['⭐','🌟'], ['🐶','🐱'], ['🍪','🍩'], ['🐟','🐠'], ['🌸','🌼'],
@@ -227,7 +197,7 @@ const PRACTICE = [
 const KINDER_CHARS = ['日','月','山','水','火','木','土','人','口','手','天','地','花','草','魚','鳥','大','小','雨','牛'];
 
 // 儲存進度
-let save = { points: 0, got: [], level: 'k' };
+let save = { points: 0, level: 'k' };
 try { save = Object.assign(save, JSON.parse(localStorage.getItem('addBopo') || '{}')); } catch (e) {}
 const persist = () => { try { localStorage.setItem('addBopo', JSON.stringify(save)); } catch (e) {} };
 
@@ -279,14 +249,10 @@ function setStatic() {
   $('t-count').innerHTML = R('題數');
   $('sound').innerHTML = R('音效開');
   $('start').innerHTML = R('開始遊戲');
-  $('gachaBtn').innerHTML = R('我的扭蛋禮物');
   $('zyBtn').innerHTML = '✨ ' + R('注音符號練習');
   $('next').innerHTML = R('下一題');
   $('again').innerHTML = R('再玩一次');
-  $('toGacha1').innerHTML = R('我的扭蛋禮物');
   $('home1').innerHTML = R('回首頁');
-  $('home2').innerHTML = R('回首頁');
-  $('draw').innerHTML = R('扭蛋') + '（' + N(3) + R('點') + '）';
   $('zNext').innerHTML = R('下一題');
   $('zHome').innerHTML = R('回首頁');
   paintLevel();
@@ -325,17 +291,13 @@ $('sound').onclick = () => {
 };
 
 $('start').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
-$('gachaBtn').onclick = openGacha;
 $('home1').onclick = () => show('s-setup');
-$('home2').onclick = () => show('s-setup');
-$('toGacha1').onclick = openGacha;
 $('again').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
 
 // ===== 加法遊戲 =====
 function bar() {
   $('prog').innerHTML = R('第') + N(S.q) + '/' + N(S.total) + R('題');
   $('pts').innerHTML = '⭐' + N(save.points) + R('點');
-  $('gifts').innerHTML = '🎁' + N(save.got.length) + R('個');
 }
 
 function next() {
@@ -511,35 +473,6 @@ function zFinish() {
   zBar();
   speak('練習完成');
 }
-
-// ===== 扭蛋頁 =====
-function openGacha() { show('s-gacha'); renderGacha(); }
-
-function renderGacha() {
-  $('gpts').innerHTML = '⭐' + N(save.points) + R('點');
-  $('draw').disabled = save.points < 3;
-  $('cstat').innerHTML = R('已收集') + N(save.got.length) + R('個') + R('，共') + N(GIFTS.length) + R('種');
-  $('coll').innerHTML = GIFTS.map((g, i) => {
-    const has = save.got.includes(i);
-    return `<div class="gift ${has ? '' : 'locked'}">${has ? g[0] : '❓'}<small>${R(has ? g[1] : '？')}</small></div>`;
-  }).join('');
-}
-
-$('draw').onclick = () => {
-  if (save.points < 3) return;
-  save.points -= 3;
-  const r = Math.random();
-  const rar = r < 0.6 ? 0 : r < 0.9 ? 1 : 2;
-  const pool = GIFTS.map((g, i) => [g, i]).filter(([g]) => g[2] === rar);
-  const [g, i] = pool[rand(pool.length)];
-  if (!save.got.includes(i)) save.got.push(i);
-  persist();
-  beep(660);
-  speak('恭喜獲得' + g[1]);
-  $('drawRes').innerHTML = `<div class="big">${g[0]}</div>` + R(g[1]) + '<br>' +
-    R(RARE[rar]) + '（' + R(RARE_PTS[rar]) + '）';
-  renderGacha();
-};
 
 setStatic();
 bar();
