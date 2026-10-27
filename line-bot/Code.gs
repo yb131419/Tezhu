@@ -753,10 +753,14 @@ function 清理暫時狀態() {
   Logger.log('已清理 ' + STALE.length + ' 筆，目前剩 ' + Object.keys(p.getProperties()).length + ' 筆');
 }
 
-// 檢查 YouTube 金鑰有沒有存進這個專案：在編輯器選「檢查YouTube金鑰」按「執行」，看執行記錄。只記長度，不顯示金鑰本身。
+// 檢查指令碼屬性：在編輯器選「檢查YouTube金鑰」按「執行」，看執行記錄。只記筆數、大小與名稱，不顯示任何值。
 function 檢查YouTube金鑰() {
-  const key = prop_('YOUTUBE_API_KEY');
-  Logger.log(key ? 'YOUTUBE_API_KEY 有值，長度 ' + key.length : 'YOUTUBE_API_KEY 沒有值（找不到）');
+  const all = PropertiesService.getScriptProperties().getProperties();
+  const names = Object.keys(all).map(k => ({ k: k, n: (all[k] || '').length })).sort((a, b) => b.n - a.n);
+  const total = names.reduce((s, x) => s + x.n, 0);
+  Logger.log('YOUTUBE_API_KEY ' + (all.YOUTUBE_API_KEY ? '有值，長度 ' + all.YOUTUBE_API_KEY.length : '沒有值（找不到）'));
+  Logger.log('共 ' + names.length + ' 筆，總字數約 ' + total);
+  names.forEach(x => Logger.log(x.k + '　' + x.n));
 }
 
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
