@@ -20,6 +20,8 @@ p{color:#6b5a33;letter-spacing:.05em}
 .btn.green{background:linear-gradient(90deg,#7bd389,#bdf5dc,#7bd389);color:#124d33;border-color:#a8ffd6;box-shadow:0 6px 18px #7bd38955}
 .btn.sel{box-shadow:0 0 0 3px #fffdf7,0 0 0 5px #d4af37,0 6px 18px #d4af3788}
 .btn:disabled{opacity:.45;cursor:default}
+.home-grid{display:flex;justify-content:center;gap:14px;margin-top:8px}
+.btn.sq{width:44%;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;padding:12px;font-size:1.3em;line-height:1.4;border-radius:28px;white-space:normal}
 
 /* 注音疊在中文字上方 */
 .zc{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;vertical-align:middle;margin:0 1px}
@@ -90,9 +92,10 @@ p{color:#6b5a33;letter-spacing:.05em}
 
   <!-- 首頁：兩大分類 -->
   <div class="screen on" id="s-home">
-    <button class="btn pink" id="mathBtn" style="font-size:1.3em"></button>
-    <br>
-    <button class="btn" id="zyBtn" style="font-size:1.3em"></button>
+    <div class="home-grid">
+      <button class="btn sq pink" id="mathBtn"></button>
+      <button class="btn sq" id="zyBtn"></button>
+    </div>
   </div>
 
   <!-- 數字練習設定頁 -->
