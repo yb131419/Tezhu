@@ -408,13 +408,13 @@ function answer(v, btn) {
   }
 
   S.answered = true;
-  S.correct++; save.points++; persist(); beep(880); speak('答對了！');
+  S.correct++; save.points++; persist(); beep(880); speak('答對了！答案是' + numZh(S.ans));
   document.querySelectorAll('.opt').forEach(o => {
     if (+o.dataset.v === S.ans) o.classList.add('correct');
     o.disabled = true;
   });
 
-  $('fb').innerHTML = R('答對了！') + ' 🎉';
+  $('fb').innerHTML = R('答對了！答案是') + N(S.ans) + ' 🎉';
   $('next').style.display = 'inline-block';
   bar();
 }
