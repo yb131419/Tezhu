@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>寶貝怪獸加法教室（注音版）</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#fff7e6;font-family:"DFKai-SB","BiauKai","標楷體","Kaiti TC","Noto Sans TC",sans-serif;color:#333;display:flex;justify-content:center;padding:16px}
+.app{width:100%;max-width:460px;background:#fff;border-radius:24px;box-shadow:0 6px 24px #0001;padding:20px;text-align:center}
+h1{font-size:1.5em;margin:8px 0 16px;color:#ff6b8b}
+.screen{display:none}.screen.on{display:block}
+.btn{font-size:1.1em;border:none;border-radius:16px;padding:12px 18px;margin:6px;cursor:pointer;background:#ffd166;color:#333;font-family:inherit;box-shadow:0 4px 0 #e0ac2b}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.btn.pink{background:#ff7aa2;color:#fff;box-shadow:0 4px 0 #c94f7a}
+.btn.blue{background:#5bc0eb;color:#fff;box-shadow:0 4px 0 #2a8ab5}
+.btn.green{background:#7bd389;color:#fff;box-shadow:0 4px 0 #4fa865}
+.btn.sel{outline:4px solid #ff7aa2}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* 注音疊在中文字上方 */
+.zc{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;vertical-align:middle;margin:0 1px}
+.zz{font-size:.42em;color:#e0457b;font-weight:normal}
+.zh{font-size:1em}
+
+.students{display:flex;gap:12px;justify-content:center;margin:10px 0}
+.stu{flex:1;font-size:2.4em;padding:14px;border-radius:20px;border:3px solid #eee;background:#fafafa;cursor:pointer;font-family:inherit}
+.stu.sel{border-color:#ff7aa2;background:#ffeef4}
+.stu .n{display:block;margin-top:4px}
+.bar{display:flex;justify-content:space-around;align-items:center;font-size:1em;margin-bottom:10px;background:#f7f7f7;border-radius:14px;padding:8px}
+.qtext{font-size:1.2em;margin:8px 0}
+
+/* 加法題：圖式 + 數字 */
+.pic{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;margin:10px auto 6px;max-width:420px;min-height:70px}
+.grp{display:inline-flex;flex-wrap:wrap;justify-content:center;max-width:190px;font-size:1.7em;line-height:1.25}
+.pic .sym{font-size:2em;font-weight:bold;color:#ff7aa2;margin:0 6px}
+.nums{font-size:1.9em;font-weight:bold;color:#4a6cf7;margin:6px 0 4px}
+.nums .op{color:#ff7aa2;margin:0 6px}
+
+.fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold}
+.opts{display:flex;flex-wrap:wrap;justify-content:center}
+.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:#f4f9ff;border:3px solid #bfe3ff;border-radius:20px;margin:6px;cursor:pointer;font-family:inherit;color:#333}
+.opt.correct{background:#bdf5dc;border-color:#06d6a0}
+.opt.wrong{background:#ffd1dc;border-color:#ff7aa2}
+.opt:disabled{cursor:default}
+.big{font-size:2.6em}
+.grp svg{width:44px;height:44px;margin:2px}
+.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.mascots svg{width:48px;height:48px}
+#next{display:none}
+.lv-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
+.lv-row .btn{flex:1;max-width:200px}
+.speak{font-size:1.4em;border:none;background:transparent;cursor:pointer;margin-left:6px;vertical-align:middle}
+
+/* ===== 萬元質感 注音練習 ===== */
+#s-zy{background:radial-gradient(circle at 50% 0%,#3a2a55 0%,#15101f 60%,#0a0810 100%);color:#f5e6b8;border-radius:22px;padding:22px 16px;font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;box-shadow:inset 0 0 0 1px #d4af3755}
+.zbar{display:flex;justify-content:space-between;align-items:center;font-size:.95em;margin-bottom:12px;color:#d4af37}
+.zcard{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01));border:1px solid #d4af3788;border-radius:20px;padding:18px 12px;box-shadow:0 0 30px #d4af3722,inset 0 1px 0 #fff2}
+.zprompt{font-size:1.1em;color:#e9d9a6;margin-bottom:6px;letter-spacing:.05em}
+.zemo{font-size:4.2em;line-height:1.1;margin:4px 0}
+.zq{font-size:5.2em;line-height:1.2;color:#fff1b8;text-shadow:0 0 18px #d4af37aa;min-height:1.6em;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC",serif}
+.zq.zy{font-size:3.4em;letter-spacing:.08em}
+.zopts{display:flex;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.zopt{width:44%;min-height:86px;margin:6px;border-radius:16px;border:1px solid #d4af37;background:linear-gradient(180deg,#3a2f1f,#1d1710);color:#f7e7a1;font-size:2.1em;font-family:"Noto Serif TC",serif;cursor:pointer;box-shadow:0 4px 14px #0008}
+.zopt:active{transform:translateY(2px)}
+.zopt.ok{background:linear-gradient(180deg,#1f5a43,#0f2f23);border-color:#7ef0b8;color:#d9ffe9}
+.zopt.no{background:linear-gradient(180deg,#5a1f2c,#2f0f17);border-color:#ff8a9a;color:#ffd6dd}
+.zopt:disabled{cursor:default}
+.zfb{min-height:2.2em;margin:10px 0 4px;font-size:1.2em;color:#f7e7a1}
+.zbtn{font-family:inherit;font-size:1em;letter-spacing:.1em;padding:12px 22px;margin:6px;border-radius:999px;border:1px solid #d4af37;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;cursor:pointer;font-weight:bold;box-shadow:0 6px 18px #d4af3755}
+.zbtn.ghost{background:transparent;color:#d4af37;box-shadow:none}
+.zbtn:active{transform:translateY(2px)}
+.zhint{font-size:.85em;color:#a8956a;margin-top:10px;letter-spacing:.06em}
+#zNext{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1 id="title"></h1>
+  <div class="mascots" id="mascots"></div>
+
+  <!-- 設定頁 -->
+  <div class="screen on" id="s-setup">
+    <p id="t-lv"></p>
+    <div class="lv-row">
+      <button class="btn green" id="lvK"></button>
+      <button class="btn green" id="lvE"></button>
+    </div>
+    <p id="t-stu"></p>
+    <div class="students">
+      <button class="stu sel" data-i="0">🧒<span class="n" id="stu0"></span></button>
+      <button class="stu" data-i="1">👧<span class="n" id="stu1"></span></button>
+    </div>
+    <p id="t-count"></p>
+    <div id="counts"></div>
+    <div><button class="btn" id="sound"></button></div>
+    <button class="btn pink" id="start" style="font-size:1.3em"></button>
+    <br>
+    <button class="btn" id="zyBtn" style="background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;box-shadow:0 4px 0 #8a6d12"></button>
+  </div>
+
+  <!-- 遊戲頁 -->
+  <div class="screen" id="s-game">
+    <div class="bar">
+      <span id="prog"></span><span id="pts"></span>
+    </div>
+    <div class="qtext"><span id="qtext"></span><button class="speak" id="speakQ" title="重聽">🔊</button></div>
+    <div class="pic" id="pic"></div>
+    <div class="nums" id="nums"></div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb"></div>
+    <button class="btn blue" id="next"></button>
+  </div>
+
+  <!-- 結果頁 -->
+  <div class="screen" id="s-result">
+    <div class="big" id="res"></div>
+    <p id="msg"></p>
+    <button class="btn pink" id="again"></button>
+    <button class="btn" id="home1"></button>
+  </div>
+
+  <!-- 注音練習頁（萬元質感） -->
+  <div class="screen" id="s-zy">
+    <div class="zbar">
+      <span id="zProg"></span>
+      <span id="zScore"></span>
+    </div>
+    <div class="zcard">
+      <div class="zprompt"><span id="zPrompt"></span><button class="speak" id="speakZ" title="重聽">🔊</button></div>
+      <div class="zemo" id="zEmoji"></div>
+      <div class="zq" id="zQ"></div>
+      <div class="zopts" id="zOpts"></div>
+      <div class="zfb" id="zFb"></div>
+    </div>
+    <div><button class="zbtn" id="zNext"></button></div>
+    <div><button class="zbtn ghost" id="zHome"></button></div>
+    <div class="zhint" id="zHint"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const rand = n => Math.floor(Math.random() * n);
+const NUM = ['〇','一','二','三','四','五','六','七','八','九'];
+
+// 注音對照表（字 → 注音）
+const ZY = {
+  加:'ㄐㄧㄚ',法:'ㄈㄚˇ',等:'ㄉㄥˇ',於:'ㄩˊ',幾:'ㄐㄧˇ',答:'ㄉㄚˊ',案:'ㄢˋ',是:'ㄕˋ',
+  對:'ㄉㄨㄟˋ',了:'ㄌㄜ˙',再:'ㄗㄞˋ',想:'ㄒㄧㄤˇ',喔:'ㄛ˙',準:'ㄓㄨㄣˇ',備:'ㄅㄟˋ',
+  開:'ㄎㄞ',始:'ㄕˇ',遊:'ㄧㄡˊ',戲:'ㄒㄧˋ',選:'ㄒㄩㄢˇ',擇:'ㄗㄜˊ',學:'ㄒㄩㄝˊ',
+  生:'ㄕㄥ',題:'ㄊㄧˊ',數:'ㄕㄨˋ',點:'ㄉㄧㄢˇ',個:'ㄍㄜ˙',禮:'ㄌㄧˇ',物:'ㄨˋ',
+  扭:'ㄋㄧㄡˇ',蛋:'ㄉㄢˋ',教:'ㄐㄧㄠˋ',室:'ㄕˋ',寶:'ㄅㄠˇ',貝:'ㄅㄟˋ',注:'ㄓㄨˋ',
+  音:'ㄧㄣ',版:'ㄅㄢˇ',效:'ㄒㄧㄠˋ',關:'ㄍㄨㄢ',一:'ㄧ',般:'ㄅㄢ',稀:'ㄒㄧ',有:'ㄧㄡˇ',
+  傳:'ㄔㄨㄢˊ',說:'ㄕㄨㄛ',我:'ㄨㄛˇ',的:'ㄉㄜ˙',〇:'ㄌㄧㄥˊ',二:'ㄦˋ',三:'ㄙㄢ',
+  四:'ㄙˋ',五:'ㄨˇ',六:'ㄌㄧㄡˋ',七:'ㄑㄧ',八:'ㄅㄚ',九:'ㄐㄧㄡˇ',十:'ㄕˊ',
+  完:'ㄨㄢˊ',成:'ㄔㄥˊ',挑:'ㄊㄧㄠ',戰:'ㄓㄢˋ',太:'ㄊㄞˋ',棒:'ㄅㄤˋ',全:'ㄑㄩㄢˊ',
+  部:'ㄅㄨˋ',下:'ㄒㄧㄚˋ',次:'ㄘˋ',玩:'ㄨㄢˊ',回:'ㄏㄨㄟˊ',首:'ㄕㄡˇ',頁:'ㄧㄝˋ',
+  每:'ㄇㄟˇ',已:'ㄧˇ',收:'ㄕㄡ',集:'ㄐㄧˊ',第:'ㄉㄧˋ',到:'ㄉㄠˋ',種:'ㄓㄨㄥˇ',共:'ㄍㄨㄥˋ',
+  兔:'ㄊㄨˋ',子:'ㄗˇ',狗:'ㄍㄡˇ',貓:'ㄇㄠ',雞:'ㄐㄧ',烏:'ㄨ',龜:'ㄍㄨㄟ',青:'ㄑㄧㄥ',
+  蛙:'ㄨㄚ',豬:'ㄓㄨ',熊:'ㄒㄩㄥˊ',無:'ㄨˊ',尾:'ㄨㄟˇ',猴:'ㄏㄡˊ',牛:'ㄋㄧㄡˊ',
+  狐:'ㄏㄨˊ',狸:'ㄌㄧˊ',老:'ㄌㄠˇ',虎:'ㄏㄨˇ',獅:'ㄕ',大:'ㄉㄚˋ',象:'ㄒㄧㄤˋ',
+  長:'ㄔㄤˊ',頸:'ㄐㄧㄥˇ',鹿:'ㄌㄨˋ',海:'ㄏㄞˇ',豚:'ㄊㄨㄣˊ',獨:'ㄉㄨˊ',角:'ㄐㄩㄝˇ',
+  獸:'ㄕㄡˋ',企:'ㄑㄧˇ',鵝:'ㄜˊ',蝴:'ㄏㄨˊ',蝶:'ㄉㄧㄝˊ',蜜:'ㄇㄧˋ',蜂:'ㄈㄥ',
+  小:'ㄒㄧㄠˇ',恐:'ㄎㄨㄥˇ',龍:'ㄌㄨㄥˊ',彩:'ㄘㄞˇ',虹:'ㄏㄨㄥˊ',星:'ㄒㄧㄥ',
+  皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',怪:'ㄍㄨㄞˋ',獸:'ㄕㄡˋ',神:'ㄕㄣˊ',奇:'ㄑㄧˊ',
+  請:'ㄑㄧㄥˇ',正:'ㄓㄥˋ',確:'ㄑㄩㄝˋ',出:'ㄔㄨ',字:'ㄗˋ',讀:'ㄉㄨˊ',這:'ㄓㄜˋ',
+  練:'ㄌㄧㄢˋ',習:'ㄒㄧˊ',按:'ㄢˋ',後:'ㄏㄡˋ',繼:'ㄐㄧˋ',續:'ㄒㄩˋ',
+  幼:'ㄧㄡˋ',稚:'ㄓˋ',園:'ㄩㄢˊ',國:'ㄍㄨㄛˊ',級:'ㄐㄧˊ',分:'ㄈㄣ',類:'ㄌㄟˋ',
+  校:'ㄒㄧㄠˋ',書:'ㄕㄨ',車:'ㄔㄜ',門:'ㄇㄣˊ',馬:'ㄇㄚˇ',羊:'ㄧㄤˊ',雨:'ㄩˇ',
+  風:'ㄈㄥ',雪:'ㄒㄩㄝˇ',電:'ㄉㄧㄢˋ',心:'ㄒㄧㄣ',足:'ㄗㄨˊ',男:'ㄋㄢˊ',女:'ㄋㄩˇ',
+};
+
+// 文字 → 注音疊在字上方
+const R = s => [...s].map(c => ZY[c]
+  ? `<span class="zc"><span class="zz">${ZY[c]}</span><span class="zh">${c}</span></span>`
+  : c).join('');
+
+// 數字 → 中文數字（0~99）
+const numZh = n => n < 10 ? NUM[n]
+  : n < 20 ? '十' + (n % 10 ? NUM[n % 10] : '')
+  : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
+const N = n => R(numZh(n));
+
+// 原創小怪獸圖案（SVG，非既有角色，無版權問題）
+const sv = inner => `<svg viewBox="0 0 80 80">${inner}</svg>`;
+const CREATURE = {
+  fire: sv('<circle cx="40" cy="44" r="26" fill="#ff8c42"/><path d="M40 20 L46 4 L50 22 Z" fill="#ffd166"/><circle cx="31" cy="38" r="4" fill="#fff"/><circle cx="49" cy="38" r="4" fill="#fff"/><circle cx="31" cy="38" r="2" fill="#333"/><circle cx="49" cy="38" r="2" fill="#333"/><path d="M34 50 Q40 56 46 50" stroke="#333" stroke-width="2" fill="none"/>'),
+  water: sv('<ellipse cx="40" cy="46" rx="28" ry="22" fill="#5bc0eb"/><circle cx="28" cy="28" r="9" fill="#fff"/><circle cx="52" cy="28" r="9" fill="#fff"/><circle cx="28" cy="28" r="4" fill="#333"/><circle cx="52" cy="28" r="4" fill="#333"/><path d="M28 50 Q40 60 52 50" stroke="#333" stroke-width="2.5" fill="none"/>'),
+  grass: sv('<rect x="18" y="56" width="10" height="8" rx="3" fill="#7bd389"/><rect x="52" y="56" width="10" height="8" rx="3" fill="#7bd389"/><ellipse cx="40" cy="48" rx="26" ry="16" fill="#4fa865"/><path d="M18 48 Q40 24 62 48 Z" fill="#2f7d4a"/><circle cx="40" cy="22" r="9" fill="#9be7a7"/><circle cx="37" cy="21" r="2" fill="#333"/><circle cx="43" cy="21" r="2" fill="#333"/>'),
+  electric: sv('<path d="M22 30 L26 8 L38 26 Z" fill="#ffd93d"/><path d="M58 30 L54 8 L42 26 Z" fill="#ffd93d"/><path d="M20 22 L26 12 L28 24 Z" fill="#333"/><path d="M52 22 L54 12 L60 22 Z" fill="#333"/><circle cx="40" cy="46" r="22" fill="#ffd93d"/><circle cx="33" cy="44" r="3" fill="#333"/><circle cx="47" cy="44" r="3" fill="#333"/><circle cx="26" cy="52" r="3" fill="#ff7aa2"/><circle cx="54" cy="52" r="3" fill="#ff7aa2"/><path d="M36 52 Q40 56 44 52" stroke="#333" stroke-width="2" fill="none"/>'),
+  star: sv('<polygon points="40,6 49,28 73,30 54,45 61,70 40,56 19,70 26,45 7,30 31,28" fill="#ffd93d" stroke="#e0ac2b" stroke-width="2"/><circle cx="34" cy="38" r="2.5" fill="#333"/><circle cx="46" cy="38" r="2.5" fill="#333"/>'),
+  moon: sv('<ellipse cx="40" cy="48" rx="20" ry="18" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="32" cy="16" rx="5" ry="16" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="48" cy="16" rx="5" ry="16" fill="#fff" stroke="#bfe3ff" stroke-width="2"/><ellipse cx="32" cy="16" rx="2" ry="11" fill="#ffb3c6"/><ellipse cx="48" cy="16" rx="2" ry="11" fill="#ffb3c6"/><circle cx="34" cy="46" r="2.5" fill="#333"/><circle cx="46" cy="46" r="2.5" fill="#333"/><path d="M37 52 L43 52 L40 55 Z" fill="#ffb3c6"/>'),
+};
+// 寶貝球（一般的球形圖案，依顏色區分）
+const ball = color => sv(`<circle cx="40" cy="40" r="30" fill="#fff" stroke="#333" stroke-width="3"/><path d="M10 40 A30 30 0 0 1 70 40 Z" fill="${color}" stroke="#333" stroke-width="3"/><rect x="10" y="37" width="60" height="6" fill="#333"/><circle cx="40" cy="40" r="8" fill="#fff" stroke="#333" stroke-width="3"/>`);
+
+// 加法題的圖式：每一組用同一種東西來數
+const OBJ_PAIRS = [
+  [CREATURE.fire, CREATURE.water], [CREATURE.grass, CREATURE.electric], [CREATURE.star, CREATURE.moon],
+  [ball('#ff6b6b'), ball('#5bc0eb')], [ball('#ffd93d'), ball('#7bd389')],
+];
+
+// 注音練習題庫：[字, 注音, 圖示]
+const PRACTICE = [
+  ['日','ㄖˋ','☀️'],['月','ㄩㄝˋ','🌙'],['山','ㄕㄢ','⛰️'],['水','ㄕㄨㄟˇ','💧'],['火','ㄏㄨㄛˇ','🔥'],
+  ['木','ㄇㄨˋ','🌳'],['土','ㄊㄨˇ','🪨'],['金','ㄐㄧㄣ','🪙'],['人','ㄖㄣˊ','🧍'],['口','ㄎㄡˇ','👄'],
+  ['手','ㄕㄡˇ','✋'],['耳','ㄦˇ','👂'],['天','ㄊㄧㄢ','🌤️'],['地','ㄉㄧˋ','🌍'],['花','ㄏㄨㄚ','🌸'],
+  ['草','ㄘㄠˇ','🌿'],['魚','ㄩˊ','🐟'],['鳥','ㄋㄧㄠˇ','🐦'],['大','ㄉㄚˋ','🐘'],['小','ㄒㄧㄠˇ','🐜'],
+  ['雨','ㄩˇ','🌧️'],['牛','ㄋㄧㄡˊ','🐮'],['羊','ㄧㄤˊ','🐑'],['馬','ㄇㄚˇ','🐴'],['書','ㄕㄨ','📚'],
+  ['車','ㄔㄜ','🚗'],['門','ㄇㄣˊ','🚪'],['學','ㄒㄩㄝˊ','🎒'],['校','ㄒㄧㄠˋ','🏫'],['風','ㄈㄥ','🍃'],
+  ['雪','ㄒㄩㄝˇ','❄️'],['電','ㄉㄧㄢˋ','⚡'],['心','ㄒㄧㄣ','❤️'],['足','ㄗㄨˊ','🦶'],['星','ㄒㄧㄥ','⭐'],
+];
+// 幼稚園用的字（較簡單、常見）
+const KINDER_CHARS = ['日','月','山','水','火','木','土','人','口','手','天','地','花','草','魚','鳥','大','小','雨','牛'];
+
+// 儲存進度
+let save = { points: 0, level: 'k' };
+try { save = Object.assign(save, JSON.parse(localStorage.getItem('addBopo') || '{}')); } catch (e) {}
+const persist = () => { try { localStorage.setItem('addBopo', JSON.stringify(save)); } catch (e) {} };
+
+// 音效與語音
+let soundOn = true, ac = null;
+function beep(freq) {
+  if (!soundOn) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.value = freq; g.gain.value = 0.15;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + 0.2);
+  } catch (e) {}
+}
+function speak(text) {
+  if (!soundOn || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-TW'; u.rate = 0.85;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// 目前學習階段
+const levelIsKinder = () => save.level === 'k';
+const practicePool = () => levelIsKinder()
+  ? PRACTICE.filter(p => KINDER_CHARS.includes(p[0]))
+  : PRACTICE;
+const addMax = () => levelIsKinder() ? 5 : 10; // 幼稚園每個數最大 5，國小最大 10
+
+// 狀態
+const S = { stu: 0, total: 10, q: 0, correct: 0, ans: 0, answered: false, a: 0, b: 0 };
+const Z = { total: 10, q: 0, correct: 0, ans: null, answered: false, ch: '', zy: '', type: 0 };
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+}
+
+function setStatic() {
+  $('title').innerHTML = R('寶貝怪獸加法教室') + '<br><small>' + R('注音版') + '</small>';
+  $('mascots').innerHTML = [CREATURE.fire, CREATURE.water, CREATURE.grass, CREATURE.electric, CREATURE.star, CREATURE.moon].join('');
+  $('t-lv').innerHTML = R('學習') + R('分類') + '：';
+  $('lvK').innerHTML = R('幼稚園');
+  $('lvE').innerHTML = R('國小');
+  $('t-stu').innerHTML = R('選擇答題學生');
+  $('stu0').innerHTML = R('男生');
+  $('stu1').innerHTML = R('女生');
+  $('t-count').innerHTML = R('題數');
+  $('sound').innerHTML = R('音效開');
+  $('start').innerHTML = R('開始遊戲');
+  $('zyBtn').innerHTML = '✨ ' + R('注音符號練習');
+  $('next').innerHTML = R('下一題');
+  $('again').innerHTML = R('再玩一次');
+  $('home1').innerHTML = R('回首頁');
+  $('zNext').innerHTML = R('下一題');
+  $('zHome').innerHTML = R('回首頁');
+  paintLevel();
+}
+
+// 學習階段按鈕（選中狀態）
+function paintLevel() {
+  $('lvK').classList.toggle('sel', levelIsKinder());
+  $('lvE').classList.toggle('sel', !levelIsKinder());
+}
+$('lvK').onclick = () => { save.level = 'k'; persist(); paintLevel(); };
+$('lvE').onclick = () => { save.level = 'e'; persist(); paintLevel(); };
+
+// 設定頁：學生選擇
+document.querySelectorAll('.stu').forEach(b => b.onclick = () => {
+  S.stu = +b.dataset.i;
+  document.querySelectorAll('.stu').forEach(x => x.classList.toggle('sel', x === b));
+});
+
+// 設定頁：題數
+[5, 10, 15, 20, 30].forEach(n => {
+  const b = document.createElement('button');
+  b.className = 'btn' + (n === S.total ? ' sel' : '');
+  b.innerHTML = N(n) + R('題');
+  b.onclick = () => {
+    S.total = n; Z.total = n;
+    document.querySelectorAll('#counts .btn').forEach(x => x.classList.toggle('sel', x === b));
+  };
+  $('counts').appendChild(b);
+});
+
+$('sound').onclick = () => {
+  soundOn = !soundOn;
+  $('sound').innerHTML = R(soundOn ? '音效開' : '音效關');
+  if (!soundOn && 'speechSynthesis' in window) speechSynthesis.cancel();
+};
+
+$('start').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
+$('home1').onclick = () => show('s-setup');
+$('again').onclick = () => { S.q = 0; S.correct = 0; show('s-game'); next(); };
+
+// ===== 加法遊戲 =====
+function bar() {
+  $('prog').innerHTML = R('第') + N(S.q) + '/' + N(S.total) + R('題');
+  $('pts').innerHTML = '⭐' + N(save.points) + R('點');
+}
+
+function next() {
+  if (S.q >= S.total) return finish();
+  S.q++;
+  S.answered = false;
+  const m = addMax();
+  const a = 1 + rand(m), b = 1 + rand(m);
+  S.a = a; S.b = b; S.ans = a + b;
+
+  // 圖式：用兩種不同的小東西代表 a 和 b
+  const [o1, o2] = OBJ_PAIRS[rand(OBJ_PAIRS.length)];
+  $('pic').innerHTML =
+    `<span class="grp">${o1.repeat(a)}</span><span class="sym">＋</span>` +
+    `<span class="grp">${o2.repeat(b)}</span><span class="sym">＝</span><span class="sym">？</span>`;
+  $('nums').innerHTML = N(a) + '<span class="op">＋</span>' + N(b) + '<span class="op">＝</span>' + R('？');
+
+  const set = new Set([S.ans]);
+  while (set.size < 4) {
+    const v = S.ans + (rand(7) - 3);
+    if (v >= 0) set.add(v);
+  }
+  const choices = [...set].sort(() => Math.random() - 0.5);
+
+  $('qtext').innerHTML = R('數一數，') + N(a) + R('加') + N(b) + R('等於幾？');
+  $('opts').innerHTML = choices.map(v =>
+    `<button class="opt" data-v="${v}">${N(v)}</button>`
+  ).join('');
+  $('fb').innerHTML = '';
+  $('next').style.display = 'none';
+  bar();
+  speakQuestion();
+}
+
+function speakQuestion() {
+  speak(`數一數，${numZh(S.a)}加${numZh(S.b)}等於幾`);
+}
+$('speakQ').onclick = speakQuestion;
+
+$('opts').onclick = e => {
+  const btn = e.target.closest('.opt');
+  if (btn && !S.answered) answer(+btn.dataset.v, btn);
+};
+
+function answer(v, btn) {
+  S.answered = true;
+  const ok = v === S.ans;
+  if (ok) { S.correct++; save.points++; persist(); beep(880); speak('答對了！'); }
+  else { beep(220); speak('再想想喔，答案是' + numZh(S.ans)); }
+
+  document.querySelectorAll('.opt').forEach(o => {
+    if (+o.dataset.v === S.ans) o.classList.add('correct');
+    else if (o === btn && !ok) o.classList.add('wrong');
+    o.disabled = true;
+  });
+
+  $('fb').innerHTML = ok
+    ? R('答對了！') + ' 🎉'
+    : R('再想想喔') + '　' + R('答案是') + N(S.ans);
+  $('next').style.display = 'inline-block';
+  bar();
+}
+
+$('next').onclick = next;
+
+function finish() {
+  show('s-result');
+  $('res').innerHTML = R('完成挑戰！') + '<br>' + R('答對') + N(S.correct) + '/' + N(S.total) + R('題');
+  $('msg').innerHTML = S.correct === S.total ? R('太棒了！全部答對！') : R('再接再厲！');
+  $('msg').innerHTML += '<br>⭐' + N(save.points) + R('點');
+  speak(S.correct === S.total ? '太棒了！全部答對！' : '再接再厲！');
+}
+
+// ===== 注音練習（萬元質感） =====
+function startZy() {
+  Z.q = 0; Z.correct = 0;
+  show('s-zy');
+  zNext();
+}
+
+function zBar() {
+  $('zProg').innerHTML = R('第') + N(Z.q) + '/' + N(Z.total) + R('題');
+  $('zScore').innerHTML = '✦ ' + N(Z.correct) + R('題') + R('答對');
+}
+
+function zNext() {
+  if (Z.q >= Z.total) return zFinish();
+  Z.q++;
+  Z.answered = false;
+
+  const pool = practicePool();
+  const [ch, zy, emo] = pool[rand(pool.length)];
+  const type = rand(2); // 0：看字選注音　1：看注音選字
+  Z.ch = ch; Z.zy = zy; Z.type = type;
+
+  const others = pool.filter(p => p[0] !== ch);
+  const pick = [];
+  while (pick.length < 3) {
+    const o = others[rand(others.length)];
+    if (!pick.includes(o)) pick.push(o);
+  }
+
+  // 圖示幫助小朋友理解這個字是什麼
+  $('zEmoji').textContent = emo;
+
+  let vals;
+  if (type === 0) {
+    Z.ans = zy;
+    $('zPrompt').innerHTML = R('請選出正確的注音');
+    $('zQ').textContent = ch;
+    $('zQ').classList.remove('zy');
+    vals = [zy, ...pick.map(p => p[1])];
+  } else {
+    Z.ans = ch;
+    $('zPrompt').innerHTML = R('請選出正確的字');
+    $('zQ').textContent = zy;
+    $('zQ').classList.add('zy');
+    vals = [ch, ...pick.map(p => p[0])];
+  }
+  vals = vals.sort(() => Math.random() - 0.5);
+  $('zOpts').innerHTML = vals.map(v => `<button class="zopt" data-v="${v}">${v}</button>`).join('');
+  $('zFb').innerHTML = '';
+  $('zNext').style.display = 'none';
+  $('zHint').innerHTML = R('點選答案後，再按「下一題」繼續');
+  zBar();
+  speakZQuestion();
+}
+
+function speakZQuestion() {
+  // 看字：唸出字；看注音：無法直接唸注音，改唸提示語
+  speak(Z.type === 0 ? `請選出「${Z.ch}」的注音` : '請選出正確的字');
+}
+$('speakZ').onclick = speakZQuestion;
+
+$('zOpts').onclick = e => {
+  const btn = e.target.closest('.zopt');
+  if (btn && !Z.answered) zAnswer(btn.dataset.v, btn);
+};
+
+function zAnswer(v, btn) {
+  Z.answered = true;
+  const ok = v === Z.ans;
+  if (ok) { Z.correct++; beep(880); speak('答對了！' + Z.ch); }
+  else { beep(220); speak('正確答案是' + Z.ch); }
+
+  document.querySelectorAll('.zopt').forEach(o => {
+    if (o.dataset.v === Z.ans) o.classList.add('ok');
+    else if (o === btn && !ok) o.classList.add('no');
+    o.disabled = true;
+  });
+
+  $('zFb').innerHTML = ok
+    ? '✦ ' + R('答對了！')
+    : R('再想想喔') + '　' + R('正確答案是') + '：' + Z.ans;
+  $('zNext').style.display = 'inline-block';
+  zBar();
+}
+
+$('zNext').onclick = zNext;
+$('zyBtn').onclick = startZy;
+$('zHome').onclick = () => show('s-setup');
+
+function zFinish() {
+  $('zPrompt').innerHTML = R('練習完成');
+  $('zEmoji').textContent = '🏆';
+  $('zQ').textContent = '✦';
+  $('zQ').classList.remove('zy');
+  $('zOpts').innerHTML = '';
+  $('zFb').innerHTML = R('答對') + N(Z.correct) + '/' + N(Z.total) + R('題');
+  $('zNext').innerHTML = R('再練一次');
+  $('zNext').style.display = 'inline-block';
+  $('zHint').innerHTML = '';
+  zBar();
+  speak('練習完成');
+}
+
+setStatic();
+bar();
+</script>
+</body>
+</html>
