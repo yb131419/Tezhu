@@ -55,8 +55,8 @@ body.home #s-home{display:flex;flex-direction:column;flex:1}
 .nums .op{color:#e0457b;margin:0 6px}
 
 .fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold;color:var(--gold-dk)}
-.opts{display:flex;flex-wrap:wrap;justify-content:center}
-.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:#fff;border:2px solid #d4af37aa;border-radius:22px;margin:6px;cursor:pointer;font-family:inherit;color:var(--ink);box-shadow:0 4px 14px #d4af3733}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.opt{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:130px;font-size:3em;line-height:1.2;padding:8px;text-align:center;background:#fff;border:2px solid #d4af37aa;border-radius:22px;margin:0;cursor:pointer;font-family:inherit;color:var(--ink);box-shadow:0 4px 14px #d4af3733}
 .opt:active{transform:translateY(2px)}
 .opt.correct{background:#e6fbef;border-color:#3cc08a;color:#145c3f}
 .opt.wrong{background:#ffe9ee;border-color:#ff7aa2;color:#8a2040}
@@ -74,8 +74,8 @@ body.home #s-home{display:flex;flex-direction:column;flex:1}
 .zemo{font-size:4.2em;line-height:1.1;margin:4px 0}
 .zq{font-size:5.2em;line-height:1.2;color:var(--ink);min-height:1.6em;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC",serif}
 .zq.zy{font-size:3.4em;letter-spacing:.08em}
-.zopts{display:flex;flex-wrap:wrap;justify-content:center;margin-top:10px}
-.zopt{width:44%;min-height:86px;margin:6px;border-radius:16px;border:1px solid #d4af37;background:#fff;color:var(--ink);font-size:2.1em;font-family:"Noto Serif TC",serif;cursor:pointer;box-shadow:0 4px 14px #d4af3733}
+.zopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.zopt{width:100%;min-height:120px;padding:8px;margin:0;border-radius:16px;border:1px solid #d4af37;background:#fff;color:var(--ink);font-size:3em;line-height:1.2;font-family:"Noto Serif TC",serif;cursor:pointer;box-shadow:0 4px 14px #d4af3733}
 .zopt:active{transform:translateY(2px)}
 .zopt.ok{background:#e6fbef;border-color:#3cc08a;color:#145c3f}
 .zopt.no{background:#ffe9ee;border-color:#ff7aa2;color:#8a2040}
