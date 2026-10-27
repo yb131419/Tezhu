@@ -24,6 +24,11 @@ p{color:#6b5a33;letter-spacing:.05em}
 .btn.sq{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;padding:12px;font-size:2.6em;line-height:1.3;border-radius:28px;white-space:normal}
 body.home{padding:0}
 body.home .app{max-width:none;min-height:100vh;display:flex;flex-direction:column;border:none;border-radius:0;box-shadow:none;padding:16px 16px 20px}
+body.play{padding:0}
+body.play .app{max-width:none;min-height:100vh;display:flex;flex-direction:column;border:none;border-radius:0;box-shadow:none;padding:16px 16px 20px}
+body.play .screen.on{display:flex;flex-direction:column;flex:1}
+body.play .opts,body.play .zopts{flex:1;grid-auto-rows:1fr;margin-top:12px}
+body.play .opt,body.play .zopt{min-height:0;height:100%;font-size:3.4em}
 body.home #s-home{display:flex;flex-direction:column;flex:1}
 
 /* 注音疊在中文字上方 */
@@ -278,6 +283,7 @@ const Z = { total: 10, q: 0, correct: 0, ans: null, answered: false, ch: '', zy:
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   document.body.classList.toggle('home', id === 's-home');
+  document.body.classList.toggle('play', id === 's-game' || id === 's-zy');
 }
 
 function setStatic() {
