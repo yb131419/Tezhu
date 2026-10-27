@@ -656,7 +656,7 @@ function handleLine_(ev) {
   const card = cardLine_();
   const media = caseLine_();   // 看見證／案例時的圖片、影片
   const voice = !rp.short && !card.length && !media.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, media, voice), true);
+  reply_(ev.replyToken, rp.short || ans, advLine_(ans).concat(rp.msgs, card, media, voice).slice(0, 5), true);
 }
 
 function lineContent_(messageId) {
@@ -744,7 +744,80 @@ function chanAdvice_() {
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
   text = text.replace(/\s*(【[^】]+】)\s*/g, '\n\n$1\n').replace(/\n{3,}/g, '\n\n').trim();   // 四個小標題各自換行、段落之間空一行
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]], png: advCardPng_('頻道改善建議・' + d.title, text) };
+}
+// 萬元質感卡：黑底金框金字，頻道建議與改善建議共用；用 Slides 畫成 PNG（跟圖卡同一條路），TG 直接傳圖、LINE 用雲端硬碟公開連結
+const ADV_BG_ = '#0B0B0B', ADV_GOLD_ = '#D4AF37', ADV_DIM_ = '#7A6330', ADV_INK_ = '#F1DFB4';
+function advSections_(text) {
+  const parts = String(text || '').split(/(【[^】]+】)/);
+  const out = [];
+  for (let i = 1; i < parts.length; i += 2) out.push({ h: parts[i].replace(/[【】]/g, ''), body: (parts[i + 1] || '').trim() });
+  return out.length ? out : [{ h: '', body: String(text || '').trim() }];
+}
+function advLayout_(head, secs) {
+  const W = 540, X = 48, TW = 444, TS = 24, HS = 22, BS = 17, BLS = 1.6;
+  const units = s => Array.from(s).reduce((u, ch) => u + (/[\x20-\x7e]/.test(ch) ? 0.55 : 1), 0);
+  const linesOf = (s, size) => String(s || '').split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(units(l) / Math.floor(TW / size))), 0);
+  const items = [];   // 版面上每一段文字：{ kind, text, y, h, size }
+  let y = 56;
+  const th = linesOf(head, TS) * TS * 1.4;
+  items.push({ kind: 'title', text: head, y: y, h: th, size: TS }); y += th + 16;
+  items.push({ kind: 'rule', y: y, h: 1 }); y += 1 + 24;
+  secs.forEach(sec => {
+    if (sec.h) { items.push({ kind: 'head', text: '【' + sec.h + '】', y: y, h: HS * 1.5, size: HS }); y += HS * 1.5 + 4; }
+    const bh = linesOf(sec.body, BS) * BS * BLS;
+    if (sec.body) { items.push({ kind: 'body', text: sec.body, y: y, h: bh, size: BS }); y += bh; }
+    y += 26;
+  });
+  const H = Math.max(675, Math.ceil(y + 40));
+  const build = slide => {
+    const req = [];
+    let k = 0;
+    const place = (w, h, x, yy) => ({ pageObjectId: slide,
+      size: { width: { magnitude: w, unit: 'PT' }, height: { magnitude: h, unit: 'PT' } },
+      transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: yy, unit: 'PT' } });
+    const shape = (type, x, yy, w, h, fill, outline) => {
+      const id = 'xg_as_' + slide + '_' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: type, elementProperties: place(w, h, x, yy) } });
+      req.push({ updateShapeProperties: { objectId: id, fields: 'shapeBackgroundFill,outline', shapeProperties: {
+        shapeBackgroundFill: fill ? { solidFill: { color: { rgbColor: rgb_(fill) } } } : { propertyState: 'NOT_RENDERED' },
+        outline: outline ? { outlineFill: { solidFill: { color: { rgbColor: rgb_(outline) } } }, weight: { magnitude: 0.75, unit: 'PT' } } : { propertyState: 'NOT_RENDERED' } } } });
+    };
+    const text = (str, x, yy, w, h, size, color, o) => {
+      const id = 'xg_at_' + slide + '_' + (k++);
+      req.push({ createShape: { objectId: id, shapeType: 'TEXT_BOX', elementProperties: place(w, h, x, yy) } });
+      req.push({ insertText: { objectId: id, text: String(str) } });
+      req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontSize,bold,foregroundColor,fontFamily', style: {
+        fontSize: { magnitude: size, unit: 'PT' }, bold: !!o.bold, fontFamily: o.serif ? 'Noto Serif TC' : 'Noto Sans TC',
+        foregroundColor: { opaqueColor: { rgbColor: rgb_(color) } } } } });
+      req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment,lineSpacing',
+        style: { alignment: o.align, lineSpacing: o.ls } } });
+    };
+    shape('RECTANGLE', 0, 0, W, H, ADV_BG_, null);
+    shape('RECTANGLE', 16, 16, W - 32, H - 32, null, ADV_GOLD_);
+    shape('RECTANGLE', 22, 22, W - 44, H - 44, null, ADV_DIM_);
+    items.forEach(it => {
+      if (it.kind === 'rule') return shape('RECTANGLE', X, it.y, TW, 1, ADV_GOLD_, null);
+      if (it.kind === 'body') return text(it.text, X, it.y, TW, it.h, it.size, ADV_INK_, { align: 'START', ls: 150 });
+      text(it.text, X, it.y, TW, it.h, it.size, ADV_GOLD_, { align: 'START', bold: true, serif: true, ls: 120 });
+    });
+    return req;
+  };
+  return { W: W, H: H, build: build };
+}
+function advCardPng_(head, text) {
+  try { return layoutPng_(advLayout_(head, advSections_(text)), 'advice.png'); }
+  catch (e) { console.error('萬元卡失敗：' + e.message); return null; }
+}
+// LINE：圖片要公開網址，跟試算報表一樣存到雲端硬碟並設成「知道連結的人都能看」
+function advLine_(msg) {
+  if (!msg || typeof msg !== 'object' || !msg.png) return [];
+  try {
+    const file = saveReport_(msg.png);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const url = 'https://lh3.googleusercontent.com/d/' + file.getId();
+    return [{ type: 'image', originalContentUrl: url, previewImageUrl: url }];
+  } catch (e) { console.error('LINE 萬元卡失敗：' + e.message); return []; }
 }
 
 // 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
@@ -3661,6 +3734,10 @@ function tgSend_(chatId, msg) {
   else if (rich && msg.buttons && msg.buttons.indexOf(PHOTO_BTNS) >= 0) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）', buttons: msg.buttons.filter(r => r !== PHOTO_BTNS) };
   if (msg && typeof msg === 'object' && msg.imgs && msg.imgs.length) {   // 款式預覽圖：先送一組相簿
     tgApi_('sendMediaGroup', { chat_id: chatId, media: msg.imgs.slice(0, 10).map((u, i) => ({ type: 'photo', media: u, caption: (msg.caps || [])[i] || '' })) });
+  }
+  if (msg && typeof msg === 'object' && msg.png) {   // 萬元質感卡：先傳圖，文字照常接著傳（可以複製）
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+      method: 'post', muteHttpExceptions: true, payload: { chat_id: String(chatId), photo: msg.png } });
   }
   rich = msg && typeof msg === 'object' && !!msg.buttons;
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
