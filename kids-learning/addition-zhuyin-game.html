@@ -3,83 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>寶貝怪獸加法教室（注音版）</title>
+<title>寶貝愛學習</title>
 <style>
-:root{--gold:#d4af37;--gold-hi:#f7e7a1;--ink:#f5e6b8;--muted:#a8956a}
+:root{--gold:#d4af37;--gold-dk:#b8861b;--gold-hi:#fff3c4;--ink:#4a3b1f;--muted:#8a7a55}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#4b3486 0%,#1a1130 55%,#0a0712 100%);font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;color:var(--ink);display:flex;justify-content:center;padding:16px}
-.app{width:100%;max-width:460px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));border:1px solid #d4af3766;border-radius:28px;box-shadow:0 0 0 6px #120c1f,0 0 0 7px #d4af3744,0 18px 50px #0009;padding:22px 18px;text-align:center}
-h1{font-size:1.6em;margin:6px 0 10px;color:var(--gold-hi);letter-spacing:.08em;text-shadow:0 0 18px #d4af3788}
-h1 small{font-size:.6em;color:#e9d9a6;letter-spacing:.2em}
-p{color:#e9d9a6;letter-spacing:.05em}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#fff6d8 0%,#fdeccc 60%,#f8e3bb 100%);font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;color:var(--ink);display:flex;justify-content:center;padding:16px}
+.app{width:100%;max-width:460px;background:#fffdf7;border:1px solid #d4af3766;border-radius:28px;box-shadow:0 0 0 6px #fff6e0,0 0 0 7px #d4af3744,0 18px 50px #8a6d1222;padding:22px 18px;text-align:center}
+h1{font-size:1.6em;margin:6px 0 10px;color:var(--gold-dk);letter-spacing:.08em}
+h1 small{font-size:.6em;color:var(--muted);letter-spacing:.2em}
+p{color:#6b5a33;letter-spacing:.05em}
 .screen{display:none}.screen.on{display:block}
 .btn{font-family:inherit;font-size:1.1em;letter-spacing:.12em;border:1px solid var(--gold);border-radius:999px;padding:12px 24px;margin:6px;cursor:pointer;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;font-weight:bold;box-shadow:0 6px 18px #d4af3755;transition:transform .08s}
 .btn:active{transform:translateY(2px)}
-.btn.pink{background:linear-gradient(90deg,#b8456e,#ff8fb1,#b8456e);color:#fff;border-color:#ffb3c9;box-shadow:0 6px 18px #ff7aa255}
-.btn.blue{background:linear-gradient(90deg,#1f6f8b,#7fd3f0,#1f6f8b);color:#fff;border-color:#9ee3ff;box-shadow:0 6px 18px #5bc0eb55}
-.btn.green{background:linear-gradient(90deg,#1f6b4a,#7ef0b8,#1f6b4a);color:#06271a;border-color:#a8ffd6;box-shadow:0 6px 18px #7ef0b855}
-.btn.sel{box-shadow:0 0 0 3px #15101f,0 0 0 5px #f7e7a1,0 6px 18px #d4af3788}
+.btn.pink{background:linear-gradient(90deg,#ff8fb1,#ffb3c9,#ff8fb1);color:#fff;border-color:#ffb3c9;box-shadow:0 6px 18px #ff7aa255;text-shadow:0 1px 2px #b8456e88}
+.btn.blue{background:linear-gradient(90deg,#5bc0eb,#9ee3ff,#5bc0eb);color:#fff;border-color:#9ee3ff;box-shadow:0 6px 18px #5bc0eb55;text-shadow:0 1px 2px #2a8ab588}
+.btn.green{background:linear-gradient(90deg,#7bd389,#bdf5dc,#7bd389);color:#124d33;border-color:#a8ffd6;box-shadow:0 6px 18px #7bd38955}
+.btn.sel{box-shadow:0 0 0 3px #fffdf7,0 0 0 5px #d4af37,0 6px 18px #d4af3788}
 .btn:disabled{opacity:.45;cursor:default}
 
 /* 注音疊在中文字上方 */
 .zc{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;vertical-align:middle;margin:0 1px}
-.zz{font-size:.42em;color:#f0cf6a;font-weight:normal}
+.zz{font-size:.42em;color:#e0457b;font-weight:normal}
 .zh{font-size:1em;color:var(--ink)}
 
-.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:8px 0 16px;padding:10px 6px;border-radius:24px;background:#ffffff0d;border:1px solid #d4af3733}
-.mascots svg{width:50px;height:50px;filter:drop-shadow(0 4px 6px #0008)}
+.mascots{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:8px 0 16px;padding:10px 6px;border-radius:24px;background:#fff8e6;border:1px solid #d4af3733}
+.mascots svg{width:50px;height:50px;filter:drop-shadow(0 4px 6px #8a6d1233)}
 
 .lv-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
 .lv-row .btn{flex:1;max-width:200px}
 .students{display:flex;gap:12px;justify-content:center;margin:10px 0}
-.stu{flex:1;font-size:2.4em;padding:12px;border-radius:22px;border:2px solid #d4af3744;background:#ffffff0d;color:var(--ink);cursor:pointer;font-family:inherit}
-.stu.sel{border-color:var(--gold-hi);background:#d4af3722;box-shadow:0 0 22px #d4af3755}
+.stu{flex:1;font-size:2.4em;padding:12px;border-radius:22px;border:2px solid #e8d9a8;background:#fff;color:var(--ink);cursor:pointer;font-family:inherit}
+.stu.sel{border-color:var(--gold);background:#fff3c4;box-shadow:0 0 18px #d4af3755}
 .stu .n{display:block;margin-top:4px;font-size:.4em;letter-spacing:.1em}
 #counts .btn{font-size:1em;padding:10px 18px}
 
-.bar{display:flex;justify-content:space-around;align-items:center;font-size:1em;margin-bottom:10px;background:#00000055;border:1px solid #d4af3733;border-radius:16px;padding:8px;color:var(--gold-hi)}
+.bar{display:flex;justify-content:space-around;align-items:center;font-size:1em;margin-bottom:10px;background:#fff8e6;border:1px solid #d4af3733;border-radius:16px;padding:8px;color:var(--gold-dk)}
 .qtext{font-size:1.25em;margin:10px 0;color:var(--ink)}
-.speak{font-size:1.4em;border:none;background:transparent;cursor:pointer;margin-left:6px;vertical-align:middle;filter:drop-shadow(0 0 6px #d4af37aa)}
+.speak{font-size:1.4em;border:none;background:transparent;cursor:pointer;margin-left:6px;vertical-align:middle}
 
 /* 加法題：圖式 + 數字 */
-.pic{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;margin:10px auto 6px;max-width:420px;min-height:80px;padding:10px;border-radius:22px;background:#00000040;border:1px solid #d4af3733}
+.pic{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;margin:10px auto 6px;max-width:420px;min-height:80px;padding:10px;border-radius:22px;background:#fff8e6;border:1px solid #d4af3733}
 .grp{display:inline-flex;flex-wrap:wrap;justify-content:center;max-width:190px;font-size:1.7em;line-height:1.25}
 .grp svg{width:44px;height:44px;margin:2px}
-.pic .sym{font-size:2em;font-weight:bold;color:var(--gold-hi);margin:0 6px}
-.nums{font-size:1.9em;font-weight:bold;color:var(--gold-hi);margin:8px 0 4px;text-shadow:0 0 14px #d4af3766}
-.nums .op{color:#ff9fbf;margin:0 6px}
+.pic .sym{font-size:2em;font-weight:bold;color:var(--gold-dk);margin:0 6px}
+.nums{font-size:1.9em;font-weight:bold;color:var(--gold-dk);margin:8px 0 4px}
+.nums .op{color:#e0457b;margin:0 6px}
 
-.fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold;color:var(--gold-hi)}
+.fb{min-height:2.4em;font-size:1.3em;margin:6px 0;font-weight:bold;color:var(--gold-dk)}
 .opts{display:flex;flex-wrap:wrap;justify-content:center}
-.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:linear-gradient(180deg,#3a2f1f,#1d1710);border:2px solid #d4af37aa;border-radius:22px;margin:6px;cursor:pointer;font-family:inherit;color:var(--gold-hi);box-shadow:0 4px 14px #0008}
+.opt{display:inline-flex;align-items:center;justify-content:center;width:44%;min-height:104px;font-size:2em;background:#fff;border:2px solid #d4af37aa;border-radius:22px;margin:6px;cursor:pointer;font-family:inherit;color:var(--ink);box-shadow:0 4px 14px #d4af3733}
 .opt:active{transform:translateY(2px)}
-.opt.correct{background:linear-gradient(180deg,#1f5a43,#0f2f23);border-color:#7ef0b8;color:#d9ffe9}
-.opt.wrong{background:linear-gradient(180deg,#5a1f2c,#2f0f17);border-color:#ff8a9a;color:#ffd6dd}
+.opt.correct{background:#e6fbef;border-color:#3cc08a;color:#145c3f}
+.opt.wrong{background:#ffe9ee;border-color:#ff7aa2;color:#8a2040}
 .opt:disabled{cursor:default}
 #next{display:none}
 
-.big{font-size:2.6em;color:var(--gold-hi);text-shadow:0 0 22px #d4af37aa;margin:10px 0}
+.big{font-size:2.6em;color:var(--gold-dk);margin:10px 0}
 .mascots + .screen .big{margin-top:0}
 
 /* ===== 注音練習 ===== */
-#s-zy{background:radial-gradient(circle at 50% 0%,#3a2a55 0%,#15101f 60%,#0a0810 100%);color:#f5e6b8;border-radius:22px;padding:22px 16px;font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;box-shadow:inset 0 0 0 1px #d4af3755}
-.zbar{display:flex;justify-content:space-between;align-items:center;font-size:.95em;margin-bottom:12px;color:#d4af37}
-.zcard{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01));border:1px solid #d4af3788;border-radius:20px;padding:18px 12px;box-shadow:0 0 30px #d4af3722,inset 0 1px 0 #fff2}
-.zprompt{font-size:1.1em;color:#e9d9a6;margin-bottom:6px;letter-spacing:.05em}
+#s-zy{background:linear-gradient(180deg,#fffdf7,#fff6e0);color:var(--ink);border-radius:22px;padding:22px 16px;font-family:"Noto Serif TC","Songti TC","PMingLiU","DFKai-SB",serif;border:1px solid #d4af3755}
+.zbar{display:flex;justify-content:space-between;align-items:center;font-size:.95em;margin-bottom:12px;color:var(--gold-dk)}
+.zcard{background:#fff;border:1px solid #d4af3788;border-radius:20px;padding:18px 12px;box-shadow:0 0 30px #d4af3722}
+.zprompt{font-size:1.1em;color:#6b5a33;margin-bottom:6px;letter-spacing:.05em}
 .zemo{font-size:4.2em;line-height:1.1;margin:4px 0}
-.zq{font-size:5.2em;line-height:1.2;color:#fff1b8;text-shadow:0 0 18px #d4af37aa;min-height:1.6em;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC",serif}
+.zq{font-size:5.2em;line-height:1.2;color:var(--ink);min-height:1.6em;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif TC",serif}
 .zq.zy{font-size:3.4em;letter-spacing:.08em}
 .zopts{display:flex;flex-wrap:wrap;justify-content:center;margin-top:10px}
-.zopt{width:44%;min-height:86px;margin:6px;border-radius:16px;border:1px solid #d4af37;background:linear-gradient(180deg,#3a2f1f,#1d1710);color:#f7e7a1;font-size:2.1em;font-family:"Noto Serif TC",serif;cursor:pointer;box-shadow:0 4px 14px #0008}
+.zopt{width:44%;min-height:86px;margin:6px;border-radius:16px;border:1px solid #d4af37;background:#fff;color:var(--ink);font-size:2.1em;font-family:"Noto Serif TC",serif;cursor:pointer;box-shadow:0 4px 14px #d4af3733}
 .zopt:active{transform:translateY(2px)}
-.zopt.ok{background:linear-gradient(180deg,#1f5a43,#0f2f23);border-color:#7ef0b8;color:#d9ffe9}
-.zopt.no{background:linear-gradient(180deg,#5a1f2c,#2f0f17);border-color:#ff8a9a;color:#ffd6dd}
+.zopt.ok{background:#e6fbef;border-color:#3cc08a;color:#145c3f}
+.zopt.no{background:#ffe9ee;border-color:#ff7aa2;color:#8a2040}
 .zopt:disabled{cursor:default}
-.zfb{min-height:2.2em;margin:10px 0 4px;font-size:1.2em;color:#f7e7a1}
+.zfb{min-height:2.2em;margin:10px 0 4px;font-size:1.2em;color:var(--gold-dk)}
 .zbtn{font-family:inherit;font-size:1em;letter-spacing:.1em;padding:12px 22px;margin:6px;border-radius:999px;border:1px solid #d4af37;background:linear-gradient(90deg,#d4af37,#f7e7a1,#d4af37);color:#2a1d05;cursor:pointer;font-weight:bold;box-shadow:0 6px 18px #d4af3755}
-.zbtn.ghost{background:transparent;color:#d4af37;box-shadow:none}
+.zbtn.ghost{background:transparent;color:var(--gold-dk);box-shadow:none}
 .zbtn:active{transform:translateY(2px)}
-.zhint{font-size:.85em;color:#a8956a;margin-top:10px;letter-spacing:.06em}
+.zhint{font-size:.85em;color:var(--muted);margin-top:10px;letter-spacing:.06em}
 #zNext{display:none}
 </style>
 </head>
@@ -180,6 +180,7 @@ const ZY = {
   獸:'ㄕㄡˋ',企:'ㄑㄧˇ',鵝:'ㄜˊ',蝴:'ㄏㄨˊ',蝶:'ㄉㄧㄝˊ',蜜:'ㄇㄧˋ',蜂:'ㄈㄥ',
   小:'ㄒㄧㄠˇ',恐:'ㄎㄨㄥˇ',龍:'ㄌㄨㄥˊ',彩:'ㄘㄞˇ',虹:'ㄏㄨㄥˊ',星:'ㄒㄧㄥ',
   皇:'ㄏㄨㄤˊ',冠:'ㄍㄨㄢ',石:'ㄕˊ',怪:'ㄍㄨㄞˋ',神:'ㄕㄣˊ',奇:'ㄑㄧˊ',
+  愛:'ㄞˋ',
   請:'ㄑㄧㄥˇ',正:'ㄓㄥˋ',確:'ㄑㄩㄝˋ',出:'ㄔㄨ',字:'ㄗˋ',讀:'ㄉㄨˊ',這:'ㄓㄜˋ',
   練:'ㄌㄧㄢˋ',習:'ㄒㄧˊ',按:'ㄢˋ',後:'ㄏㄡˋ',繼:'ㄐㄧˋ',續:'ㄒㄩˋ',
   幼:'ㄧㄡˋ',稚:'ㄓˋ',園:'ㄩㄢˊ',國:'ㄍㄨㄛˊ',級:'ㄐㄧˊ',分:'ㄈㄣ',類:'ㄌㄟˋ',
@@ -273,7 +274,7 @@ function show(id) {
 }
 
 function setStatic() {
-  $('title').innerHTML = R('寶貝怪獸加法教室') + '<br><small>' + R('注音版') + '</small>';
+  $('title').innerHTML = R('寶貝愛學習') + '<br><small>' + R('數字與注音') + '</small>';
   $('mascots').innerHTML = [CREATURE.fire, CREATURE.water, CREATURE.grass, CREATURE.electric, CREATURE.star, CREATURE.moon].join('');
   $('t-lv').innerHTML = R('學習') + R('分類') + '：';
   $('lvK').innerHTML = R('幼稚園');
