@@ -1008,10 +1008,11 @@ function stratPairRule_(pair) {
   const who = pairWho_(pair);
   return '【對話組合】本篇寫「' + pair + '」：主角是彥彬（用「我」或彥彬的口吻），另一方是' + who + '。用兩人的對話或對話片段來寫，一問一答的感覺，每一段讓對話往前推一步。' + PAIR_TONE_[who] + '對話內容仍要守【不可以寫】的規則。';
 }
+const CHAN_ADV_TXT = '頻道建議';   // 軍師卡片最後一排：照 chanAdvice_ 給頻道改善方向（按鈕文字要跟 chanReply_ 比對的字一樣，不加表情符號）
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN], [CHAN_ADV_TXT]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
