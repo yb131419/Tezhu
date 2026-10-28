@@ -131,12 +131,17 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 #cfgok{color:var(--soft);font-size:14px}#cfg{margin-top:10px}
 #login.first #opts,#login.first #setx,#login.first #logout{display:none}
 #qsel{flex:1 1 100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:0 12px}
-#schedb{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
-#sched,#sform{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#schedb,#ham{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
+#sched,#sform,#tmenu{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
 #sform{z-index:10}
-#sched .box,#sform .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
+#ham{color:var(--gold)}#ham svg{width:26px;height:26px}
+#tmenu .box{height:auto;max-height:80vh;overflow:auto}
+#tmenu .tbtn{display:block;width:100%;text-align:left;min-height:52px;padding:0 16px;margin-top:8px;border-radius:14px;background:transparent;border:1px solid var(--line);color:inherit;font-size:17px}
+#tmenu .tbtn small{display:block;color:var(--soft);font-size:13px;margin-top:2px}
+
+#sched .box,#sform .box,#tmenu .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
 #sform .box{height:auto;max-height:92vh;overflow:auto}
-html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
+html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-theme=light] #tmenu .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
 .sr{display:flex;align-items:center;gap:8px}
@@ -179,7 +184,7 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background
 .frow .sv{background:var(--champ);color:#1A150D;border:none}
 .frow .dl{flex:0 0 92px;color:#D98A6B;border-color:rgba(217,138,107,.4)}
 </style></head><body>
-<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="schedb" type="button" title="行程" style="margin-left:auto">📅</button><button id="gear" type="button" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
+<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="schedb" type="button" title="行程" style="margin-left:auto">📅</button><button id="gear" type="button" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button id="ham" type="button" title="交易與功能" aria-label="交易與功能選單"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
@@ -246,6 +251,7 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>📈 交易</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
@@ -347,7 +353,7 @@ let lpT=null;log.addEventListener('touchstart',e=>{const d=e.target.closest('.m'
 ['touchend','touchmove','touchcancel'].forEach(k=>log.addEventListener(k,()=>{clearTimeout(lpT);lpT=null;},{passive:true}));
 log.addEventListener('contextmenu',e=>{const d=e.target.closest('.m');if(d&&!d.classList.contains('hello')){e.preventDefault();if(!document.body.classList.contains('sel'))selMode(true,d);}});
 // iPhone 不讓網頁自己出聲：第一次按按鈕時先播一段無聲音檔「解鎖」，之後小乖的語音才放得出來
-const SIL='data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAABgAAAykAWlpaWlpaWlpaWlpaWlpaWnt7e3t7e3t7e3t7e3t7e3t7nJycnJycnJycnJycnJycnL29vb29vb29vb29vb29vb293t7e3t7e3t7e3t7e3t7e3t7/////////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQCowAAAAAAAAMpso+sIAAAAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NAxKQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEowAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
+const SIL='data:audio/wav;base64,UklGRoQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YWAAAAB/gIB/gICAgYB/gICBf3+AgIF/f4CAgYGBgICAf4CBf4CBf4B/gICAgX9/gX+BgICAgYF/f4CBgYCAgYB/gH+AgH+AgICAgYF/f4CBgIF/f4CBgICBgIGBgYGBf39/gYE=';
 // 共用一個音效環境：在你按按鈕時開好、之後一直沿用（iPhone 在按鈕以外新開的會卡在暫停，聽不到你講話，連續對話才會講一句就停）
 let AC=null,acSrc=null,auSrc=null,ttsT=null;
 function getAC(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume().catch(()=>{});}catch(e){AC=null;}return AC;}
@@ -538,6 +544,12 @@ $('sDelSel').onclick=async()=>{
  sMsg(failed?'已刪除 '+done+' 筆，'+failed+' 筆失敗，請再試一次':'已刪除 '+done+' 筆');};
 $('schedb').onclick=openSched;
 $('schedx').onclick=closeSched;
+// 右上角漢堡：交易功能面板。點了功能就把那句話送進小乖對話，和 ⚡ 快速功能走同一條路（不會直接下單，下單要按提案的確認）
+function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';}
+function closeT(){$('tmenu').style.display='none';}
+$('ham').onclick=openT;$('tmx').onclick=closeT;
+$('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
+document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{closeT();send(b.dataset.t);});
 $('sadd').onclick=()=>sOpenForm(null);
 $('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
 $('stP').onclick=()=>{sTab='past';sPicked.clear();sRender();sSelUI();};

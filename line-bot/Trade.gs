@@ -335,8 +335,12 @@ function tradeRecords_() {
   const list = tradeLogList_().slice(-10).reverse();
   const rows = [['📈 智能下單', '📊 查看持倉']];
   if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
-  const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
-    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n') +
+  const text = '📜 下單紀錄（含停損、停利，最近 ' + list.length + ' 筆）\n' + list.map(x => {
+    const pr = (TRADE_ITEMS[x.name] || { prec: 2 }).prec;
+    const lv = v => v === '-' ? '—' : tradeLevel_(v, pr);   // 平倉紀錄沒有停損、停利，顯示「—」
+    return '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）\n' +
+      '  停損 ' + lv(x.sl) + '　停利 ' + lv(x.tp);
+  }).join('\n') +
     '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
