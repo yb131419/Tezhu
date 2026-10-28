@@ -826,7 +826,8 @@ function chanAdvice_() {
   let text;
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
+  // 頻道數據卡在上、改善建議卡在下，一次滑過兩張
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: { type: 'carousel', contents: [chanDataFlex_(d), chanAdviceFlex_(d, text)] }, alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
 // 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
@@ -3974,7 +3975,9 @@ function reply_(replyToken, msg, extra, menu) {
   const buttons = rich && msg.flex && !msg.alt ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
   const items = lineItems_(buttons);
   if (items.length) m.quickReply = { items: items };
-  lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
+  const code = lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
+  // 卡片被 LINE 拒絕時（畫面送不出去，按了沒反應），改用文字版再回一次，不讓使用者只看到沒反應
+  if (code !== 200 && m.type === 'flex') lineApi_('reply', { replyToken: replyToken, messages: [{ type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000), quickReply: m.quickReply }] });
 }
 // LINE 快速回覆的按鈕列（已經過 quick_）轉成 items，最多 13 個
 function lineItems_(rows) {
