@@ -199,6 +199,25 @@ html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:
 html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A2E1E;background:#FFFDF8;border-color:var(--line)}
 html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
 html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
+/* 手機點按尺寸：按鈕至少 44px 高、間距加大，避免擠在一起或被手指誤觸 */
+button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#endc{height:44px;padding:0 28px}
+.sx{width:44px;height:44px}
+.stxt{height:44px;padding:0 16px}
+.stabs{gap:8px}
+.stabs button{height:44px}
+.chip{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;max-width:100%;white-space:normal;line-height:1.25}
+.cc .ca{gap:8px}
+.cc .ca a,.cc .ca button{min-height:44px;padding:10px 10px}
+#vs .x{height:48px}
+#tmenu .tbtn,#tres .tbtn{min-height:60px}
+#tres #trbtn .tbtn{min-height:52px}
+@media (max-width:360px){
+  header b{font-size:18px}
+  #mic{width:60px;height:60px}
+  .chip{font-size:14px;padding:9px 12px}
+  #tmenu .tbtn,#tres .tbtn{font-size:16px;padding:12px 14px}
+}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
