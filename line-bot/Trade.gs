@@ -335,8 +335,11 @@ function tradeRecords_() {
   const list = tradeLogList_().slice(-10).reverse();
   const rows = [['📈 智能下單', '📊 查看持倉']];
   if (!list.length) return { text: '📜 還沒有下單紀錄。', buttons: rows };
-  const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x =>
-    '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）').join('\n') +
+  const text = '📜 下單紀錄（最近 ' + list.length + ' 筆）\n' + list.map(x => {
+    const prec = (TRADE_ITEMS[x.name] || { prec: 2 }).prec;
+    return '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）' +
+      '\n  停損 ' + tradeLevel_(x.sl, prec) + '　停利 ' + tradeLevel_(x.tp, prec);
+  }).join('\n') +
     '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
 }
@@ -611,7 +614,7 @@ function tradeRemindSwitch_(on) {
 function tradeRemindStatus_(note) {
   const on = prop_('TRADE_REMIND') === 'on';
   const rows = [on ? ['🔕 關閉提醒'] : ['🔔 開啟提醒'], ['📈 智能下單']];
-  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查一次，有交易訊號就推送提案到 LINE 與 Telegram，只推提案，不會自動送單）' : '已關閉，不會推送提醒') + (note ? '\n' + note : '');
+  const text = '🔔 交易提醒：' + (on ? '開啟中（每 5 分鐘檢查一次，有交易訊號就推送提案到 LINE 與 Telegram，只推提案，不會自動送單；持倉或模擬倉碰到停損、停利，也會推送通知並寫入下單紀錄）' : '已關閉，不會推送提醒') + (note ? '\n' + note : '');
   return { text: text, buttons: rows, flex: tradeFlex_('🔔 交易提醒', text, rows), alt: '🔔 交易提醒' };
 }
 
@@ -619,6 +622,7 @@ function tradeRemindStatus_(note) {
 function tradeRemindTick_() {
   try {
     if (prop_('TRADE_REMIND') !== 'on') return;
+    try { tradeWatchExits_(); } catch (err) { console.error(err); }   // 停損停利先看，出錯不影響交易訊號提醒
     const cur = tradePending_();
     if (cur && cur.expires > Date.now()) return;   // 已有待確認的提案，不重複推送
     const day = tradeDay_();
@@ -635,6 +639,63 @@ function tradeRemindTick_() {
   } catch (err) {
     console.error(err);
   }
+}
+
+// 停損、停利與平倉偵測（提醒開啟時，每 5 分鐘跑一次）：只記錄與通知，不送任何單
+// 1. IG 持倉：上次看到、這次不見了，就視為已平倉；用目前報價判斷是停損、停利，還是不在價位上（手動平倉）
+// 2. 虛擬倉位（紙上模式）：報價穿過停損或停利，就記錄並從虛擬倉位移除
+function tradeWatchExits_() {
+  withLock_(() => {
+    tradeWatchVirt_();
+    if (tradeMode_() !== 'paper') tradeWatchIg_();
+  });
+}
+
+function tradeWatchIg_() {
+  const pos = tradeOpenPositions_().filter(x => TRADE_ITEMS[x.name]);
+  const ids = pos.map(x => x.dealId);
+  const label = tradeMode_() === 'live' ? '真實帳戶' : 'IG 模擬帳戶';
+  (tradeState_().known || []).filter(k => ids.indexOf(k.dealId) < 0).forEach(k => {
+    let price = NaN;
+    try { price = tradeQuote_(TRADE_ITEMS[k.name]); } catch (err) { console.error(err); }
+    tradeExitRecord_(k, price, label);
+  });
+  tradeSaveState_(Object.assign(tradeState_(), {
+    known: pos.map(x => ({ dealId: x.dealId, name: x.name, dir: x.dir, size: x.size, open: x.open, sl: x.sl, tp: x.tp })),
+  }));
+}
+
+function tradeWatchVirt_() {
+  const list = tradeVirtList_();
+  const keep = list.filter(v => {
+    let price = NaN;
+    try { price = tradeQuote_(TRADE_ITEMS[v.name]); } catch (err) { return true; }   // 取不到報價就先留著，下次再看
+    if (!tradeExitHit_(v.side, price, v.sl, v.tp)) return true;
+    tradeExitRecord_({ name: v.name, dir: v.side, size: v.size, open: v.price, sl: v.sl, tp: v.tp }, price, '模擬，沒有送到 IG');
+    return false;
+  });
+  if (keep.length !== list.length) tradeSaveState_(Object.assign(tradeState_(), { virt: keep }));
+}
+
+// 價格穿過停損或停利就回傳名稱，沒有就回傳空字串（多單：跌到停損或漲到停利；空單則相反）
+function tradeExitHit_(dir, price, sl, tp) {
+  if (!isFinite(price)) return '';
+  const buy = dir === 'buy';
+  if (Number(sl) > 0 && (buy ? price <= Number(sl) : price >= Number(sl))) return '停損觸發';
+  if (Number(tp) > 0 && (buy ? price >= Number(tp) : price <= Number(tp))) return '停利觸發';
+  return '';
+}
+
+// 寫一筆平倉紀錄並推送通知。取不到報價時，只寫已平倉，不寫停損或停利
+function tradeExitRecord_(p, price, base) {
+  const it = TRADE_ITEMS[p.name];
+  const dir = p.dir;
+  const hit = tradeExitHit_(dir, price, p.sl, p.tp);
+  const ok = isFinite(price);
+  const note = !ok ? '已平倉，取不到報價，請到 IG 核對' : hit ? hit + '（依報價判斷）' : '已平倉（不在停損停利價位，可能是手動平倉）';
+  tradeLog_({ name: p.name, side: dir === 'buy' ? 'sell' : 'buy', size: p.size, sl: p.sl, tp: p.tp }, ok ? price : p.open, base + '，' + note, '');
+  tradeNotify_('📣 ' + (hit || '平倉通知') + '\n' + p.name + ' ' + (dir === 'buy' ? '多單' : '空單') + ' ' + p.size + ' 單位，' +
+    (ok ? '約 ' + price.toFixed(it.prec) : '未取得報價') + ' 平倉\n' + base + '\n停損 ' + tradeLevel_(p.sl, it.prec) + '　停利 ' + tradeLevel_(p.tp, it.prec));
 }
 
 // 同一張提案同時推到 Telegram（按鈕＋文字）與 LINE（快速回覆按鈕＋文字）。
