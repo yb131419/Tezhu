@@ -680,9 +680,14 @@ function lineImage_(messageId) {
 const CHAN_ID_DEFAULT = 'UCE4E-lnj5eEvFy2l-Ut-NHQ';
 function chanReply_(t) {
   const flat = String(t || '').replace(/\s+/g, '');
-  if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanData_();
-  if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanAdvice_();
+  if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanSafe_(chanData_);
+  if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   return null;
+}
+// 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
+function chanSafe_(fn) {
+  try { return fn(); }
+  catch (e) { console.error('頻道功能出錯：' + e); return { text: '頻道數據沒有出來：' + e.message + '\n（可到 Apps Script 的「執行」看詳細紀錄）', buttons: MENU }; }
 }
 function chanGet_(path, params) {
   const key = prop_('YOUTUBE_API_KEY');
