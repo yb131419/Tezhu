@@ -278,6 +278,20 @@ html[data-theme=light] .tposd.neg{color:#B5523A}
 #sched .sr .stxt,#sched .sr .sx{height:46px}
 #sched .sr .sx{width:46px}
 #sched .stabs{margin:6px 0 14px}
+/* 貼上行程：新增與貼上並排，兩顆都是金色系大按鈕；預覽每筆一張金框卡，解析不了的標紅、不能勾 */
+.srow{display:flex;gap:10px;margin-top:10px}
+.srow .sadd{flex:1;margin-top:0}
+.spst{flex:1;height:50px;border-radius:14px;background:transparent;border:1px solid rgba(220,195,148,.45);color:var(--gold);font-weight:700;font-size:16px;letter-spacing:1px}
+.spaste{height:auto;min-height:190px;padding:12px;line-height:1.7;resize:vertical;font-family:inherit}
+.prl{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:48vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.pr{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.06),rgba(255,255,255,.012))}
+.pr input{flex:0 0 22px;width:22px;height:22px;margin-top:4px;accent-color:#C9A56A}
+.pr.bad{border-color:rgba(217,138,107,.45)}
+.pr .prd{display:block;font-size:13px;color:var(--gold);letter-spacing:.5px}
+.pr .pri{display:block;margin-top:3px;font-size:16px;font-weight:600;line-height:1.5;word-break:break-all}
+.pr .pre{display:block;margin-top:3px;font-size:13px;color:#D98A6B}
+.pr.bad .pri{opacity:.6}
+.pcount{font-size:13px;color:var(--soft);margin-top:12px}
 /* 頻道面板（萬元質感）：數據卡用金色大數字，影片與改善建議各一張金框卡片，淺色版同樣分明 */
 #tres .chead{font-family:var(--serif);font-size:19px;letter-spacing:1.5px;color:#F3EEE5;padding:2px 2px 14px;margin-bottom:12px;border-bottom:1px solid rgba(220,195,148,.3)}
 .cstats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -370,14 +384,14 @@ html[data-theme=light] .csec{color:#8A6A37}
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
-<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></details><details class="mgrp"><summary class="mgh">📺 頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></details><details class="mgrp"><summary class="mgh">📺 頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
 <div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trbtn"></div><div id="trb"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
  <div class="smsg" id="smsg"></div>
  <div id="slist"></div>
- <button id="sadd" type="button" class="sadd">＋ 新增行程</button>
+ <div class="srow"><button id="sadd" type="button" class="sadd">＋ 新增行程</button><button id="spaste" type="button" class="spst">📋 貼上行程</button></div>
  <div class="sbar" id="sbar" hidden><button id="sAll" type="button">全選</button><button id="sDelSel" type="button" disabled>刪除已選（0 筆）</button><button id="sCancel" type="button">取消</button></div>
 </div></div>
 <div id="sform"><div class="box" id="sfbox"></div></div>
@@ -637,6 +651,7 @@ function sVisible(){const t=sToday();return sEvents.filter(e=>sTab==='next'?e.da
 function sSelUI(){
  $('sbar').hidden=!sSelMode;
  $('sadd').hidden=sSelMode;
+ $('spaste').hidden=sSelMode;
  const n=sPicked.size, vis=sVisible();
  const all=vis.length>0&&vis.every(e=>sPicked.has(e.id));
  $('sAll').textContent=all?'取消全選':'全選';
@@ -661,6 +676,79 @@ $('sDelSel').onclick=async()=>{
  }
  sSelMode=false;sPicked.clear();sRender();sSelUI();
  sMsg(failed?'已刪除 '+done+' 筆，'+failed+' 筆失敗，請再試一次':'已刪除 '+done+' 筆');};
+// 貼上行程：一次貼多行 → 解析成預覽（看不懂的標紅不能存）→ 勾選後才照單筆新增的規則逐筆寫入，不經過對話串
+let sPasteRows=[];
+function sDateAdd(k){const x=new Date();x.setDate(x.getDate()+k);return x.getFullYear()+'-'+sPad(x.getMonth()+1)+'-'+sPad(x.getDate());}
+function sPasteDate(s){
+ let m=s.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+ if(m)return {d:m[1]+'-'+sPad(m[2])+'-'+sPad(m[3]),t:m[0]};
+ m=s.match(/(\d{1,2})[\/\-.月](\d{1,2})[日號]?/);
+ if(m)return {d:new Date().getFullYear()+'-'+sPad(m[1])+'-'+sPad(m[2]),t:m[0]};
+ for(const [w,k] of [['今天',0],['今日',0],['明天',1],['明日',1],['後天',2]])if(s.includes(w))return {d:sDateAdd(k),t:w};
+ return null;}
+function sPasteTime(s){
+ const m=s.match(/(上午|早上|中午|下午|晚上|凌晨)?\s*(\d{1,2})(?:\s*[:：]\s*(\d{2})|\s*[點時](?:\s*(半|\d{1,2})分?)?)/);
+ if(!m)return null;
+ let h=+m[2];const mi=m[3]?+m[3]:m[4]==='半'?30:m[4]?+m[4]:0,p=m[1]||'';
+ if((p==='下午'||p==='晚上')&&h<12)h+=12;
+ if(p==='中午'&&h<11)h+=12;
+ if(p==='凌晨'&&h===12)h=0;
+ if(h>23||mi>59)return {bad:true,t:m[0]};
+ return {time:sPad(h)+':'+sPad(mi),t:m[0]};}
+function sParseLine(raw){
+ let s=raw.replace(/^\s*(?:[-•・*]|\d+[.、)])\s+/,'').replace(/[（(][一二三四五六日天][）)]|[週星期][一二三四五六日天]/g,' ').trim();
+ if(!s)return null;
+ const allDay=s.includes('整天'),r={title:'',date:'',time:'',err:''};
+ const dt=sPasteDate(s);if(dt){r.date=dt.d;s=s.replace(dt.t,' ');}
+ const tm=sPasteTime(s);
+ if(tm&&tm.bad)r.err='時間看不懂';
+ else if(tm){if(!allDay)r.time=tm.time;s=s.replace(tm.t,' ');}
+ r.title=s.replace(/整天/g,' ').replace(/\s+/g,' ').replace(/^[\s\-｜|:：,，、。]+|[\s\-｜|:：,，、。]+$/g,'').trim();
+ if(!r.title)r.err=r.err||'缺行程名稱';
+ if(!r.date)r.err=r.err||'缺日期';
+ return r;}
+function sOpenPaste(){
+ sPasteRows=[];
+ $('sfbox').innerHTML='<div class="sh"><b>📋 貼上行程</b><button id="sfx" type="button" class="sx" aria-label="關閉">×</button></div>'+
+  '<label class="ff">每行一筆，直接從訊息或行事曆複製貼上<textarea id="sfPaste" class="fi spaste" rows="7" placeholder="10/30 14:00 牙醫回診&#10;11/2 下午3點 家長會&#10;11/5 整天 出國"></textarea></label>'+
+  '<div class="ffh">日期可寫 10/30、2026-10-30、10月30日，也可以寫今天、明天、後天；時間可寫 14:00、下午3點、3點半。沒寫時間就當整天。</div>'+
+  '<div class="ferr" id="sfE"></div>'+
+  '<div class="frow"><button id="sfC" type="button">取消</button><button id="sfPv" type="button" class="sv">預覽</button></div>';
+ $('sform').style.display='flex';
+ $('sfx').onclick=sCloseForm;$('sfC').onclick=sCloseForm;
+ $('sfPv').onclick=sPastePreview;}
+function sPastePreview(){
+ const rows=$('sfPaste').value.split('\n').map(sParseLine).filter(Boolean);
+ if(!rows.length)return sErr('請先貼上行程');
+ sPasteRows=rows.map(r=>({...r,on:!r.err}));
+ sPasteShow();}
+function sPasteCount(){const n=sPasteRows.filter(r=>r.on).length;const b=$('sfPs');if(b){b.textContent='儲存 '+n+' 筆';b.disabled=!n;}}
+function sPasteShow(){
+ const list=sPasteRows.map((r,i)=>'<label class="pr'+(r.err?' bad':'')+'"><input type="checkbox" data-i="'+i+'"'+(r.on?' checked':'')+(r.err?' disabled':'')+'><span><span class="prd">'+(r.date?sEsc(sDayLabel(r.date)):'日期未定')+' · '+(r.time?sEsc(r.time):'整天')+'</span><span class="pri">'+sEsc(r.title||'（沒有名稱）')+'</span>'+(r.err?'<span class="pre">'+sEsc(r.err)+'，請回上一步修正</span>':'')+'</span></label>').join('');
+ $('sfbox').innerHTML='<div class="sh"><b>📋 預覽</b><button id="sfx" type="button" class="sx" aria-label="關閉">×</button></div>'+
+  '<div class="pcount">共 '+sPasteRows.length+' 行，請勾選要儲存的行程</div>'+
+  '<div class="prl">'+list+'</div>'+
+  '<div class="ferr" id="sfE"></div>'+
+  '<div class="frow"><button id="sfBack" type="button">返回修改</button><button id="sfPs" type="button" class="sv">儲存</button></div>';
+ $('sfx').onclick=sCloseForm;$('sfBack').onclick=sOpenPaste;$('sfPs').onclick=sPasteSave;
+ $('sfbox').querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{sPasteRows[+c.dataset.i].on=c.checked;sPasteCount();});
+ sPasteCount();}
+async function sPasteSave(){
+ const pick=sPasteRows.filter(r=>r.on);
+ if(!pick.length)return sErr('請勾選要儲存的行程');
+ $('sfPs').disabled=true;
+ let done=0,failed=0;
+ for(const r of pick){
+  try{const o=await sApi({action:'evSave',title:r.title,date:r.date,time:r.time,place:''});
+   sEvents.push(o.event);r.saved=true;done++;}
+  catch(e){failed++;}
+ }
+ sRender();
+ if(!failed){sCloseForm();sMsg('已新增 '+done+' 筆');return;}
+ sPasteRows=sPasteRows.filter(r=>!r.saved);
+ sPasteShow();
+ sErr('已新增 '+done+' 筆，'+failed+' 筆儲存失敗，請再按一次儲存');}
+$('spaste').onclick=sOpenPaste;
 $('schedx').onclick=closeSched;
 // 右上角 ☰ 選單：對齊 LINE 的大項目（小乖、行程、交易、軍師、見證、試算、搜尋、頻道）再加 ⚙ 設定。交易等結果只顯示在網頁面板，不送進對話串（下單仍要按提案的確認）；data-f 只帶入輸入列，data-cam 開照片選擇
 function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';}
@@ -702,6 +790,7 @@ document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
  const w=b.dataset.web;
  if(w==='sched'){openSched();return;}
  if(w==='add'){openSched();sOpenForm(null);return;}
+ if(w==='paste'){openSched();sOpenPaste();return;}
  if(w==='set'){setOpen();return;}
  if(w==='theme'){$('thm').click();return;}
  if(b.dataset.f!==undefined){$('q').value=b.dataset.f;kb('接著打上內容，按「傳送」');return;}
