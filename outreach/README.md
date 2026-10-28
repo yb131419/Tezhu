@@ -6,7 +6,7 @@
 
 ## 檔案
 
-- `Code.gs`：所有程式（綁定在 Google Sheet 的 Apps Script 專案）
+- `自動開發信.gs`：所有程式（綁定在 Google Sheet 的 Apps Script 專案）
 
 ## 一、Google Sheet 分頁
 
@@ -44,7 +44,7 @@
 ## 三、部署步驟
 
 1. 在 Google Sheet 中點選「擴充功能 → Apps Script」。
-2. 刪除編輯器裡原有的程式，把 `Code.gs` 的全部內容貼上，按儲存。
+2. 刪除編輯器裡原有的程式，把 `自動開發信.gs` 的全部內容貼上，按儲存。
 3. 點左側「專案設定」（齒輪）→ 找到「指令碼屬性」→ 新增屬性：
    - 屬性：`GEMINI_API_KEY`
    - 值：在 Google AI Studio 建立的 API 金鑰
@@ -62,7 +62,7 @@
 
 ## 五、Gemini 設定
 
-- `Code.gs` 預設使用 `gemini-2.5-flash`，位於程式最上方的 `GEMINI_MODEL`。免費額度與模型可用性依 Google 公告為準，若回報模型不存在，請改為 AI Studio 中目前可用的模型名稱。
+- `自動開發信.gs` 預設使用 `gemini-2.5-flash`，位於程式最上方的 `GEMINI_MODEL`。免費額度與模型可用性依 Google 公告為準，若回報模型不存在，請改為 AI Studio 中目前可用的模型名稱。
 - 草稿會經過 `BANNED_WORDS` 檢查，含療效或誇大用語就不會進入「待審」，錯誤訊息會寫在該列。寄出前也會再檢查一次。
 
 ## 六、每日運作
