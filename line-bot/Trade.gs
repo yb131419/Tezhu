@@ -412,6 +412,7 @@ function tradeCloseOne_(item, nowList, label) {
   }
   const fill = Number(conf.level).toFixed(hit.prec);
   tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
+  tradeStopAdd_({ name: hit.name, dir: hit.dir, dirZh: hit.dirZh, size: hit.size, trigger: '平倉', price: Number(fill), prec: hit.prec, open: hit.open, margin: hit.margin, cur: hit.cur }, hit.dealId);   // 停損停利紀錄也記一筆，並從比對快照移除，避免重複記
   tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
   const upl = (item.dir === 'buy' ? Number(fill) - item.open : item.open - Number(fill)) * item.size;
   item.done = { upl: upl, margin: item.margin, cur: item.cur };   // 給多筆時算合計用
@@ -952,6 +953,14 @@ function tradeReconcile_(cur) {
     return { dealId: x.dealId, name: x.name, dir: x.dir, dirZh: x.dirZh, size: x.size, sl: x.sl === null || x.sl === undefined || x.sl === '' ? null : Number(x.sl), tp: x.tp === null || x.tp === undefined || x.tp === '' ? null : Number(x.tp), open: x.open > 0 ? x.open : null, margin: x.margin > 0 ? x.margin : null, cur: x.cur || '', now: isFinite(now) ? now : 0, prec: x.prec };
   });
   tradeSaveState_(Object.assign(tradeState_(), { snap: snap, stops: stops.slice(-20) }));
+}
+
+// 加一筆停損停利紀錄（平倉或比對到的停損停利），並把這筆持倉從比對快照拿掉
+function tradeStopAdd_(e, dealId) {
+  const st = tradeState_();
+  const list = (st.stops || []).concat([Object.assign({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm') }, e)]);
+  const snap = (st.snap || []).filter(x => x.dealId !== dealId);
+  tradeSaveState_(Object.assign(st, { stops: list.slice(-20), snap: snap }));
 }
 
 // 一筆停損停利紀錄：投入成本、損益（損益 = (觸發價 − 開倉價) × 數量，空單反向）。舊紀錄沒有開倉價就顯示資料不足
