@@ -132,16 +132,16 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 #login.first #opts,#login.first #setx,#login.first #logout{display:none}
 #qsel{flex:1 1 100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:0 12px}
 #schedb,#ham{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
-#sched,#sform,#tmenu{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#sched,#sform,#tmenu,#tres{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
 #sform{z-index:10}
 #ham{color:var(--gold)}#ham svg{width:26px;height:26px}
 #tmenu .box{height:auto;max-height:80vh;overflow:auto}
 #tmenu .tbtn{display:block;width:100%;text-align:left;min-height:52px;padding:0 16px;margin-top:8px;border-radius:14px;background:transparent;border:1px solid var(--line);color:inherit;font-size:17px}
 #tmenu .tbtn small{display:block;color:var(--soft);font-size:13px;margin-top:2px}
 
-#sched .box,#sform .box,#tmenu .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
+#sched .box,#sform .box,#tmenu .box,#tres .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
 #sform .box{height:auto;max-height:92vh;overflow:auto}
-html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-theme=light] #tmenu .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
+html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
 .sr{display:flex;align-items:center;gap:8px}
@@ -251,7 +251,8 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
-<div id="tmenu"><div class="box"><div class="sh"><b>📈 交易</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>📈 交易</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><button type="button" class="tbtn" data-web="sched">📅 日期行程<small>行程面板，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></div></div>
+<div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trb" style="font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word"></div><div id="trbtn" style="margin-top:10px"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
@@ -549,7 +550,11 @@ function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';
 function closeT(){$('tmenu').style.display='none';}
 $('ham').onclick=openT;$('tmx').onclick=closeT;
 $('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
-document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{closeT();send(b.dataset.t);});
+// 交易與日期的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
+function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';lk(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>{if(l==='📅 日期行程'){closeWeb();openSched();return;}webAsk(l);};bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+function closeWeb(){$('tres').style.display='none';}
+$('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
+document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{closeT();if(b.dataset.web==='sched'){openSched();return;}webAsk(b.dataset.t);});
 $('sadd').onclick=()=>sOpenForm(null);
 $('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
 $('stP').onclick=()=>{sTab='past';sPicked.clear();sRender();sSelUI();};
