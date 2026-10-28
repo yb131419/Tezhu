@@ -190,8 +190,6 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 #tmenu .tbtn,#tres .tbtn{display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:12px 18px;margin-top:10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:1.5px;text-align:left;box-shadow:inset 0 1px 0 rgba(241,223,180,.08);transition:border-color .2s,background .2s}
 #tmenu .tbtn:active,#tres .tbtn:active{background:rgba(201,165,106,.14)}
 #tmenu .tbtn small,#tres .tbtn small{font-family:-apple-system,"PingFang TC",sans-serif;font-weight:400;letter-spacing:.3px;color:rgba(243,238,229,.55);font-size:13px;margin-top:4px}
-/* ☰ 選單：所有項目說明文字統一 15px，方便手機閱讀（設定面板 #tres 不變） */
-#tmenu .tbtn small{font-size:15px;line-height:1.4;margin-top:4px}
 #tmenu .mgrp{margin-top:14px}
 #tmenu .mgh{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;-webkit-user-select:none;user-select:none;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold);padding:12px 4px;border-bottom:1px solid var(--line)}
 #tmenu .mgh::-webkit-details-marker{display:none}
@@ -213,7 +211,7 @@ html[data-theme=light] #tres .box{background:radial-gradient(ellipse 110% 45% at
 #tres #trb b,#tres #trb strong{color:var(--gold);font-weight:700}
 html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 #tres #trbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;width:100%}
-#tres #trbtn .tbtn{margin-top:0;min-height:54px;justify-content:center;text-align:center;font-size:15px;letter-spacing:1px;padding:10px 12px;border-radius:14px}
+#tres #trbtn .tbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%;height:auto;margin-top:0;min-height:54px;text-align:center;font-size:15px;letter-spacing:1px;white-space:nowrap;padding:10px 12px;border-radius:14px}
 #tres #trbtn .tbtn:first-child{grid-column:1/-1;background:var(--champ);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5)}
 html[data-theme=light] #tres #trbtn .tbtn:first-child{color:#1A150D}
 /* 每一筆持倉一張卡片；面板高度跟內容走，不再超出螢幕底部 */
