@@ -247,6 +247,18 @@ button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-high
   .chip{font-size:14px;padding:9px 12px}
   #tmenu .tbtn,#tres .tbtn{font-size:16px;padding:12px 14px}
 }
+/* 持倉卡片：金色刻線、損益綠紅分明、淺色版加陰影 */
+.tpos{position:relative;padding:16px 18px 14px 22px;border-radius:18px;overflow:hidden;box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12)}
+.tpos::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:var(--champ)}
+.tposh{font-size:18px;line-height:1.5;color:#F3EEE5;margin-bottom:8px}
+.tposd{font-size:14.5px;line-height:1.8}
+.tposd.pos{color:#8FDBB2;font-weight:700}
+.tposd.neg{color:#F2998A;font-weight:700}
+html[data-theme=light] .tpos{box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .tposh{color:#2A2118}
+html[data-theme=light] .tposd{color:rgba(42,33,24,.72)}
+html[data-theme=light] .tposd.pos{color:#2F7D5B}
+html[data-theme=light] .tposd.neg{color:#B5523A}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
