@@ -189,8 +189,9 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 #tmenu .sh b,#tres .sh b{font-family:var(--serif);font-size:20px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent}
 #tmenu .tbtn,#tres .tbtn{display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:12px 18px;margin-top:10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:1.5px;text-align:left;box-shadow:inset 0 1px 0 rgba(241,223,180,.08);transition:border-color .2s,background .2s}
 #tmenu .tbtn:active,#tres .tbtn:active{background:rgba(201,165,106,.14)}
-#tmenu .tbtn:first-of-type{border-color:rgba(201,165,106,.6);background:linear-gradient(135deg,rgba(241,223,180,.14),rgba(201,165,106,.06))}
 #tmenu .tbtn small,#tres .tbtn small{font-family:-apple-system,"PingFang TC",sans-serif;font-weight:400;letter-spacing:.3px;color:rgba(243,238,229,.55);font-size:13px;margin-top:4px}
+#tmenu .mgrp{margin-top:16px}
+#tmenu .mgh{font-family:var(--serif);font-size:13px;letter-spacing:3px;color:var(--gold);padding:0 4px 6px;border-bottom:1px solid var(--line)}
 #tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:16px;line-height:1.85;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(220,195,148,.18)}
 #tres #trbtn{display:grid;gap:8px}
 #tres #trbtn .tbtn{margin-top:0;min-height:52px;flex-direction:row;align-items:center;justify-content:center;text-align:center;font-size:16px}
@@ -199,7 +200,7 @@ html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A
 html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
 html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 </style></head><body>
-<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="交易與功能" aria-label="交易與功能選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
+<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
@@ -266,7 +267,7 @@ html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
-<div id="tmenu"><div class="box"><div class="sh"><b>📈 交易</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><button type="button" class="tbtn" data-web="sched">📅 日期行程<small>行程面板，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="set">⚙️ 設定<small>連線、聲音、外觀</small></button><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><div class="mgrp"><div class="mgh">📅 行程</div><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button></div><div class="mgrp"><div class="mgh">📈 交易</div><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></div><div class="mgrp"><div class="mgh">⚙ 設定</div><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></div></div></div>
 <div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trb" style="font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word"></div><div id="trbtn" style="margin-top:10px"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
@@ -558,16 +559,23 @@ $('sDelSel').onclick=async()=>{
  sSelMode=false;sPicked.clear();sRender();sSelUI();
  sMsg(failed?'已刪除 '+done+' 筆，'+failed+' 筆失敗，請再試一次':'已刪除 '+done+' 筆');};
 $('schedx').onclick=closeSched;
-// 右上角漢堡：交易與日期、設定。交易功能的結果只顯示在網頁面板，不送進對話串（下單仍要按提案的確認）
+// 右上角 ☰ 選單：分成 📅 行程、📈 交易、⚙ 設定三大類。交易的結果只顯示在網頁面板，不送進對話串（下單仍要按提案的確認）
 function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';}
 function closeT(){$('tmenu').style.display='none';}
 $('ham').onclick=openT;$('tmx').onclick=closeT;
 $('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
-// 交易與日期的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
-function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';lk(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>{if(l==='📅 日期行程'){closeWeb();openSched();return;}webAsk(l);};bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+// 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
+function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';lk(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
 function closeWeb(){$('tres').style.display='none';}
 $('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
-document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{closeT();if(b.dataset.web==='sched'){openSched();return;}if(b.dataset.web==='set'){setOpen();return;}webAsk(b.dataset.t);});
+document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
+ closeT();
+ const w=b.dataset.web;
+ if(w==='sched'){openSched();return;}
+ if(w==='add'){openSched();sOpenForm(null);return;}
+ if(w==='set'){setOpen();return;}
+ if(w==='theme'){$('thm').click();return;}
+ webAsk(b.dataset.t);});
 $('sadd').onclick=()=>sOpenForm(null);
 $('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
 $('stP').onclick=()=>{sTab='past';sPicked.clear();sRender();sSelUI();};
