@@ -711,6 +711,7 @@ function chanFetch_() {
     videoCount: Number(ch.statistics.videoCount || 0),
     videos: vids.map(v => ({
       title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10), url: 'https://www.youtube.com/watch?v=' + v.id,
+      at: chanAt_(v.snippet.publishedAt),
       views: Number(v.statistics.viewCount || 0), likes: Number(v.statistics.likeCount || 0), comments: Number(v.statistics.commentCount || 0),
     })),
   };
@@ -721,13 +722,18 @@ function chanErr_(e) {
   if (m === 'NO_CHANNEL') return '找不到這個 YouTube 頻道，請確認頻道 ID 是否正確。';
   return '查 YouTube 時出了點問題：' + m + '\n請確認已啟用 YouTube Data API v3，且金鑰的 API 限制有包含它。';
 }
+// 上架時間用台北時間，例如「2026-10-20 20:30 週二」
+function chanAt_(iso) {
+  const d = new Date(iso);
+  return Utilities.formatDate(d, 'Asia/Taipei', 'yyyy-MM-dd HH:mm') + ' 週' + '日一二三四五六'.charAt(Number(Utilities.formatDate(d, 'Asia/Taipei', 'u')) % 7);
+}
 function chanNum_(x) { return x == null ? '（隱藏）' : String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function chanText_(d) {
   const lines = ['📺 ' + d.title, '', '訂閱：' + chanNum_(d.subs), '總觀看：' + chanNum_(d.views), '影片數：' + chanNum_(d.videoCount)];
   if (d.videos.length) {
     const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
     lines.push('', '最近 ' + d.videos.length + ' 支影片平均觀看：' + chanNum_(avg), '', '最近影片：');
-    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.date + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
+    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.at + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
   }
   return lines.join('\n');
 }
@@ -759,7 +765,7 @@ function chanVideo_(v) {
     borderWidth: '1px', borderColor: CHCARD_.LINE, action: { type: 'uri', label: '看影片', uri: v.url }, contents: [
       { type: 'box', layout: 'vertical', flex: 1, contents: [
         { type: 'text', text: v.title || '（無標題）', size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true, maxLines: 2 },
-        { type: 'text', text: v.date + '・' + chanNum_(v.views) + ' 次觀看', size: 'xxs', color: CHCARD_.SOFT, margin: 'sm' },
+        { type: 'text', text: v.at + '・' + chanNum_(v.views) + ' 次觀看', size: 'xxs', color: CHCARD_.SOFT, margin: 'sm' },
       ] },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: CHCARD_.GOLD, flex: 0, margin: 'md' },
     ] };
@@ -816,7 +822,7 @@ function chanAdvice_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
-  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每點用「1.」「2.」這樣的編號開頭，第一行先寫結論，之後換行寫依據（引用數據裡的影片或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每支影片都有上架時間 at（台北時間，含星期與幾點），建議要一併分析上架時間與觀看數的關係，例如哪個星期或時段的影片表現較好、適合在什麼時候上架。每點用「1.」「2.」這樣的編號開頭，第一行先寫結論，之後換行寫依據（引用數據裡的影片、時間或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
   let text;
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
