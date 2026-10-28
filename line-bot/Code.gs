@@ -757,7 +757,7 @@ function chanStat_(label, value) {
   return { type: 'box', layout: 'vertical', flex: 1, paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF',
     borderWidth: '1px', borderColor: CHCARD_.LINE, contents: [
       { type: 'text', text: label, size: 'xxs', color: CHCARD_.SOFT, align: 'center' },
-      { type: 'text', text: value, size: 'md', weight: 'bold', color: CHCARD_.INK, align: 'center', margin: 'sm', adjustMode: 'shrink-to-fit' },
+      { type: 'text', text: value, size: 'md', weight: 'bold', color: CHCARD_.INK, align: 'center', margin: 'sm', wrap: true },
     ] };
 }
 function chanVideo_(v) {
