@@ -137,7 +137,7 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 #ham{color:var(--gold)}#ham svg{width:26px;height:26px}
 #tmenu .box{height:auto;max-height:80vh;overflow:auto}
 #tmenu .tbtn{display:block;width:100%;text-align:left;min-height:52px;padding:0 16px;margin-top:8px;border-radius:14px;background:transparent;border:1px solid var(--line);color:inherit;font-size:17px}
-#tmenu .tbtn small{display:block;color:var(--soft);font-size:13px;margin-top:2px}
+#tmenu .tbtn small{display:block;color:var(--soft);font-size:15px;margin-top:2px}
 
 #sched .box,#sform .box,#tmenu .box,#tres .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
 #sform .box{height:auto;max-height:92vh;overflow:auto}
@@ -190,6 +190,8 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 #tmenu .tbtn,#tres .tbtn{display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:12px 18px;margin-top:10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:1.5px;text-align:left;box-shadow:inset 0 1px 0 rgba(241,223,180,.08);transition:border-color .2s,background .2s}
 #tmenu .tbtn:active,#tres .tbtn:active{background:rgba(201,165,106,.14)}
 #tmenu .tbtn small,#tres .tbtn small{font-family:-apple-system,"PingFang TC",sans-serif;font-weight:400;letter-spacing:.3px;color:rgba(243,238,229,.55);font-size:13px;margin-top:4px}
+/* ☰ 選單：所有項目說明文字統一 15px，方便手機閱讀（設定面板 #tres 不變） */
+#tmenu .tbtn small{font-size:15px;line-height:1.4;margin-top:4px}
 #tmenu .mgrp{margin-top:14px}
 #tmenu .mgh{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;-webkit-user-select:none;user-select:none;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold);padding:12px 4px;border-bottom:1px solid var(--line)}
 #tmenu .mgh::-webkit-details-marker{display:none}
