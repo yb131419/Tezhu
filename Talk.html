@@ -278,6 +278,30 @@ html[data-theme=light] .tposd.neg{color:#B5523A}
 #sched .sr .stxt,#sched .sr .sx{height:46px}
 #sched .sr .sx{width:46px}
 #sched .stabs{margin:6px 0 14px}
+/* 頻道面板（萬元質感）：數據卡用金色大數字，影片與改善建議各一張金框卡片，淺色版同樣分明 */
+#tres .chead{font-family:var(--serif);font-size:19px;letter-spacing:1.5px;color:#F3EEE5;padding:2px 2px 14px;margin-bottom:12px;border-bottom:1px solid rgba(220,195,148,.3)}
+.cstats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cst{position:relative;overflow:hidden;padding:16px 16px 14px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:radial-gradient(ellipse 120% 80% at 0% 0%,rgba(241,223,180,.14),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));box-shadow:inset 0 1px 0 rgba(241,223,180,.12)}
+.cstl{font-family:-apple-system,"PingFang TC",sans-serif;font-size:13px;letter-spacing:1px;color:rgba(243,238,229,.6)}
+.cstv{margin-top:6px;font-family:"Cormorant Garamond",var(--serif);font-size:30px;font-weight:600;line-height:1.1;color:#F1DFB4;font-variant-numeric:lining-nums}
+.csec{margin:20px 2px 4px;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold)}
+.cvid{position:relative;overflow:hidden;margin-top:10px;padding:14px 16px 14px 20px;border-radius:16px;border:1px solid rgba(220,195,148,.22);background:linear-gradient(180deg,rgba(241,223,180,.06),rgba(255,255,255,.012))}
+.cvid::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--champ)}
+.cvd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.5)}
+.cvt{margin-top:4px;font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.5;color:#F3EEE5}
+.cvv{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:13.5px;font-weight:600;color:#E9D3A2}
+.cadv{display:grid;grid-template-columns:auto 1fr;gap:14px;margin-top:12px;padding:16px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
+.cadvn{width:34px;height:34px;border-radius:50%;background:var(--champ);color:#1A150D;font-family:"Cormorant Garamond",var(--serif);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;font-variant-numeric:lining-nums;box-shadow:0 8px 18px -10px rgba(201,165,106,.7)}
+.cadvh{font-family:var(--serif);font-size:16.5px;font-weight:700;line-height:1.5;color:#F3EEE5}
+.cadvb{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14.5px;line-height:1.8;color:rgba(243,238,229,.78)}
+html[data-theme=light] #tres .chead{color:#2A2118;border-bottom-color:var(--line)}
+html[data-theme=light] .cst,html[data-theme=light] .cvid,html[data-theme=light] .cadv{background:#FFFDF8;border-color:var(--line);box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .cstl,html[data-theme=light] .cvd{color:rgba(20,18,15,.55)}
+html[data-theme=light] .cstv,html[data-theme=light] .cvv{color:#8A6A37}
+html[data-theme=light] .cvt,html[data-theme=light] .cadvh{color:#2A2118}
+html[data-theme=light] .cadvb{color:rgba(42,33,24,.75)}
+html[data-theme=light] .csec{color:#8A6A37}
+@media (max-width:360px){.cstv{font-size:26px}.cadvh{font-size:15.5px}}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
@@ -652,7 +676,25 @@ function tradeView(el,text){let card=null;
   if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
   lk(d,t);(card||el).appendChild(d);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
-function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';tradeView(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+// 頻道面板（萬元質感）：數據做成數據卡與影片卡，改善建議做成編號卡；文字仍來自既有的對話端點，不進對話串
+function chanAdd(el,cls,t){const d=document.createElement('div');d.className=cls;d.textContent=t;el.appendChild(d);return d;}
+function chanData(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let stats=null,list=null;
+ lines.forEach((t,i)=>{
+  if(i===0){chanAdd(el,'chead',t.replace(/^📺\s*/,''));return;}
+  const vid=t.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+週.)\s+(.+?)\s*[（(]\s*([\d,]+)\s*次\s*[）)]\s*$/);
+  if(vid){if(!list){list=document.createElement('div');el.appendChild(list);}const c=document.createElement('div');c.className='cvid';chanAdd(c,'cvd',vid[1]);chanAdd(c,'cvt',vid[2]);chanAdd(c,'cvv','觀看 '+vid[3]+' 次');list.appendChild(c);return;}
+  const st=!/^\d{4}-/.test(t)&&t.match(/^(.{1,16}?)[：:]\s*(.*)$/);
+  if(st&&st[2]){if(!stats){stats=document.createElement('div');stats.className='cstats';el.appendChild(stats);}const c=document.createElement('div');c.className='cst';chanAdd(c,'cstl',st[1]);chanAdd(c,'cstv',st[2]);stats.appendChild(c);return;}
+  if(st){chanAdd(el,'csec',st[1]);list=null;return;}
+  chanAdd(el,'tline',t);});}
+function chanAdvice(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let cur=null;
+ lines.forEach((t,i)=>{
+  if(i===0){chanAdd(el,'chead',t.replace(/^💡\s*/,''));return;}
+  const n=t.match(/^(\d+)\.\s*(.+)$/);
+  if(n){const card=document.createElement('div');card.className='cadv';chanAdd(card,'cadvn',n[1]);cur=document.createElement('div');cur.className='cadvi';chanAdd(cur,'cadvh',n[2]);card.appendChild(cur);el.appendChild(card);return;}
+  if(cur)chanAdd(cur,'cadvb',t);else chanAdd(el,'tline',t);});}
+function chanRender(el,text,q){if(/頻道數據/.test(q))chanData(el,text);else if(/改善建議/.test(q))chanAdvice(el,text);else tradeView(el,text);}
 function closeWeb(){$('tres').style.display='none';}
 $('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
 document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
