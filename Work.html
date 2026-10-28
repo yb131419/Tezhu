@@ -443,6 +443,11 @@
   .coll-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
   .coll-time{font-size:11.5px;color:var(--ink-faint);}
   .coll-used{font-size:10.5px;font-weight:700;color:#6B4E9E;background:rgba(107,78,158,.12);padding:2px 8px;border-radius:12px;}
+  .coll-src{font-size:10.5px;font-weight:700;color:var(--gold);background:var(--gold-wash);padding:2px 8px;border-radius:12px;}
+  .chan-advice textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:12px;
+    padding:12px;font-size:15px;line-height:1.5;resize:vertical;background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s;}
+  .chan-advice textarea:focus{border-color:var(--gold);}
+  .chan-advice .pl-run{margin-top:12px;}
   .coll-topic{font-size:15.5px;font-weight:800;line-height:1.4;}
   .coll-angle{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
 
@@ -700,6 +705,13 @@
         <span class="cfg-lbl">主題方向</span>
         <input type="text" id="collHintSet" placeholder="可留空，例如：母親節、夏季新品、某客群痛點" oninput="saveCollectorCfg()">
       </div>
+    </div>
+
+    <div class="collect-set chan-advice">
+      <div class="section-label" style="margin-top:0;">📺 貼上頻道建議</div>
+      <div class="note" style="margin:10px 0 0;">把小乖給的頻道建議整段貼上，AI 會拆成可以直接拍的話題，和下面的收集結果存在一起。</div>
+      <textarea id="chanAdviceIn" placeholder="例如：【標題】…【內容】…【結尾引導】…"></textarea>
+      <button class="pl-run dark" id="chanAdviceBtn" onclick="addChannelAdvice()">📺 整理成話題並存檔</button>
     </div>
 
     <button class="pl-run dark" id="collectBtn" onclick="collectNow()">🛰️ 立即收集話題</button>
@@ -1506,6 +1518,33 @@ async function collectTopics(silent){
     if(btn){ btn.disabled=false; btn.innerHTML="🛰️ 立即收集話題"; }
   }
 }
+async function addChannelAdvice(){
+  const input=document.getElementById("chanAdviceIn");
+  const src=(input&&input.value||"").trim();
+  if(!src){ toast("請先貼上頻道建議"); return; }
+  if(running){ toast("有任務進行中，請稍候"); return; }
+  if(!aiOn()){ toast("請先到設定填入 AI 代理網址與通行碼"); openView("settings"); return; }
+  running=true;
+  const btn=document.getElementById("chanAdviceBtn");
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 整理中…'; }
+  const sys=`你是內容選題編輯。把下方的【頻道建議】拆成可以直接拍成內容的話題。只回 JSON 陣列、長度 1 到 6，每個物件含 topic（可直接當標題的話題，15 字內）與 angle（一句切入角度）。不要加其他文字。`;
+  try{
+    const r=await callOpenAI(sys, src, 900);
+    let arr=[]; try{ arr=JSON.parse(cleanJSON(r)); }catch(e){ arr=[]; }
+    if(!Array.isArray(arr)||arr.length===0) throw new Error("回傳格式無法解析，請再試一次");
+    const batch=arr.slice(0,6).map(o=>({ id:Date.now()+Math.random(), time:Date.now(), source:"channel",
+      topic:(o.topic||o.title||"").toString().trim(), angle:(o.angle||o.desc||"").toString().trim(), used:false }))
+      .filter(o=>o.topic);
+    if(batch.length===0) throw new Error("沒有整理出話題，請換一段建議再試");
+    state.collections=[...batch, ...state.collections].slice(0,120);
+    save(); input.value=""; renderCollector(); updateCollSummary();
+    toast(`已從頻道建議存入 ${batch.length} 則話題`);
+  }catch(err){ toast("整理失敗："+err.message); }
+  finally{
+    running=false;
+    if(btn){ btn.disabled=false; btn.innerHTML="📺 整理成話題並存檔"; }
+  }
+}
 function renderCollector(){
   const box=document.getElementById("collectList"); if(!box) return;
   if(state.collections.length===0){
@@ -1513,7 +1552,7 @@ function renderCollector(){
     updateCollSummary(); return;
   }
   box.innerHTML=state.collections.map(c=>`<div class="coll-item ${c.used?'used':''}">
-    <div class="coll-top"><span class="coll-time">${timeStr(c.time)}</span>${c.used?'<span class="coll-used">已用</span>':''}</div>
+    <div class="coll-top"><span class="coll-time">${timeStr(c.time)}</span>${c.source==='channel'?'<span class="coll-src">頻道建議</span>':''}${c.used?'<span class="coll-used">已用</span>':''}</div>
     <div class="coll-topic">${esc(c.topic)}</div>
     ${c.angle?`<div class="coll-angle">${esc(c.angle)}</div>`:''}
     <div class="hi-actions">
