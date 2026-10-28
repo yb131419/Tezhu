@@ -383,7 +383,7 @@ function askPhoto_(q, b64) {
   const img = 'data:image/jpeg;base64,' + raw;
   const before = prop_('QUOTE_STATE');
   let ans;
-  try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
+  try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗（' + String(err && err.message || err).slice(0, 120) + '），等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
   askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
