@@ -794,7 +794,7 @@ document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
  if(w==='set'){setOpen();return;}
  if(w==='theme'){$('thm').click();return;}
  if(b.dataset.f!==undefined){$('q').value=b.dataset.f;kb('接著打上內容，按「傳送」');return;}
- if(b.dataset.cam!==undefined){pickPhoto(false);return;}
+ if(b.dataset.cam!==undefined){$('q').value='試算';pickPhoto(false);return;}
  webAsk(b.dataset.t);});
 $('sadd').onclick=()=>sOpenForm(null);
 $('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
