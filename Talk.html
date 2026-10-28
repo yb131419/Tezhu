@@ -403,7 +403,7 @@ const MENU=[].concat(...QCATS.map(c=>c[1]));
 const LATEST='⚡ 最新一張';
 // 點一下 ⚡ 快速功能展開，從類別下拉選單選一個就送出（使用者 2026-10-24：按鈕太多）
 function runChip(t){if(t==='📋 試算'){$('q').value='試算';pickPhoto(false);return;}if(t===LATEST){location.href='shortcuts://run-shortcut?name='+encodeURIComponent('試算報表');return;}if(t==='📷 選照片'){pickPhoto(false);return;}if(t==='📸 拍照'){pickPhoto(true);return;}if(t==='🎙️ 語音快捷指令'){vsOpen();return;}send(t);}
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask&&list.indexOf('📷 選照片')>=0&&list.indexOf(LATEST)<0)list=[LATEST].concat(list);
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask)list=[LATEST].concat(list.filter(t=>t!==LATEST));
  if(!ask){const tg=document.createElement('button');tg.className='chip';tg.id='qtog';tg.setAttribute('aria-expanded','false');tg.textContent='⚡ 快速功能 ▾';
   const sel=document.createElement('select');sel.id='qsel';sel.hidden=true;sel.setAttribute('aria-label','快速功能');
   sel.appendChild(new Option('選一個功能…',''));
