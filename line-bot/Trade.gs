@@ -316,9 +316,12 @@ function tradeCloseConfirm_(token) {
       return '❌ 平倉沒有成交：' + reason + '\n（紀錄已更新）';
     }
     const fill = Number(conf.level).toFixed(hit.prec);
-    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交' });
-    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
-    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill;
+    // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 開倉價值
+    const pnl = (hit.dir === 'buy' ? 1 : -1) * (Number(fill) - hit.open) * hit.size;
+    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交', pnl: Number(pnl.toFixed(2)), pct: Number((pnl / (hit.open * hit.size) * 100).toFixed(2)), cur: hit.cur || 'USD' });
+    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill + '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD'));
+    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill +
+      '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD') + '（' + (pnl >= 0 ? '+' : '-') + Math.abs(pnl / (hit.open * hit.size) * 100).toFixed(2) + '%）';
   });
 }
 
@@ -331,6 +334,7 @@ function tradeCloseCancel_(token) {
 }
 
 // 下單紀錄：列出最近 10 筆（模擬與實際送單成交都會記在這裡），只讀
+// 平倉紀錄若有損益，顯示獲利（🟢）或虧損（🔴）的金額與百分比，算法跟持倉一樣
 function tradeRecords_() {
   const list = tradeLogList_().slice(-10).reverse();
   const rows = [['📈 智能下單', '📊 查看持倉']];
@@ -338,8 +342,10 @@ function tradeRecords_() {
   const text = '📜 下單紀錄（含停損、停利，最近 ' + list.length + ' 筆）\n' + list.map(x => {
     const pr = (TRADE_ITEMS[x.name] || { prec: 2 }).prec;
     const lv = v => v === '-' ? '—' : tradeLevel_(v, pr);   // 平倉紀錄沒有停損、停利，顯示「—」
+    const pl = x.pnl === undefined ? '' : '\n  ' + (x.pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + Math.abs(x.pnl).toFixed(2) + ' ' + (x.cur || 'USD') +
+      '（' + (x.pct >= 0 ? '+' : '-') + Math.abs(x.pct).toFixed(2) + '%）';
     return '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）\n' +
-      '  停損 ' + lv(x.sl) + '　停利 ' + lv(x.tp);
+      '  停損 ' + lv(x.sl) + '　停利 ' + lv(x.tp) + pl;
   }).join('\n') +
     '\n\n「成交狀態待確認」表示送單後查不到成交結果，請到「📊 查看持倉」核對。';
   return { text: text, buttons: rows, flex: tradeFlex_('📜 下單紀錄', text, rows), alt: '📜 下單紀錄' };
