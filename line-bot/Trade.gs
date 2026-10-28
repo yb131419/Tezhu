@@ -90,8 +90,9 @@ function tradeCard_() {
     '・🔔 交易提醒：有交易訊號時推送提案到 LINE 與 Telegram，只推提案，不會自動下單\n' +
     '・下單自檢：只讀檢查點數換算，不下單';
   // 用法放在最底部、小字淺色；上面只留方向參考、模式、待確認提案與按鈕
-  const body = '模式：' + tradeModeZh_() + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
-  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
+  const on = prop_('TRADE_REMIND') === 'on';
+  const body = '模式：' + tradeModeZh_() + '\n交易提醒：' + (on ? '開啟中' : '已關閉') + '\n小乖不會自己下單：要先選商品與方向，再按確認。' + (p ? '\n\n⏳ 有一張待確認的提案：\n' + tradeProposalText_(p) : '');
+  const rows = [['📊 查看持倉', '🛒 下單'], ['📜 下單紀錄'], [on ? '🔕 關閉提醒' : '🔔 開啟提醒'], [p ? '✅ 確認下單' + p.id : '✅ 確認下單', p ? '❌ 取消下單' + p.id : '❌ 取消下單']];
   return { text: '📈 智能下單\n' + tradeAdviceText_(adv) + '\n\n' + body + '\n\n' + help, buttons: rows, flex: tradeFlex_('📈 智能下單', body, rows, tradeAdviceFlex_(adv), help), alt: '📈 智能下單卡片' };
 }
 
