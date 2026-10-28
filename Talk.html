@@ -183,6 +183,21 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 .frow button{flex:1;width:auto;height:50px;border-radius:14px;background:transparent;border:1px solid var(--line);color:var(--ink);font-size:16px;font-weight:700}
 .frow .sv{background:var(--champ);color:#1A150D;border:none}
 .frow .dl{flex:0 0 92px;color:#D98A6B;border-color:rgba(217,138,107,.4)}
+/* 萬元質感：交易、☰ 選單、設定面板（黑曜石＋香檳金，只改外觀） */
+#tmenu .box,#tres .box,#login .box{background:linear-gradient(180deg,#221E18 0%,#15120E 100%);border:1px solid rgba(220,195,148,.28);box-shadow:0 -30px 80px -24px #000,inset 0 1px 0 rgba(241,223,180,.12)}
+#tmenu .sh,#tres .sh{padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:8px}
+#tmenu .sh b,#tres .sh b{font-family:var(--serif);font-size:20px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent}
+#tmenu .tbtn,#tres .tbtn{display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:12px 18px;margin-top:10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:1.5px;text-align:left;box-shadow:inset 0 1px 0 rgba(241,223,180,.08);transition:border-color .2s,background .2s}
+#tmenu .tbtn:active,#tres .tbtn:active{background:rgba(201,165,106,.14)}
+#tmenu .tbtn:first-of-type{border-color:rgba(201,165,106,.6);background:linear-gradient(135deg,rgba(241,223,180,.14),rgba(201,165,106,.06))}
+#tmenu .tbtn small,#tres .tbtn small{font-family:-apple-system,"PingFang TC",sans-serif;font-weight:400;letter-spacing:.3px;color:rgba(243,238,229,.55);font-size:13px;margin-top:4px}
+#tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:16px;line-height:1.85;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(220,195,148,.18)}
+#tres #trbtn{display:grid;gap:8px}
+#tres #trbtn .tbtn{margin-top:0;min-height:52px;flex-direction:row;align-items:center;justify-content:center;text-align:center;font-size:16px}
+html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
+html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A2E1E;background:#FFFDF8;border-color:var(--line)}
+html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
+html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="交易與功能" aria-label="交易與功能選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
