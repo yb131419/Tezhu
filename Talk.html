@@ -287,9 +287,9 @@ html[data-theme=light] .tposd.neg{color:#B5523A}
 .csec{margin:20px 2px 4px;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold)}
 .cvid{position:relative;overflow:hidden;margin-top:10px;padding:14px 16px 14px 20px;border-radius:16px;border:1px solid rgba(220,195,148,.22);background:linear-gradient(180deg,rgba(241,223,180,.06),rgba(255,255,255,.012))}
 .cvid::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--champ)}
-.cvd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.5)}
-.cvt{margin-top:4px;font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.5;color:#F3EEE5}
-.cvv{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:13.5px;font-weight:600;color:#E9D3A2}
+.cvd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cvt{margin-top:4px;font-family:var(--serif);font-size:15px;font-weight:700;line-height:1.5;color:#F3EEE5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cvv{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:13.5px;font-weight:600;color:#E9D3A2;white-space:nowrap}
 .cadv{display:grid;grid-template-columns:auto 1fr;gap:14px;margin-top:12px;padding:16px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
 .cadvn{width:34px;height:34px;border-radius:50%;background:var(--champ);color:#1A150D;font-family:"Cormorant Garamond",var(--serif);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;font-variant-numeric:lining-nums;box-shadow:0 8px 18px -10px rgba(201,165,106,.7)}
 .cadvh{font-family:var(--serif);font-size:16.5px;font-weight:700;line-height:1.5;color:#F3EEE5}
@@ -683,7 +683,7 @@ function chanData(el,text){const lines=String(text||'').split('\n').map(s=>s.tri
  lines.forEach((t,i)=>{
   if(i===0){chanAdd(el,'chead',t.replace(/^📺\s*/,''));return;}
   const vid=t.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+週.)\s+(.+?)\s*[（(]\s*([\d,]+)\s*次\s*[）)]\s*$/);
-  if(vid){if(!list){list=document.createElement('div');el.appendChild(list);}const c=document.createElement('div');c.className='cvid';chanAdd(c,'cvd',vid[1]);chanAdd(c,'cvt',vid[2]);chanAdd(c,'cvv','觀看 '+vid[3]+' 次');list.appendChild(c);return;}
+  if(vid){if(!list){list=document.createElement('div');el.appendChild(list);}const c=document.createElement('div');c.className='cvid';const dt=vid[1].match(/^\d{4}-(\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(週.)$/);chanAdd(c,'cvd',dt?dt[1]+' '+dt[3]+' '+dt[2]:vid[1]);chanAdd(c,'cvt',vid[2]);chanAdd(c,'cvv','觀看 '+vid[3]+' 次');list.appendChild(c);return;}
   const st=!/^\d{4}-/.test(t)&&t.match(/^(.{1,16}?)[：:]\s*(.*)$/);
   if(st&&st[2]){if(!stats){stats=document.createElement('div');stats.className='cstats';el.appendChild(stats);}const c=document.createElement('div');c.className='cst';chanAdd(c,'cstl',st[1]);chanAdd(c,'cstv',st[2]);stats.appendChild(c);return;}
   if(st){chanAdd(el,'csec',st[1]);list=null;return;}
