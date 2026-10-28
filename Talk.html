@@ -202,19 +202,32 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
 html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A2E1E;background:#FFFDF8;border-color:var(--line)}
 html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
-html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 /* 交易面板（萬元質感）：深色金框、結果用襯線字與金色重點，主要按鈕香檳金，其餘按鈕淡金線框 */
 #tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(201,165,106,.16),transparent 60%),linear-gradient(180deg,#221E18 0%,#120F0C 100%)}
 html[data-theme=light] #tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(176,141,87,.14),transparent 60%),linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
 #tres .sh{padding-bottom:14px}
 #tres #trt{font-family:var(--serif);font-size:18px;letter-spacing:2px}
-#tres #trb{font-family:var(--serif);font-size:16px;line-height:1.95;letter-spacing:.4px;color:#F3EEE5;white-space:pre-wrap;word-break:break-word;padding:20px 20px;border-radius:18px;background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));border:1px solid rgba(220,195,148,.28);box-shadow:inset 0 1px 0 rgba(241,223,180,.12),0 18px 40px -26px #000}
+#tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:15px;line-height:1.7;word-break:break-word}
 #tres #trb b,#tres #trb strong{color:var(--gold);font-weight:700}
 html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
-#tres #trbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+#tres #trbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;width:100%}
 #tres #trbtn .tbtn{margin-top:0;min-height:54px;justify-content:center;text-align:center;font-size:15px;letter-spacing:1px;padding:10px 12px;border-radius:14px}
 #tres #trbtn .tbtn:first-child{grid-column:1/-1;background:var(--champ);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5)}
 html[data-theme=light] #tres #trbtn .tbtn:first-child{color:#1A150D}
+/* 每一筆持倉一張卡片；面板高度跟內容走，不再超出螢幕底部 */
+#tres .box{height:auto;max-height:88vh;overflow:auto}
+#tres #trb{padding:0;border:0;background:none;box-shadow:none}
+html[data-theme=light] #tres #trb{background:none;border:0}
+.tline{font-family:-apple-system,"PingFang TC",sans-serif;font-size:15px;line-height:1.8;color:#F3EEE5;margin:6px 2px}
+.tpos{margin-top:12px;padding:14px 16px;border-radius:16px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
+.tposh{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:1px;color:var(--gold);margin-bottom:6px}
+.tposd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;line-height:1.75;color:rgba(243,238,229,.72)}
+.tposd.pos{color:#E9D3A2;font-weight:600}
+.tposd.neg{color:#D98A6B;font-weight:600}
+html[data-theme=light] .tline,html[data-theme=light] .tposd{color:#3A2E1E}
+html[data-theme=light] .tposd{color:rgba(20,18,15,.7)}
+html[data-theme=light] .tposd.pos{color:#8A6A37}
+html[data-theme=light] .tpos{background:#FFFDF8;border-color:var(--line)}
 /* 手機點按尺寸：按鈕至少 44px 高、間距加大，避免擠在一起或被手指誤觸 */
 button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #endc{height:44px;padding:0 28px}
@@ -303,7 +316,7 @@ button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-high
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
 <div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
-<div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trb"></div><div id="trbtn"></div></div></div>
+<div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trbtn"></div><div id="trb"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
@@ -599,8 +612,16 @@ function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';
 function closeT(){$('tmenu').style.display='none';}
 $('ham').onclick=openT;$('tmx').onclick=closeT;
 $('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
+// 交易結果：以「・」開頭的每一行是一筆持倉，做成獨立卡片；空行結束一張卡片
+function tradeView(el,text){let card=null;
+ String(text||'').split('\n').forEach(l=>{const t=l.trim();
+  if(!t){card=null;return;}
+  if(/^・/.test(t)){card=document.createElement('div');card.className='tpos';const h=document.createElement('div');h.className='tposh';h.textContent=t.slice(1).trim();card.appendChild(h);el.appendChild(card);return;}
+  const d=document.createElement('div');d.className=card?'tposd':'tline';
+  if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
+  lk(d,t);(card||el).appendChild(d);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
-function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';lk(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+function webAsk(q){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';tradeView(bx,r.show||r.say);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
 function closeWeb(){$('tres').style.display='none';}
 $('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
 document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
