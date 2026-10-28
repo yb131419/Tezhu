@@ -778,7 +778,7 @@ function chanDataFlex_(d) {
   if (d.videos.length) {
     const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
     content[0].contents.push(chanStat_('最近 ' + d.videos.length + ' 支影片平均觀看', chanNum_(avg)));
-    content.push({ type: 'text', text: '最近影片', size: 'xxs', weight: 'bold', color: CHCARD_.GOLD, paddingStart: '22px', margin: 'xl' });
+    content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', margin: 'xl', contents: [{ type: 'text', text: '最近影片', size: 'xxs', weight: 'bold', color: CHCARD_.GOLD }] });
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: d.videos.slice(0, 5).map(chanVideo_) });
   }
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
