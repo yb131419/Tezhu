@@ -813,8 +813,11 @@ function chanAdviceFlex_(d, text) {
             .concat(p.body.map(b => ({ type: 'text', text: b, size: 'xs', color: '#5C4E3C', wrap: true, margin: 'sm' }))) },
         ] })) }
     : { type: 'text', text: String(text || '').replace(/\*\*/g, ''), size: 'sm', color: CHCARD_.INK, wrap: true };
-  const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingTop: '18px', contents: [box] }];
-  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } }];
+  // 一張卡：上面是頻道數據（訂閱、總觀看、影片數），下面是改善建議
+  const stats = { type: 'box', layout: 'horizontal', spacing: 'sm', contents: [chanStat_('訂閱', chanNum_(d.subs)), chanStat_('總觀看', chanNum_(d.views)), chanStat_('影片數', chanNum_(d.videoCount))] };
+  const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingTop: '18px', spacing: 'lg', contents: [stats, box] }];
+  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
   return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons);
 }
 function chanData_() {
@@ -832,7 +835,7 @@ function chanAdvice_() {
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
   // 頻道數據卡在上、改善建議卡在下，一次滑過兩張
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: { type: 'carousel', contents: [chanDataFlex_(d), chanAdviceFlex_(d, text)] }, alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
 // 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
