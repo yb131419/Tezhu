@@ -343,6 +343,8 @@ html[data-theme=light] .csec{color:#8A6A37}
 .pval .pbv{font-size:20px}
 .pval .ppc{font-size:13px}
 .plv .plb{line-height:1.5}
+/* 手機寬度：價格與未實現損益分兩行，數字不再互相擠壓；桌面版維持並排 */
+@media (max-width:480px){.pmain{flex-direction:column;align-items:flex-start;gap:8px}.pbig{text-align:left}.pbig .plb{text-align:left}}
 .pnote{padding:10px 0;font-size:13px;color:rgba(243,238,229,.55);border-top:1px solid rgba(220,195,148,.14)}
 .tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
 html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
