@@ -813,6 +813,7 @@ $('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
 function tradeView(el,text){let card=null;
  String(text||'').split('\n').forEach(l=>{const t=l.trim();
   if(!t){card=null;return;}
+  if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
   if(/^・/.test(t)){card=document.createElement('div');card.className='tpos';const h=document.createElement('div');h.className='tposh';h.textContent=t.slice(1).trim();card.appendChild(h);el.appendChild(card);return;}
   const d=document.createElement('div');d.className=card?'tposd':'tline';
   if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'pos':'neg');
