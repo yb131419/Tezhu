@@ -388,6 +388,13 @@ function askPhoto_(q, b64) {
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
   askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
+  if (LAST_QUOTE_ && TALK_MODE_) {   // 對話頁：跟 LINE 一樣，文字重點＋報表圖片，不傳到 Telegram
+    const rp = reportLine_();
+    const imgs = rp.msgs.filter(m => m.type === 'image').map(m => m.originalContentUrl);
+    ASK_IMGS_ = imgs;
+    ASK_SHOW_ = imgs.length ? rp.short : ASK_SHOW_ + '\n\n' + rp.msgs[0].text;
+    return speechText_(rp.short || ASK_SHOW_) || '試算好了。';
+  }
   if (LAST_QUOTE_) {
     if (tg) {
       const short = sendReportTg_(tg);
@@ -397,7 +404,7 @@ function askPhoto_(q, b64) {
     LAST_QUOTE_ = null;
   }
   // 試算的問題（現金還是刷卡…）傳到 Telegram 用按鈕回答，手機只回一句短的（使用者不要一直念）
-  if (tg && prop_('QUOTE_STATE') && prop_('QUOTE_STATE') !== before) {
+  if (!TALK_MODE_ && tg && prop_('QUOTE_STATE') && prop_('QUOTE_STATE') !== before) {
     tgSend_(tg, ans);
     return '收到明細表，問題傳到 Telegram 了，按按鈕回答就好。';
   }
