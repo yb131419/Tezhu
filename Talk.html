@@ -698,8 +698,8 @@ $('endc').onclick=()=>{stopTalk();convOff('好，有事再按麥克風叫我');i
 // 選照片／拍照（要使用者按按鈕才打得開，手機的限制）
 function pickPhoto(cam){const f=$('file');if(cam)f.setAttribute('capture','environment');else f.removeAttribute('capture');f.click();}
 $('cam').onclick=()=>pickPhoto(false);
-$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
- send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,2400/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ send($('q').value,c.toDataURL('image/jpeg',0.92));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
 // 行程面板（併入對話頁）：沿用上面的 KEY、URL 同步設定，跟 Schedule 之前的獨立頁面用同一支 API
 let sEvents=[],sTab='next',sEditId=null,sMsgT=0,sSelMode=false,sPicked=new Set();
 const sWeek=['日','一','二','三','四','五','六'];
