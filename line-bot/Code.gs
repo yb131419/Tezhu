@@ -656,7 +656,7 @@ function handleLine_(ev) {
   const card = cardLine_();
   const media = caseLine_();   // 看見證／案例時的圖片、影片
   const voice = !rp.short && !card.length && !media.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, media, voice), true);
+  reply_(ev.replyToken, rp.short || ans, [].concat(rp.msgs, card, media, voice).slice(0, 5), true);
 }
 
 function lineContent_(messageId) {
@@ -3762,6 +3762,10 @@ function tgSend_(chatId, msg) {
   else if (rich && msg.buttons && msg.buttons.indexOf(PHOTO_BTNS) >= 0) msg = { text: msg.text + '\n（按左下角的迴紋針 📎 選照片）', buttons: msg.buttons.filter(r => r !== PHOTO_BTNS) };
   if (msg && typeof msg === 'object' && msg.imgs && msg.imgs.length) {   // 款式預覽圖：先送一組相簿
     tgApi_('sendMediaGroup', { chat_id: chatId, media: msg.imgs.slice(0, 10).map((u, i) => ({ type: 'photo', media: u, caption: (msg.caps || [])[i] || '' })) });
+  }
+  if (msg && typeof msg === 'object' && msg.png) {   // 萬元質感卡：先傳圖，文字照常接著傳（可以複製）
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+      method: 'post', muteHttpExceptions: true, payload: { chat_id: String(chatId), photo: msg.png } });
   }
   rich = msg && typeof msg === 'object' && !!msg.buttons;
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
