@@ -41,11 +41,11 @@ const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
-const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'],['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
-  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
+  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
@@ -78,6 +78,7 @@ function menuFlex_() {
   const act = t => t === TALK_BTN
     ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
     : t === WALL_BTN ? { type: 'uri', label: '見證庫', uri: wallUrl_() }
+    : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { type: 'uri', label: t.slice(0, 20), uri: talkMenuUrl_() }
     : { type: 'message', label: t.slice(0, 20), text: t };
   const name = t => t.replace(/^[^\p{L}\p{N}]+/u, '').trim();
   const row = (it, first) => ({
@@ -1728,7 +1729,7 @@ function pasteEv_(t, raw) {
   logChat_('user', '貼上行程：' + added.length + ' 筆'); logChat_('assistant', '🗓️ 已加入 ' + added.length + ' 筆行程');
   const lines = added.slice().sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')))
     .map(x => '・' + evMd_(x.date) + evWk_(x.date) + ' ' + (x.time || '整天') + '　' + x.title + (x.place ? '（' + x.place + '）' : ''));
-  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [['📅 行程', PASTE_EV_BTN]].concat(MENU) };
+  return { text: '✅ 加好了 ' + added.length + ' 筆行程\n\n' + lines.join('\n'), buttons: [[PASTE_EV_BTN]].concat(MENU) };
 }
 // 交給 AI 整理成 [{date, time, title, place}]；日期、時間格式不對的丟掉，最多 30 筆
 function pasteEvParse_(text) {
@@ -1810,7 +1811,7 @@ function evFlow_(t, raw) {
     withLock_(() => { const d = readAll_(); x.id = uid_(); x.u = Date.now(); d.events.push(x); evRemind_(d, x); writeAll_(d); });
     return listDelEvents_('↩️ 已經放回去了：' + evMd_(x.date) + ' ' + (x.time || '整天') + '　' + x.title);
   }
-  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程', '📅 行程']].concat(MENU) }; }
+  if (flat === '刪好了') { setProp_('EV_UNDO', ''); return { text: '好，行程整理好了。', buttons: [['⏰ 今天行程']].concat(MENU) }; }
   if (flat === '刪掉剛剛這筆') {
     const id = prop_('EV_LAST'); setProp_('EV_LAST', '');
     const x = id && readAll_().events.find(e => e.id === id);
