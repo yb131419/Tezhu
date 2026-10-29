@@ -684,9 +684,9 @@ function rtSend(x,rate){
 function rtCheck(){
  if(!recOn||busy)return;
  const t=rtText;let cmd=null,m;
- if(/(查看持倉|看持倉)$/.test(t))cmd='查看持倉';
- else if(/(今天行程|今日行程)$/.test(t))cmd='今天行程';
- else if((m=t.match(/查詢案例(\S{1,8})$/)))cmd='查詢案例 '+m[1];
+ if(/(查看持倉|看持倉|查持倉|看看持倉)$/.test(t))cmd='查看持倉';
+ else if(/(今天行程|今日行程|今天的行程|今天有什麼行程)$/.test(t))cmd='今天行程';
+ else if((m=t.match(/(查詢案例|查案例|找案例)(\S{1,8})$/)))cmd='查詢案例 '+m[2];
  if(!cmd||rtFired.has(cmd))return;
  rtFired.add(cmd);
  drop=true;micStop();rtStop();   // 這段錄音不再送出，改直接執行指令
