@@ -53,7 +53,6 @@ const MENU_CARDS = [
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
   { en: 'SCHEDULE', title: '行程', sub: '今天做什麼、接下來排什麼，一目了然', items: [['⏰ 今天行程', '今日安排'], ['➕ 新增行程', '打或貼上，自動排好'], ['📅 行程', '接下來兩週照時間排'], ['🗑️ 刪除行程', '點一下就刪']] },
   { en: 'SEARCH', title: '搜尋', sub: '本機、網路，一找就到', items: [['📁 本機找', '存過的資料'], ['🌐 上網找', '即時搜尋']] },
-  { en: 'CHANNEL', title: '頻道', sub: 'YouTube 頻道數據，與依數據給的改善建議', items: [[CHAN_BTN, '訂閱・觀看・最近影片'], [CHAN_ADV_BTN, '依數據給建議']] },
 ];
 const MENU_GROUPS = MENU_CARDS.map(c => c.items.map(i => i[0]));
 // 回覆按鈕裡的整組常用選單換成精簡的 5 個（試算問題等專屬按鈕照留）；每組快速回覆都要有「💎 選單」，沒有就補一列
@@ -1110,10 +1109,11 @@ function stratPairRule_(pair) {
   const who = pairWho_(pair);
   return '【對話組合】本篇寫「' + pair + '」：主角是彥彬（用「我」或彥彬的口吻），另一方是' + who + '。用兩人的對話或對話片段來寫，一問一答的感覺，每一段讓對話往前推一步。' + PAIR_TONE_[who] + '對話內容仍要守【不可以寫】的規則。';
 }
+const CHAN_ADV_TXT = '頻道建議';   // 軍師卡片最後一排：照 chanAdvice_ 給頻道改善方向（按鈕文字要跟 chanReply_ 比對的字一樣，不加表情符號）
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN], [CHAN_ADV_TXT]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
