@@ -815,11 +815,11 @@ function tradeView(el,text){let card=null;
   if(!t){card=null;return;}
   if(/^・/.test(t)){card=document.createElement('div');card.className='tpos';const h=document.createElement('div');h.className='tposh';h.textContent=t.slice(1).trim();card.appendChild(h);el.appendChild(card);return;}
   const d=document.createElement('div');d.className=card?'tposd':'tline';
-  if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
+  if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'pos':'neg');
   lk(d,t);(card||el).appendChild(d);});}
 // 獲利查詢（交易 App 列表版面）：每筆持倉一張卡，上方方向與商品，中間開倉→現價與未實現損益，下方開倉成本與停損停利；未取得或未設定的行照原樣顯示
 function pEl(p,cls,text){const d=document.createElement('div');d.className=cls;d.textContent=text;p.appendChild(d);return d;}
-function pTone(v){if(/未/.test(v))return'tn-nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'tn-neg':'tn-pos';}
+function pTone(v){if(/未/.test(v))return'tn-nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'tn-pos':'tn-neg';}
 function pPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
 function pMoney(v){return String(v).replace(/[（(].*?[）)]/g,'').trim();}
 function profitView(el,text){let card=null;
