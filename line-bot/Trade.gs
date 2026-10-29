@@ -262,10 +262,17 @@ function tradeOpenCostText_(x) {
   return (x.open * x.size).toFixed(2) + (x.cur ? ' ' + x.cur : '');
 }
 
+// 開倉成本的數字（合計時可直接給 cost）；沒有開倉價或數量就是 NaN
+function tradeCostOf_(x) {
+  if (x.cost > 0) return x.cost;
+  return x.open > 0 && x.size > 0 ? x.open * x.size : NaN;
+}
+
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
 // 百分比 = 損益 ÷ 開倉成本（開倉價 × 數量），已含方向
 function tradePnlText_(x, upl) {
-  const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
+  const cost = tradeCostOf_(x);
+  const pct = isFinite(cost) ? upl / cost * 100 : NaN;
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
   return '約 ' + upl.toFixed(2) + cur + (isFinite(pct) ? '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）' : '');
 }
@@ -355,7 +362,7 @@ function tradeCloseMake_(list) {
   const p = { id: tradeToken_(), items: items, expires: Date.now() + TRADE_TTL_MS };
   tradeSaveState_(Object.assign(tradeState_(), { closePending: p }));
   const totU = items.reduce((a, i) => a + i.upl, 0);
-  const totM = items.every(i => i.margin > 0) ? items.reduce((a, i) => a + i.margin, 0) : NaN;
+  const totC = items.reduce((a, i) => a + tradeCostOf_(i), 0);
   let body;
   if (items.length === 1) {
     const it = items[0];
@@ -366,7 +373,7 @@ function tradeCloseMake_(list) {
       '未實現損益 ' + tradePnlText_(it, it.upl) + '\n';
   } else {
     body = items.map(it => '・' + tradeLabelOf_(it.name) + ' 平' + it.dirZh + ' ' + it.size + ' 單位，未實現損益 ' + tradePnlText_(it, it.upl)).join('\n') +
-      '\n合計 ' + tradePnlText_({ cur: items[0].cur, margin: totM }, totU, ' ') + '\n\n共 ' + items.length + ' 筆，會逐筆平倉。\n';
+      '\n合計 ' + tradePnlText_({ cur: items[0].cur, cost: totC }, totU, ' ') + '\n\n共 ' + items.length + ' 筆，會逐筆平倉。\n';
   }
   body += '5 分鐘內按確認才會送出。\n代碼：' + p.id;
   const rows = [['✅ 確認平倉' + p.id, '❌ 取消平倉' + p.id]];
@@ -396,8 +403,8 @@ function tradeCloseConfirm_(token) {
     let total = '';
     if (done.length > 1) {
       const u = done.reduce((a, i) => a + i.done.upl, 0);
-      const m = done.every(i => i.done.margin > 0) ? done.reduce((a, i) => a + i.done.margin, 0) : NaN;
-      total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, margin: m }, u, ' ');
+      const c = done.reduce((a, i) => a + i.done.cost, 0);
+      total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, cost: c }, u, ' ');
     }
     const fill = Number(conf.level).toFixed(hit.prec);
     // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 開倉價值
@@ -435,7 +442,7 @@ function tradeCloseOne_(item, nowList, label) {
   tradeStopAdd_({ name: hit.name, dir: hit.dir, dirZh: hit.dirZh, size: hit.size, trigger: '平倉', price: Number(fill), prec: hit.prec, open: hit.open, margin: hit.margin, cur: hit.cur }, hit.dealId);   // 停損停利紀錄也記一筆，並從比對快照移除，避免重複記
   tradeNotify_('📣 平倉通知\n' + tradeLabelOf_(hit.name) + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill);
   const upl = (item.dir === 'buy' ? Number(fill) - item.open : item.open - Number(fill)) * item.size;
-  item.done = { upl: upl, margin: item.margin, cur: item.cur };   // 給多筆時算合計用
+  item.done = { upl: upl, cost: tradeCostOf_(item), cur: item.cur };   // 給多筆時算合計用
   return '✅ ' + tag + '，成交價 ' + fill + '\n  盈虧 ' + tradePnlText_(item, upl, ' ');
 }
 
@@ -996,7 +1003,7 @@ function tradeStopLine_(x) {
   if (!(x.open > 0)) return head + '\n  資料不足（舊紀錄沒有開倉價）';
   const upl = (x.dir === 'buy' ? x.price - x.open : x.open - x.price) * x.size;
   const cost = x.margin > 0 ? '約 ' + x.margin.toFixed(2) + ' USD' : '未知';
-  return head + '\n  開倉 ' + Number(x.open).toFixed(x.prec) + '，投入成本 ' + cost + '\n  損益 ' + tradePnlText_({ cur: x.cur, margin: x.margin }, upl, ' ');
+  return head + '\n  開倉 ' + Number(x.open).toFixed(x.prec) + '，開倉成本 ' + tradeOpenCostText_(x) + '，投入成本 ' + cost + '\n  損益 ' + tradePnlText_(x, upl, ' ');
 }
 
 // 「📋 停損停利紀錄」：最近 10 筆，只讀
