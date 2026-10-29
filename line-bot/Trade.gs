@@ -267,10 +267,7 @@ function tradeOpenCostText_(x) {
 function tradePnlText_(x, upl) {
   const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
-  const head = '約 ' + upl.toFixed(2) + cur;
-  if (!(x.margin > 0)) return head + (sep || '') + '（保證金未知）';
-  const pct = upl / x.margin * 100;
-  return head + (sep || '') + '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）';
+  return '約 ' + upl.toFixed(2) + cur + (isFinite(pct) ? '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）' : '');
 }
 
 // 實際投入金額（保證金）= 數量 × 價格 × 保證金比例（IG 的 marginFactor，單位 PERCENTAGE）
