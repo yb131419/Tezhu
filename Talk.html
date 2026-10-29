@@ -316,6 +316,45 @@ html[data-theme=light] .cvt,html[data-theme=light] .cadvh{color:#2A2118}
 html[data-theme=light] .cadvb{color:rgba(42,33,24,.75)}
 html[data-theme=light] .csec{color:#8A6A37}
 @media (max-width:360px){.cstv{font-size:26px}.cadvh{font-size:15.5px}}
+/* 獲利查詢：專業交易版面（開倉與現價並排、未實現損益放大、停損停利各一列） */
+.pcard{position:relative;margin-top:14px;padding:16px 18px 14px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.08),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid rgba(220,195,148,.2)}
+.pname{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:1px;color:#F1DFB4}
+.pdir{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
+.pdir.up{color:#8FDBB2;border-color:rgba(143,219,178,.5)}
+.pdir.dn{color:#F2998A;border-color:rgba(242,153,138,.5)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.pst{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04)}
+.plb{font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.55)}
+.pv{margin-top:4px;font-family:"Cormorant Garamond",var(--serif);font-size:22px;font-weight:600;color:#F3EEE5;font-variant-numeric:lining-nums tabular-nums}
+.pbig{margin-top:12px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(241,223,180,.12),rgba(201,165,106,.04));border:1px solid rgba(220,195,148,.22)}
+.pbv{margin-top:4px;font-family:"Cormorant Garamond",var(--serif);font-size:30px;font-weight:600;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
+.ppc{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;background:rgba(255,255,255,.06)}
+.prow{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(220,195,148,.2)}
+.prow .pv{margin-top:0;font-size:17px}
+.plv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.plv .pbv{font-size:23px}
+.plv .pst:last-child{background:transparent;border:1px solid rgba(220,195,148,.18)}
+.pnote{margin-top:10px;font-size:13px;color:rgba(243,238,229,.55)}
+.tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
+.pbig.tn-pos .ppc{background:rgba(143,219,178,.14)}.pbig.tn-neg .ppc{background:rgba(242,153,138,.14)}
+.plv.tn-pos .ppc{background:rgba(143,219,178,.14)}.plv.tn-neg .ppc{background:rgba(242,153,138,.14)}
+html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .phead{border-bottom-color:var(--line)}
+html[data-theme=light] .pname{color:#2A2118}
+html[data-theme=light] .pdir.up,html[data-theme=light] .tn-pos{color:#2F7D5B}
+html[data-theme=light] .pdir.dn,html[data-theme=light] .tn-neg{color:#B5523A}
+html[data-theme=light] .pdir.up{border-color:rgba(47,125,91,.45)}
+html[data-theme=light] .pdir.dn{border-color:rgba(181,82,58,.45)}
+html[data-theme=light] .pst{background:#FBF8F2}
+html[data-theme=light] .plb{color:rgba(42,33,24,.6)}
+html[data-theme=light] .pv{color:#2A2118}
+html[data-theme=light] .pbig{background:#FBF8F2;border-color:var(--line)}
+html[data-theme=light] .prow{border-top-color:var(--line)}
+html[data-theme=light] .plv .pst:last-child{background:transparent;border-color:var(--line)}
+html[data-theme=light] .pnote{color:rgba(42,33,24,.6)}
+html[data-theme=light] .pbig.tn-pos .ppc,html[data-theme=light] .plv.tn-pos .ppc{background:rgba(47,125,91,.1)}
+html[data-theme=light] .pbig.tn-neg .ppc,html[data-theme=light] .plv.tn-neg .ppc{background:rgba(181,82,58,.1)}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
@@ -384,7 +423,7 @@ html[data-theme=light] .csec{color:#8A6A37}
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
-<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📊 查看持倉" data-title="💰 獲利查詢">💰 獲利查詢<small>持倉的投入成本、未實現損益，與停損停利碰到的損益，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></details><details class="mgrp"><summary class="mgh">📺 頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="🧘 修行">🧘 修行<small>選主題，寫一篇修行文案，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📕 7張＋PDF">📕 7張＋PDF<small>選主題，做成 7 張輪播圖卡與 PDF（約 1～2 分鐘）</small></button><button type="button" class="tbtn" data-t="👤 設定主角">👤 設定主角<small>短劇主角，一步步設定</small></button><button type="button" class="tbtn" data-t="👤 設定第二主角">👤 設定第二主角<small>短劇第二位主角（一男一女）</small></button><button type="button" class="tbtn" data-t="⚙️ 圖卡設定">⚙️ 圖卡設定<small>圖卡署名與文案標題</small></button><button type="button" class="tbtn" data-t="🕗 自動發文開關">🕗 自動發文<small>每天晚上自動發智囊軍師圖卡，按一下開啟或關閉</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button><button type="button" class="tbtn" data-t="🔎 見證庫">🔎 見證庫<small>網頁找見證，一鍵分享</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-t="📈 智能下單">📈 智能下單<small>方向參考、選商品與方向，確認後才下單</small></button><button type="button" class="tbtn" data-t="🛒 下單">🛒 下單<small>選商品與買賣方向，先看提案再確認</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📊 查看持倉" data-title="💰 獲利查詢">💰 獲利查詢<small>持倉的開倉成本、未實現損益，與停損停利碰到的損益，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button></details><details class="mgrp"><summary class="mgh">📺 頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="🧘 修行">🧘 修行<small>選主題，寫一篇修行文案，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📕 7張＋PDF">📕 7張＋PDF<small>選主題，做成 7 張輪播圖卡與 PDF（約 1～2 分鐘）</small></button><button type="button" class="tbtn" data-t="👤 設定主角">👤 設定主角<small>短劇主角，一步步設定</small></button><button type="button" class="tbtn" data-t="👤 設定第二主角">👤 設定第二主角<small>短劇第二位主角（一男一女）</small></button><button type="button" class="tbtn" data-t="⚙️ 圖卡設定">⚙️ 圖卡設定<small>圖卡署名與文案標題</small></button><button type="button" class="tbtn" data-t="🕗 自動發文開關">🕗 自動發文<small>每天晚上自動發智囊軍師圖卡，按一下開啟或關閉</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button><button type="button" class="tbtn" data-t="🔎 見證庫">🔎 見證庫<small>網頁找見證，一鍵分享</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
 <div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trbtn"></div><div id="trb"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
@@ -763,8 +802,31 @@ function tradeView(el,text){let card=null;
   const d=document.createElement('div');d.className=card?'tposd':'tline';
   if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
   lk(d,t);(card||el).appendChild(d);});}
+// 獲利查詢（專業交易版面）：每筆持倉一張卡，開倉與現價並排、未實現損益放大、停損停利各一列；未取得或未設定的行照原樣顯示
+function pEl(p,cls,text){const d=document.createElement('div');d.className=cls;d.textContent=text;p.appendChild(d);return d;}
+function pTone(v){if(/未/.test(v))return'tn-nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'tn-neg':'tn-pos';}
+function pPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
+function pMoney(v){return String(v).replace(/[（(].*?[）)]/g,'').trim();}
+function profitView(el,text){let card=null;
+ String(text||'').split('\n').forEach(l=>{const t=l.trim();
+  if(!t){card=null;return;}
+  if(/^・/.test(t)){card=pEl(el,'pcard','');
+    const h=t.match(/^・(.+?)\s+(\S+?)\s*(?:📈|📉)\s*([\d.]+)\s*單位，開倉\s*([\d.]+)，現價\s*(\S+)$/);
+    if(!h){pEl(card,'pname',t.slice(1).trim());return;}
+    const top=pEl(card,'phead','');pEl(top,'pname',h[1]);pEl(top,'pdir '+(/📈/.test(t)?'up':'dn'),h[2]+' · '+h[3]+' 單位');
+    const g=pEl(card,'pgrid','');
+    [['開倉',h[4]],['現價',h[5]]].forEach(c=>{const b=pEl(g,'pst','');pEl(b,'plb',c[0]);pEl(b,'pv',c[1]);});
+    return;}
+  if(card){let m;
+    if((m=t.match(/^開倉成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','開倉成本');pEl(r,'pv',m[1]);return;}
+    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
+    if((m=t.match(/^(停損|停利)\s+(\S+)，碰到損益\s+(.+)$/))){const r=pEl(card,'plv '+pTone(m[3]),'');
+      const a=pEl(r,'pst','');pEl(a,'plb',m[1]);pEl(a,'pv',m[2]);
+      const c=pEl(r,'pst','');pEl(c,'plb','碰到損益');pEl(c,'pbv',pMoney(m[3]));const pc=pPct(m[3]);if(pc)pEl(c,'ppc',pc);return;}
+    pEl(card,'pnote',t);return;}
+  chanAdd(el,'tline',t);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
-function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
+function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q,title);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
 // 頻道面板（萬元質感）：數據做成數據卡與影片卡，改善建議做成編號卡；文字仍來自既有的對話端點，不進對話串
 function chanAdd(el,cls,t){const d=document.createElement('div');d.className=cls;d.textContent=t;el.appendChild(d);return d;}
 function chanData(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let stats=null,list=null;
@@ -782,7 +844,7 @@ function chanAdvice(el,text){const lines=String(text||'').split('\n').map(s=>s.t
   const n=t.match(/^(\d+)\.\s*(.+)$/);
   if(n){const card=document.createElement('div');card.className='cadv';chanAdd(card,'cadvn',n[1]);cur=document.createElement('div');cur.className='cadvi';chanAdd(cur,'cadvh',n[2]);card.appendChild(cur);el.appendChild(card);return;}
   if(cur)chanAdd(cur,'cadvb',t);else chanAdd(el,'tline',t);});}
-function chanRender(el,text,q){if(/頻道數據/.test(q))chanData(el,text);else if(/改善建議/.test(q))chanAdvice(el,text);else tradeView(el,text);}
+function chanRender(el,text,q,title){if(/頻道數據/.test(q))chanData(el,text);else if(/改善建議/.test(q))chanAdvice(el,text);else if(/獲利/.test(title||''))profitView(el,text);else tradeView(el,text);}
 function closeWeb(){$('tres').style.display='none';}
 $('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
 document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
