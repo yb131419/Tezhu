@@ -602,7 +602,7 @@ $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sen
 let mr=null,chunks=[],stream=null,recOn=false,stopT=null,relT=null,maxT=null,drop=false;
 function micUI(on){recOn=on;$('mic').classList.toggle('on',on);$('mic').innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>';}
 // 停止錄音和音量偵測；麥克風先不關（iPhone 每次重新開麥克風都要再按一次「允許」），5 分鐘沒用或離開頁面才真的關
-function micCleanup(){rtStop();clearTimeout(stopT);clearTimeout(maxT);if(acSrc){try{acSrc.disconnect();}catch(e){}acSrc=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
+function micCleanup(){clearTimeout(stopT);clearTimeout(maxT);if(acSrc){try{acSrc.disconnect();}catch(e){}acSrc=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
 function micRelease(){clearTimeout(relT);if(recOn)return;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!recOn)micRelease();});
 const micLive=()=>stream&&stream.getAudioTracks().some(t=>t.readyState==='live'&&!t.muted);
@@ -615,13 +615,13 @@ async function micStart(){
  catch(e){stream=null;micCleanup();return kb('麥克風被擋住了：請到「設定 → App → Safari → 麥克風」選「允許」，或先按鍵盤上的 🎤 講話');}
  if(!recOn){micCleanup();hint.textContent='';return;}   // 開麥克風途中又按了一次＝取消
  const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
- rtMime=type;try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){micCleanup();return kb();}
+ try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){micCleanup();return kb();}
  drop=false;chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
  mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';micCleanup();hint.textContent='';if(drop)return;const blob=new Blob(chunks,{type:mt});
   // 不再用音量偵測來丟掉錄音：藍牙耳機的麥克風音量常被偵測成靜音，會讓講的話直接消失；有錄到就送去轉文字，聽不清楚小乖會說
   if(blob.size<1500){convOff(conv?'對話先停在這裡，要講話再按麥克風':'沒錄到聲音，再按一次麥克風');return;}
   const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
- mr.start(250);rtStart();micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
+ mr.start(250);micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
  // 講完安靜 2 秒就自動送出（原本 3 秒，等太久；中間短暫換氣通常不會被切掉）；一直沒講話 10 秒就停；最長 2 分鐘
  // 門檻跟著環境噪音調整：先量 0.4 秒的背景聲，小聲講話也算有在講
  const ac=getAC();if(ac&&ac.state!=='running')await Promise.race([ac.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
@@ -631,46 +631,13 @@ async function micStart(){
   const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now(),floor=0,th=10;
   const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
    if(Date.now()-t0<700){floor=Math.max(floor,m);th=Math.min(14,Math.max(6,floor+5));}
-   else if(m>th){heard=true;last=Date.now();rtLoud=last;}
+   else if(m>th){heard=true;last=Date.now();}
    const quiet=Date.now()-last;
    if(heard&&quiet>800&&quiet<=2000&&!/送出/.test(hint.textContent))hint.textContent='還在聽…沒話要說就會送出（也可以按麥克風直接送）';
    if(heard&&quiet<=800&&/送出/.test(hint.textContent))hint.textContent='我在聽…';
    if((heard&&quiet>2000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
-// 邊聽邊執行（只限唯讀指令）：錄音中每 2.5 秒把這一段送去辨識，說到完整指令就執行；買賣、平倉不走這裡。
-// 只送有聲音的段落，同時只送一段（上一段還沒回來就跳過），辨識結果累積起來比對，同一指令只執行一次。
-let rtOn=false,rtTimer=null,rtBusy=false,rtLoud=0,rtText='',rtFired=new Set(),rtMime='';
-const RT_MS=2500;
-function rtStart(){rtOn=true;rtText='';rtFired=new Set();rtBusy=false;rtLoud=0;rtLoop();}
-function rtStop(){rtOn=false;clearTimeout(rtTimer);rtTimer=null;}
-function rtLoop(){if(!rtOn||!recOn||!stream)return;rtChunk();rtTimer=setTimeout(rtLoop,RT_MS);}
-function rtChunk(){
- const t0=Date.now();let cr;
- try{cr=rtMime?new MediaRecorder(stream,{mimeType:rtMime}):new MediaRecorder(stream);}catch(e){return;}
- const parts=[];
- cr.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data);};
- cr.onstop=()=>{if(rtOn&&rtLoud>=t0&&!rtBusy&&parts.length)rtSend(new Blob(parts,{type:cr.mimeType||rtMime||'audio/mp4'}));};
- cr.start();setTimeout(()=>{if(cr.state!=='inactive')cr.stop();},RT_MS);
-}
-function rtSend(blob){
- rtBusy=true;
- const fr=new FileReader();
- fr.onload=()=>{P({action:'transcribe',key:KEY,audio:String(fr.result).split(',')[1],audioType:(blob.type||'audio/mp4').split(';')[0]},20000).then(t=>{rtBusy=false;if(!rtOn)return;rtText=(rtText+toTW(t.heard||'')).replace(/[\s。．.！!？?，,、]+/g,'').slice(-40);rtCheck();}).catch(()=>{rtBusy=false;});};
- fr.onerror=()=>{rtBusy=false;};
- fr.readAsDataURL(blob);
-}
-function rtCheck(){
- if(!recOn||busy||!rtOn)return;
- const t=rtText;let cmd=null,m;
- if(/(查看持倉|看持倉)$/.test(t))cmd='查看持倉';
- else if(/(今天行程|今日行程)$/.test(t))cmd='今天行程';
- else if((m=t.match(/查詢案例(\S{1,8})$/)))cmd='查詢案例 '+m[1];
- if(!cmd||rtFired.has(cmd))return;
- rtFired.add(cmd);
- drop=true;micStop();rtStop();   // 這段錄音不再送出，改直接執行指令
- send(cmd);
-}
 $('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();convOn();micStart();};
 // 結束對話：馬上停止講話和聆聽，不送出
 $('endc').onclick=()=>{stopTalk();convOff('好，有事再按麥克風叫我');if(recOn){drop=true;micStop();}};
