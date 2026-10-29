@@ -1,6 +1,5 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>彥彬｜特助小乖</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="特助小乖"><meta name="theme-color" content="#100E0B">
-<script>try{if(localStorage.getItem("xg_theme")==="light"){document.documentElement.dataset.theme="light";document.querySelector('meta[name=theme-color]').content="#F3EEE5";}}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png"><link rel="apple-touch-icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png">
 <style>
@@ -88,20 +87,6 @@ header small{color:var(--soft);font-size:13px}header small input{accent-color:#C
 #vs .x{width:100%;height:42px;border-radius:12px;margin-top:6px;background:transparent;border:1px solid var(--line);color:var(--soft);font-size:15px}
 
 /* 白色系列（右上 ☀／☾ 切換，跟小乖主頁共用） */
-html[data-theme=light]{color-scheme:light;--bg:#F3EEE5;--card:#FFFDF8;--ink:#14120F;--soft:rgba(20,18,15,.55);--me:#1C1915;--gold:#8A6A37;--line:rgba(120,92,48,.2)}
-html[data-theme=light] body{background:radial-gradient(ellipse 120% 50% at 50% -10%,rgba(176,141,87,.16),transparent 60%),var(--bg)}
-html[data-theme=light] header b{background:linear-gradient(135deg,#8A6A37,#B08D57 50%,#8A6A37);-webkit-background-clip:text;background-clip:text}
-html[data-theme=light] header b i{background:#14120F;color:#DCC394;-webkit-text-fill-color:#DCC394}
-html[data-theme=light] .chip{color:#3A3226;background:#FFFDF8}
-html[data-theme=light] .chip.ask{background:var(--champ);color:#1A150D}
-html[data-theme=light] .me{color:#F3EEE5;border-color:transparent}
-html[data-theme=light] .xg{background:#FFFDF8;border:1px solid var(--line);box-shadow:0 10px 24px -16px rgba(60,44,20,.35)}
-html[data-theme=light] #bar{background:rgba(243,238,229,.92)}
-html[data-theme=light] #q{background:#FFFDF8}
-html[data-theme=light] #login,html[data-theme=light] #vs{background:rgba(20,18,15,.45)}
-html[data-theme=light] #login .box,html[data-theme=light] #vs .box{background:#FFFDF8;border-color:var(--line)}
-html[data-theme=light] #url,html[data-theme=light] #pw{background:#F3EEE5!important}
-html[data-theme=light] #vs li b{color:#8A6A37}
 /* 選取刪除（像 LINE：長按訊息或按 🗑 → 勾選單則或多則 → 刪除） */
 body.sel .m:not(.hello){position:relative;margin-left:34px;cursor:pointer;user-select:none;-webkit-user-select:none}
 body.sel .m.me:not(.hello){margin-left:auto}
@@ -141,7 +126,6 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 
 #sched .box,#sform .box,#tmenu .box,#tres .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
 #sform .box{height:auto;max-height:92vh;overflow:auto}
-html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
 .sr{display:flex;align-items:center;gap:8px}
@@ -199,35 +183,24 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-
 #tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:16px;line-height:1.85;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(220,195,148,.18)}
 #tres #trbtn{display:grid;gap:8px}
 #tres #trbtn .tbtn{margin-top:0;min-height:52px;flex-direction:row;align-items:center;justify-content:center;text-align:center;font-size:16px}
-html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
-html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A2E1E;background:#FFFDF8;border-color:var(--line)}
-html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
 /* 交易面板（萬元質感）：深色金框、結果用襯線字與金色重點，主要按鈕香檳金，其餘按鈕淡金線框 */
 #tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(201,165,106,.16),transparent 60%),linear-gradient(180deg,#221E18 0%,#120F0C 100%)}
-html[data-theme=light] #tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(176,141,87,.14),transparent 60%),linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
 #tres .sh{padding-bottom:14px}
 #tres #trt{font-family:var(--serif);font-size:18px;letter-spacing:2px}
 #tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:15px;line-height:1.7;word-break:break-word}
 #tres #trb b,#tres #trb strong{color:var(--gold);font-weight:700}
-html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
 #tres #trbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;width:100%}
 #tres #trbtn .tbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%;height:auto;margin-top:0;min-height:54px;text-align:center;font-size:15px;letter-spacing:1px;white-space:nowrap;padding:10px 12px;border-radius:14px}
 #tres #trbtn .tbtn:first-child{grid-column:1/-1;background:var(--champ);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5)}
-html[data-theme=light] #tres #trbtn .tbtn:first-child{color:#1A150D}
 /* 每一筆持倉一張卡片；面板高度跟內容走，不再超出螢幕底部 */
 #tres .box{height:auto;max-height:88vh;overflow:auto}
 #tres #trb{padding:0;border:0;background:none;box-shadow:none}
-html[data-theme=light] #tres #trb{background:none;border:0}
 .tline{font-family:-apple-system,"PingFang TC",sans-serif;font-size:15px;line-height:1.8;color:#F3EEE5;margin:6px 2px}
 .tpos{margin-top:12px;padding:14px 16px;border-radius:16px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
 .tposh{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:1px;color:var(--gold);margin-bottom:6px}
 .tposd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;line-height:1.75;color:rgba(243,238,229,.72)}
 .tposd.pos{color:#E9D3A2;font-weight:600}
 .tposd.neg{color:#D98A6B;font-weight:600}
-html[data-theme=light] .tline,html[data-theme=light] .tposd{color:#3A2E1E}
-html[data-theme=light] .tposd{color:rgba(20,18,15,.7)}
-html[data-theme=light] .tposd.pos{color:#8A6A37}
-html[data-theme=light] .tpos{background:#FFFDF8;border-color:var(--line)}
 /* 手機點按尺寸：按鈕至少 44px 高、間距加大，避免擠在一起或被手指誤觸 */
 button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #endc{height:44px;padding:0 28px}
@@ -254,11 +227,6 @@ button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-high
 .tposd{font-size:14.5px;line-height:1.8}
 .tposd.pos{color:#8FDBB2;font-weight:700}
 .tposd.neg{color:#F2998A;font-weight:700}
-html[data-theme=light] .tpos{box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
-html[data-theme=light] .tposh{color:#2A2118}
-html[data-theme=light] .tposd{color:rgba(42,33,24,.72)}
-html[data-theme=light] .tposd.pos{color:#2F7D5B}
-html[data-theme=light] .tposd.neg{color:#B5523A}
 /* 字體加大（手機看得清楚）：☰ 選單所有文字 */
 #tmenu .sh b{font-size:24px}
 #tres .sh b{font-size:23px}
@@ -310,14 +278,6 @@ html[data-theme=light] .tposd.neg{color:#B5523A}
 .cadvn{width:34px;height:34px;border-radius:50%;background:var(--champ);color:#1A150D;font-family:"Cormorant Garamond",var(--serif);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;font-variant-numeric:lining-nums;box-shadow:0 8px 18px -10px rgba(201,165,106,.7)}
 .cadvh{font-family:var(--serif);font-size:16.5px;font-weight:700;line-height:1.5;color:#F3EEE5}
 .cadvb{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14.5px;line-height:1.8;color:rgba(243,238,229,.78)}
-html[data-theme=light] #tres .chead{color:#2A2118;border-bottom-color:var(--line)}
-html[data-theme=light] .cst,html[data-theme=light] .cvid,html[data-theme=light] .cadv{background:#FFFDF8;border-color:var(--line);box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
-html[data-theme=light] .cstl,html[data-theme=light] .cvd{color:rgba(20,18,15,.55)}
-html[data-theme=light] .cstv,html[data-theme=light] .cvv{color:#8A6A37}
-html[data-theme=light] .cvv{border-top-color:var(--line)}
-html[data-theme=light] .cvt,html[data-theme=light] .cadvh{color:#2A2118}
-html[data-theme=light] .cadvb{color:rgba(42,33,24,.75)}
-html[data-theme=light] .csec{color:#8A6A37}
 @media (max-width:360px){.cstv{font-size:26px}.cadvh{font-size:15.5px}}
 /* 獲利查詢：交易 App 列表版面（方向與商品在上，開倉→現價與損益並排，成本與停損停利列在下） */
 .pcard{position:relative;margin-top:14px;padding:14px 16px 6px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.08),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5}
@@ -345,18 +305,6 @@ html[data-theme=light] .csec{color:#8A6A37}
 .plv .plb{line-height:1.5}
 .pnote{padding:10px 0;font-size:13px;color:rgba(243,238,229,.55);border-top:1px solid rgba(220,195,148,.14)}
 .tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
-html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
-html[data-theme=light] .phead,html[data-theme=light] .pnote{border-color:var(--line)}
-html[data-theme=light] .pname{color:#2A2118}
-html[data-theme=light] .psize,html[data-theme=light] .plb,html[data-theme=light] .pnote{color:rgba(42,33,24,.6)}
-html[data-theme=light] .pdir.up,html[data-theme=light] .tn-pos{color:#2F7D5B}
-html[data-theme=light] .pdir.dn,html[data-theme=light] .tn-neg{color:#B5523A}
-html[data-theme=light] .pdir.up{border-color:rgba(47,125,91,.45);background:rgba(47,125,91,.06)}
-html[data-theme=light] .pdir.dn{border-color:rgba(181,82,58,.45);background:rgba(181,82,58,.06)}
-html[data-theme=light] .pflow{color:rgba(42,33,24,.72)}
-html[data-theme=light] .parr{color:rgba(42,33,24,.45)}
-html[data-theme=light] .pv,html[data-theme=light] .pv-now{color:#2A2118}
-html[data-theme=light] .prow,html[data-theme=light] .plv{border-color:var(--line)}
 /* 快速下單：一個畫面，商品、數量、買賣按鈕都在同一頁 */
 .tkr{display:flex;gap:8px;margin-top:12px;align-items:stretch}
 .tkc{flex:1;height:50px;border-radius:14px;border:1px solid var(--line);background:transparent;color:inherit;font-family:var(--serif);font-size:17px;font-weight:700}
@@ -383,8 +331,6 @@ html[data-theme=light] .prow,html[data-theme=light] .plv{border-color:var(--line
 <label class="sw"><span>🔊 念出來<small>小乖回答時唸給你聽</small></span><input type="checkbox" id="spk" checked></label>
 <label class="sw"><span>🎙️ 真人語音<small>開：真人般的聲音（稍慢）；關：手機內建聲音（較快）</small></span><input type="checkbox" id="real" checked></label>
 <label class="sw"><span>🔁 連續對話<small>講完自動再聽你說</small></span><input type="checkbox" id="loop" checked></label>
-<div class="sec">外觀</div>
-<button id="thm" type="button" class="opt"></button>
 <div class="sec">連線</div><div id="cfgok">✓ 已連線，密碼已記在這支手機，不用再填</div><button id="cfgedit" type="button" class="opt">修改網址或密碼</button></div>
 <div id="cfg"><p id="lgmsg"></p>
 <input id="url" type="url" inputmode="url" placeholder="小乖網址：https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:8px;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)">
@@ -463,9 +409,6 @@ $('vscp').onclick=async()=>{const t=URL+'?key='+encodeURIComponent(KEY)+'&ask=';
  try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
  $('vscp').textContent=ok?'✓ 已複製，照下面步驟做':'複製失敗，請到設定確認網址';};
-function paintThm(){const l=document.documentElement.dataset.theme==='light';$('thm').textContent=l?'☾ 換成黑色系列':'☀︎ 換成白色系列';document.querySelector('meta[name=theme-color]').content=l?'#F3EEE5':'#100E0B';}
-$('thm').onclick=()=>{const l=document.documentElement.dataset.theme!=='light';if(l)document.documentElement.dataset.theme='light';else delete document.documentElement.dataset.theme;try{localStorage.setItem('xg_theme',l?'light':'dark');}catch(e){}paintThm();};
-paintThm();
 async function vsCopy(btn,t,label){let ok=false;try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
  btn.textContent=ok?'✓ 已複製'+label:'複製失敗';setTimeout(()=>{btn.textContent='複製'+label;},2500);}
@@ -892,7 +835,6 @@ document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
  if(w==='add'){openSched();sOpenForm(null);return;}
  if(w==='paste'){openSched();sOpenPaste();return;}
  if(w==='set'){setOpen();return;}
- if(w==='theme'){$('thm').click();return;}
  if(b.dataset.f!==undefined){$('q').value=b.dataset.f;kb('接著打上內容，按「傳送」');return;}
  if(b.dataset.cam!==undefined){$('q').value='試算';pickPhoto(false);return;}
  if(b.dataset.remind!==undefined){openRemind();return;}
