@@ -273,19 +273,21 @@ function talkLink_() {
 
 // 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
 const TALK_BTN = '🐾 對話頁';
-const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁（同「🐾 對話頁」的連結）
+const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁的 ☰ 選單（#menu）
+function talkMenuUrl_() { return talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1#menu'; }
 const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
-  if (t === TALK_BTN || t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkMenuUrl_() } };
   if (t === SCHED_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: SCHEDULE_URL } };
   if (t === WALL_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: wallUrl_() } };
   return { type: 'action', action: { type: 'message', label: t.slice(0, 20), text: t } };
 }
 // 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
 const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
-function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : t === TALK_BTN || t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
+function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() + '#menu' } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
 // 「🔎 見證庫」網頁（Cases.html）：跟對話頁一樣把小乖網址放 ?u=，密碼不放網址
 const WALL_PAGE = 'https://yb131419.github.io/Tezhu/Cases.html';
 function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE + (i >= 0 ? t.slice(i) + '&' : '?') + 'openExternalBrowser=1'; }
