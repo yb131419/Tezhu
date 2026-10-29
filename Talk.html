@@ -953,7 +953,7 @@ function chanAdd(el,cls,t){const d=document.createElement('div');d.className=cls
 function chanData(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let stats=null,list=null;
  lines.forEach((t,i)=>{
   if(i===0){chanAdd(el,'chead',t.replace(/^📺\s*/,''));return;}
-  const vid=t.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+週.)\s+(.+?)\s*[（(]\s*([\d,]+)\s*次\s*[）)]\s*$/);
+  const vid=t.match(/^[・•]?\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+週.)\s+(.+?)\s*[（(]\s*([\d,]+)\s*次\s*[）)]\s*$/);
   if(vid){if(!list){list=document.createElement('div');list.className='cvlist';el.appendChild(list);}const c=document.createElement('div');c.className='cvid';const dt=vid[1].match(/^\d{4}-(\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(週.)$/);chanAdd(c,'cvd',dt?dt[1]+' '+dt[3]+' '+dt[2]:vid[1]);chanAdd(c,'cvt',vid[2]);chanAdd(c,'cvv','觀看 '+vid[3]+' 次');list.appendChild(c);return;}
   const st=!/^\d{4}-/.test(t)&&t.match(/^(.{1,16}?)[：:]\s*(.*)$/);
   if(st&&st[2]){if(!stats){stats=document.createElement('div');stats.className='cstats';el.appendChild(stats);}const c=document.createElement('div');c.className='cst';chanAdd(c,'cstl',st[1]);chanAdd(c,'cstv',st[2]);stats.appendChild(c);return;}
