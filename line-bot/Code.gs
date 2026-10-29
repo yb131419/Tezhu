@@ -837,6 +837,37 @@ function chanAdvice_() {
   return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
+// 把貼上來的「頻道改善建議」四段（標題、內容、結尾引導、留言）當成軍師的題目：寫出升級後的短影片腳本，並給分步提升方案
+function isChanAdvice_(t) { return /【標題】/.test(t) && /【內容】/.test(t) && /【結尾引導】/.test(t) && /【留言】/.test(t); }
+function chanUpgrade_(t) {
+  if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫升級腳本。', buttons: MENU };
+  const sys = [
+    '你是「智囊軍師」，彥彬的短影片腳本高手。使用者會貼上一份 YouTube 頻道改善建議（四段：【標題】【內容】【結尾引導】【留言】）。請把這些問題納進去思考，寫出升級後的短影片腳本，並給一份分步的提升方案。',
+    WRITE_STYLE_,
+    RETENTION_RULES_,
+    STRAT_HOOK,
+    '【腳本規則】約 55 秒，口語、像朋友分享，一段只講一件事；開頭 5 秒用反骨鉤子（同上面的規則），不要暖場；中段給一個具體做法，每段一句；結尾引導要自然，可以請大家訂閱或分享，不索取個人資料；留言提問要具體，請觀眾說說自己的經驗。',
+    '【不可以寫】具體金額、收入或成效保證；療效、治療、改善疾病；個人資料。',
+    '只輸出 JSON：{"problems":["這次要改的問題，最多 3 點"],"titles":["升級標題，3 個備選，每個 20 字內"],"script":{"hook":"開頭 5 秒","body":["中段，每段一句，依順序"],"closing":"結尾引導","comment":"留言提問，20 到 60 字"},"plan":[{"step":"步驟名稱","how":"具體怎麼做","when":"什麼時候做"}]}',
+  ].join('\n');
+  let c;
+  try {
+    const out = callOpenAI_(sys, [{ role: 'user', content: t }], true, null, { maxTokens: 2000 });
+    c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+  } catch (e) { return { text: '升級腳本沒有寫成功：' + e.message, buttons: MENU }; }
+  const s = c.script || {};
+  const L = ['🧭 頻道升級方案', '', '【這次要改的問題】'];
+  (c.problems || []).forEach(x => L.push('・' + x));
+  L.push('', '【升級標題（三選一）】');
+  (c.titles || []).forEach((x, i) => L.push((i + 1) + '. ' + x));
+  L.push('', '【升級腳本（約 55 秒）】', '開頭：' + (s.hook || ''));
+  (s.body || []).forEach(x => L.push(x));
+  L.push('結尾：' + (s.closing || ''), '留言提問：' + (s.comment || ''));
+  L.push('', '【提升方案】');
+  (c.plan || []).forEach((x, i) => L.push((i + 1) + '. ' + x.step + '：' + x.how + '（' + x.when + '）'));
+  return { text: L.join('\n').slice(0, 4800), buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+
 // 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
 function 清理暫時狀態() {
   const STALE = ['YT_STATE', 'YT_ARTICLE', 'YT_UNTIL', 'SEARCH_UNTIL', 'SEARCH_MODE', 'CASE_PENDING', 'CASE_UNTIL', 'CASE_FIND_UNTIL', 'CASE_EDIT_UNTIL', 'QUOTE_UNTIL', 'HERO_UNTIL', 'HERO_STEP', 'HERO_DRAFT', 'HERO_SLOT', 'ADD_PENDING', 'ADD_UNTIL', 'PASTE_UNTIL', 'SET_PENDING', 'SET_UNTIL', 'EV_UNDO', 'EV_LAST', 'KIT_RUN', 'KIT_JOB', 'LINE_LAST_IMG'];
@@ -891,6 +922,7 @@ function answer_(text) {
   if (ad) return ad;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
+  if (isChanAdvice_(raw)) return chanUpgrade_(raw);   // 貼上「頻道改善建議」的四段：寫升級腳本與提升方案
   const chn = chanReply_(t2);   // 「📺 頻道數據」「💡 改善建議」：查 YouTube 頻道數據、依數據給建議
   if (chn) return chn;
   const ap = autoAsk_(t2);   // 「自動發文 開／關」：每天晚上自動發智囊軍師 7 張圖卡
