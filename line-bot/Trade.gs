@@ -257,19 +257,19 @@ function tradeOpenPositions_() {
   });
 }
 
-// 開倉成本 = 開倉價 × 數量；損益的百分比都以開倉成本為分母
+// 開倉成本 = 開倉價 × 數量；損益的百分比都以投入成本（保證金）為分母
 function tradeOpenCostText_(x) {
   return (x.open * x.size).toFixed(2) + (x.cur ? ' ' + x.cur : '');
 }
 
-// 開倉成本的數字（合計時可直接給 cost）；沒有開倉價或數量就是 NaN
+// 百分比的分母：投入成本（保證金）；合計時可直接給 cost。取不到保證金就是 NaN，不顯示百分比
 function tradeCostOf_(x) {
   if (x.cost > 0) return x.cost;
-  return x.open > 0 && x.size > 0 ? x.open * x.size : NaN;
+  return x.margin > 0 ? x.margin : NaN;
 }
 
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
-// 百分比 = 損益 ÷ 開倉成本（開倉價 × 數量），已含方向
+// 百分比 = 損益 ÷ 投入成本（保證金），已含方向
 function tradePnlText_(x, upl) {
   const cost = tradeCostOf_(x);
   const pct = isFinite(cost) ? upl / cost * 100 : NaN;
@@ -299,6 +299,12 @@ function tradeMarketInfo_(epic) {
 
 function tradeLevel_(v, prec) {
   return v === null || v === undefined || v === '' ? '未設定' : Number(v).toFixed(prec);
+}
+
+// 損益百分比（以投入成本為分母）：沒有投入成本就是 NaN
+function tradePctOf_(pnl, x) {
+  const base = tradeCostOf_(x);
+  return isFinite(base) ? pnl / base * 100 : NaN;
 }
 
 // 停損、停利價位碰到時的損益（約）：NaN 代表沒設定
@@ -407,12 +413,14 @@ function tradeCloseConfirm_(token) {
       total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, cost: c }, u, ' ');
     }
     const fill = Number(conf.level).toFixed(hit.prec);
-    // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 開倉價值
+    // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 投入成本（保證金）
     const pnl = (hit.dir === 'buy' ? 1 : -1) * (Number(fill) - hit.open) * hit.size;
-    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交', pnl: Number(pnl.toFixed(2)), pct: Number((pnl / (hit.open * hit.size) * 100).toFixed(2)), cur: hit.cur || 'USD' });
+    const pct = tradePctOf_(pnl, hit);
+    const pctTxt = isFinite(pct) ? '（' + (pnl >= 0 ? '+' : '-') + Math.abs(pct).toFixed(2) + '%）' : '';
+    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交', pnl: Number(pnl.toFixed(2)), pct: isFinite(pct) ? Number(pct.toFixed(2)) : null, cur: hit.cur || 'USD' });
     tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill + '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD'));
     return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill +
-      '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD') + '（' + (pnl >= 0 ? '+' : '-') + Math.abs(pnl / (hit.open * hit.size) * 100).toFixed(2) + '%）';
+      '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD') + pctTxt;
   });
 }
 
@@ -464,7 +472,7 @@ function tradeRecords_() {
     const pr = (TRADE_ITEMS[x.name] || { prec: 2 }).prec;
     const lv = v => v === '-' ? '—' : tradeLevel_(v, pr);   // 平倉紀錄沒有停損、停利，顯示「—」
     const pl = x.pnl === undefined ? '' : '\n  ' + (x.pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + Math.abs(x.pnl).toFixed(2) + ' ' + (x.cur || 'USD') +
-      '（' + (x.pct >= 0 ? '+' : '-') + Math.abs(x.pct).toFixed(2) + '%）';
+      (typeof x.pct === 'number' ? '（' + (x.pct >= 0 ? '+' : '-') + Math.abs(x.pct).toFixed(2) + '%）' : '');
     return '・' + x.at + ' ' + x.name + ' ' + (x.side === 'buy' ? '買進' : '賣出') + ' ' + x.size + ' 單位 @ ' + x.price + '（' + x.label + '）\n' +
       '  停損 ' + lv(x.sl) + '　停利 ' + lv(x.tp) + pl;
   }).join('\n') +
