@@ -834,7 +834,7 @@ function profitView(el,text){let card=null;
     pEl(flow,'pv',h[4]);pEl(flow,'parr','→');pEl(flow,'pv pv-now',h[5]);
     card.pmain=main;return;}
   if(card){let m;
-    if((m=t.match(/^開倉成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','開倉成本');pEl(r,'pv',m[1]);return;}
+    if(/^開倉成本\s/.test(t))return;
     if((m=t.match(/^投入成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','投入成本');pEl(r,'pv',m[1]);return;}
     if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
     if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
