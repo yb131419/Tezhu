@@ -503,6 +503,7 @@ function tradePosLine_(x) {
   return '・' + tradeLabelOf_(x.name) + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
     '\n  開倉成本 ' + tradeOpenCostText_(x) +
+    '\n  投入成本 ' + (x.margin > 0 ? '約 ' + x.margin.toFixed(2) + (x.cur ? ' ' + x.cur : '') : '未知') +
     '\n  未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得') +
     '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.sl) +
     '\n  停利 ' + tradeLevel_(x.tp, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.tp);
