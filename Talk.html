@@ -337,6 +337,7 @@ html[data-theme=light] .csec{color:#8A6A37}
 .pbig .plb{text-align:right}
 .pbv{font-family:"Cormorant Garamond",var(--serif);font-size:24px;font-weight:600;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
 .ppc{margin-top:2px;font-size:14px;font-weight:700}
+.pbrow{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap}
 .prow,.plv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(220,195,148,.14)}
 .prow .pv{font-size:17px}
 .pval{text-align:right}
@@ -344,7 +345,7 @@ html[data-theme=light] .csec{color:#8A6A37}
 .pval .ppc{font-size:13px}
 .plv .plb{line-height:1.5}
 /* 手機寬度：價格與未實現損益分兩行，數字不再互相擠壓；桌面版維持並排 */
-@media (max-width:480px){.pmain{flex-direction:column;align-items:flex-start;gap:8px}.pbig{text-align:left}.pbig .plb{text-align:left}}
+@media (max-width:480px){.pmain{flex-direction:column;align-items:flex-start;gap:8px}.pbig{text-align:left}.pbig .plb{text-align:left}.pbrow{justify-content:flex-start}}
 .pnote{padding:10px 0;font-size:13px;color:rgba(243,238,229,.55);border-top:1px solid rgba(220,195,148,.14)}
 .tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
 html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
@@ -838,7 +839,7 @@ function profitView(el,text){let card=null;
   if(card){let m;
     if(/^開倉成本\s/.test(t))return;
     if((m=t.match(/^投入成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','投入成本');pEl(r,'pv',m[1]);return;}
-    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
+    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');const r=pEl(b,'pbrow','');pEl(r,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(r,'ppc',pc);return;}
     if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
     pEl(card,'pnote',t);return;}
   chanAdd(el,'tline',t);});}
