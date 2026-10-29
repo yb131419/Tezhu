@@ -41,14 +41,13 @@ const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
-const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師', '🧘修行'], ['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 對話頁', MENU_BTN, '📈 下單', '🪶軍師'],['📋 試算', '📅 行程', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['❓ 說明', '使用方式']] },
   { en: 'TRADE', title: '智能下單', sub: '選商品下單、看持倉與停損停利、平倉，都要按確認才送出', items: [['📈 智能下單', '卡片・下單・查看持倉・平倉'], ['🔔 交易提醒', '開啟・關閉・看狀態']] },
-  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'CHANNEL', title: '頻道', sub: 'YouTube 頻道數據，與依數據給的改善建議', items: [[CHAN_BTN, '訂閱・觀看・最近影片'], [CHAN_ADV_BTN, '依數據給建議']] },
+  { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -383,7 +382,7 @@ function askPhoto_(q, b64) {
   const img = 'data:image/jpeg;base64,' + raw;
   const before = prop_('QUOTE_STATE');
   let ans;
-  try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗，等一下再試試看。'; }
+  try { ans = image_(q, img); } catch (err) { console.error(err); return '照片讀取失敗（' + String(err && err.message || err).slice(0, 120) + '），等一下再試試看。'; }
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
   askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
@@ -656,7 +655,7 @@ function handleLine_(ev) {
   const card = cardLine_();
   const media = caseLine_();   // 看見證／案例時的圖片、影片
   const voice = !rp.short && !card.length && !media.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, rp.msgs.concat(card, media, voice), true);
+  reply_(ev.replyToken, rp.short || ans, [].concat(rp.msgs, card, media, voice).slice(0, 5), true);
 }
 
 function lineContent_(messageId) {
@@ -680,9 +679,14 @@ function lineImage_(messageId) {
 const CHAN_ID_DEFAULT = 'UCE4E-lnj5eEvFy2l-Ut-NHQ';
 function chanReply_(t) {
   const flat = String(t || '').replace(/\s+/g, '');
-  if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanData_();
-  if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議|查頻道建議)$/.test(flat)) return chanAdvice_();
+  if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanSafe_(chanData_);
+  if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   return null;
+}
+// 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
+function chanSafe_(fn) {
+  try { return fn(); }
+  catch (e) { console.error('頻道功能出錯：' + e); return { text: '頻道數據沒有出來：' + e.message + '\n（可到 Apps Script 的「執行」看詳細紀錄）', buttons: MENU }; }
 }
 function chanGet_(path, params) {
   const key = prop_('YOUTUBE_API_KEY');
@@ -705,11 +709,13 @@ function chanFetch_() {
   vids.sort((a, b) => (a.snippet.publishedAt < b.snippet.publishedAt ? 1 : -1));
   return {
     title: ch.snippet.title,
+    url: 'https://www.youtube.com/channel/' + id,
     subs: ch.statistics.hiddenSubscriberCount ? null : Number(ch.statistics.subscriberCount),
     views: Number(ch.statistics.viewCount || 0),
     videoCount: Number(ch.statistics.videoCount || 0),
     videos: vids.map(v => ({
-      title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10),
+      title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10), url: 'https://www.youtube.com/watch?v=' + v.id,
+      at: chanAt_(v.snippet.publishedAt),
       views: Number(v.statistics.viewCount || 0), likes: Number(v.statistics.likeCount || 0), comments: Number(v.statistics.commentCount || 0),
     })),
   };
@@ -720,30 +726,115 @@ function chanErr_(e) {
   if (m === 'NO_CHANNEL') return '找不到這個 YouTube 頻道，請確認頻道 ID 是否正確。';
   return '查 YouTube 時出了點問題：' + m + '\n請確認已啟用 YouTube Data API v3，且金鑰的 API 限制有包含它。';
 }
+// 上架時間用台北時間，例如「2026-10-20 20:30 週二」
+function chanAt_(iso) {
+  const d = new Date(iso);
+  return Utilities.formatDate(d, 'Asia/Taipei', 'yyyy-MM-dd HH:mm') + ' 週' + '日一二三四五六'.charAt(Number(Utilities.formatDate(d, 'Asia/Taipei', 'u')) % 7);
+}
 function chanNum_(x) { return x == null ? '（隱藏）' : String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function chanText_(d) {
   const lines = ['📺 ' + d.title, '', '訂閱：' + chanNum_(d.subs), '總觀看：' + chanNum_(d.views), '影片數：' + chanNum_(d.videoCount)];
   if (d.videos.length) {
     const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
     lines.push('', '最近 ' + d.videos.length + ' 支影片平均觀看：' + chanNum_(avg), '', '最近影片：');
-    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.date + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
+    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.at + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
   }
   return lines.join('\n');
 }
+// 卡片式回覆：象牙白＋香檳金，和「💎 選單」卡片同一套配色（text 留給 Telegram、對話頁用）
+const CHCARD_ = { GOLD: '#B08D57', INK: '#2A2118', SOFT: '#9A8B74', LINE: '#E8DCC4', BG: '#FBF8F2' };
+function chanHead_(label, title, sub) {
+  return { type: 'box', layout: 'vertical', paddingAll: '22px', paddingBottom: '18px',
+    background: { type: 'linearGradient', angle: '180deg', startColor: '#F4EAD6', endColor: '#FBF8F2' }, contents: [
+      { type: 'text', text: label, size: 'xxs', weight: 'bold', color: CHCARD_.GOLD },
+      { type: 'text', text: title, size: 'xl', weight: 'bold', color: CHCARD_.INK, wrap: true, margin: 'sm' },
+      { type: 'box', layout: 'vertical', width: '28px', height: '2px', backgroundColor: '#C9A56A', margin: 'md', contents: [{ type: 'filler' }] },
+      { type: 'text', text: sub, size: 'xs', color: '#7D6F5B', wrap: true, margin: 'md' },
+    ] };
+}
+function chanBubble_(head, content, buttons) {
+  return { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content) },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons } };
+}
+function chanStat_(label, value) {
+  return { type: 'box', layout: 'vertical', flex: 1, paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF',
+    borderWidth: '1px', borderColor: CHCARD_.LINE, contents: [
+      { type: 'text', text: label, size: 'xxs', color: CHCARD_.SOFT, align: 'center' },
+      { type: 'text', text: value, size: 'md', weight: 'bold', color: CHCARD_.INK, align: 'center', margin: 'sm', wrap: true },
+    ] };
+}
+function chanVideo_(v) {
+  return { type: 'box', layout: 'horizontal', alignItems: 'center', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF',
+    borderWidth: '1px', borderColor: CHCARD_.LINE, action: { type: 'uri', label: '看影片', uri: v.url }, contents: [
+      { type: 'box', layout: 'vertical', flex: 1, contents: [
+        { type: 'text', text: v.title || '（無標題）', size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true, maxLines: 2 },
+        { type: 'text', text: v.at + '・' + chanNum_(v.views) + ' 次觀看', size: 'xxs', color: CHCARD_.SOFT, margin: 'sm' },
+      ] },
+      { type: 'text', text: '›', size: 'md', weight: 'bold', color: CHCARD_.GOLD, flex: 0, margin: 'md' },
+    ] };
+}
+function chanDataFlex_(d) {
+  const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: [
+    { type: 'box', layout: 'horizontal', spacing: 'sm', contents: [
+      chanStat_('訂閱', chanNum_(d.subs)), chanStat_('總觀看', chanNum_(d.views)), chanStat_('影片數', chanNum_(d.videoCount))] },
+  ] }];
+  if (d.videos.length) {
+    const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
+    content[0].contents.push(chanStat_('最近 ' + d.videos.length + ' 支影片平均觀看', chanNum_(avg)));
+    content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', margin: 'xl', contents: [{ type: 'text', text: '最近影片', size: 'xxs', weight: 'bold', color: CHCARD_.GOLD }] });
+    content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: d.videos.slice(0, 5).map(chanVideo_) });
+  }
+  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
+  return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons);
+}
+// 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
+function chanPoints_(text) {
+  const items = [];
+  String(text || '').replace(/\*\*|^#+\s*/gm, '').split('\n').forEach(line => {
+    const t = line.trim();
+    const m = t.match(/^(\d{1,2})[.、)）]\s*(.*)$/);
+    if (m) items.push({ head: m[2], body: [] });
+    else if (t && items.length) items[items.length - 1].body.push(t);
+  });
+  return items.filter(x => x.head).slice(0, 8);
+}
+function chanAdviceFlex_(d, text) {
+  const pts = chanPoints_(text);
+  const box = pts.length
+    ? { type: 'box', layout: 'vertical', spacing: 'lg', paddingAll: '16px', backgroundColor: '#FFFFFF', cornerRadius: '14px',
+        borderWidth: '1px', borderColor: CHCARD_.LINE, contents: pts.map((p, i) => ({ type: 'box', layout: 'horizontal', spacing: 'md', alignItems: 'flex-start', contents: [
+          { type: 'box', layout: 'vertical', width: '26px', height: '26px', cornerRadius: '13px', justifyContent: 'center', alignItems: 'center', flex: 0,
+            background: { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' }, contents: [
+              { type: 'text', text: String(i + 1), size: 'xs', weight: 'bold', color: CHCARD_.INK, align: 'center' }] },
+          { type: 'box', layout: 'vertical', flex: 1, contents: [{ type: 'text', text: p.head, size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true }]
+            .concat(p.body.map(b => ({ type: 'text', text: b, size: 'xs', color: '#5C4E3C', wrap: true, margin: 'sm' }))) },
+        ] })) }
+    : { type: 'text', text: String(text || '').replace(/\*\*/g, ''), size: 'sm', color: CHCARD_.INK, wrap: true };
+  // 一張卡：上面是頻道數據（訂閱、總觀看、影片數），下面是改善建議
+  const stats = { type: 'box', layout: 'horizontal', spacing: 'sm', contents: [chanStat_('訂閱', chanNum_(d.subs)), chanStat_('總觀看', chanNum_(d.views)), chanStat_('影片數', chanNum_(d.videoCount))] };
+  const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingTop: '18px', spacing: 'lg', contents: [stats, box] }];
+  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
+  return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons);
+}
 function chanData_() {
-  try { return { text: chanText_(chanFetch_()), buttons: [[CHAN_ADV_BTN, MENU_BTN]] }; }
-  catch (e) { return { text: chanErr_(e), buttons: MENU }; }
+  try {
+    const d = chanFetch_();
+    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, MENU_BTN]] };
+  } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
 function chanAdvice_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
-  d.videos = d.videos.slice(0, 3);   // 只根據最新的三支影片給建議
-  const sys = '你是有經驗的 YouTube 頻道經營顧問，請用專業經營者的角度，根據下面的頻道數據（JSON，只含最新三支影片），用繁體中文（台灣用語）給出改善建議。請依序用四個小標題整理：【標題】、【內容】、【結尾引導】、【留言】。每個小標題寫 1 到 2 點具體建議，每點先寫結論，再寫依據（引用數據裡的影片標題或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每支影片都有上架時間 at（台北時間，含星期與幾點），建議要一併分析上架時間與觀看數的關係，例如哪個星期或時段的影片表現較好、適合在什麼時候上架。每點用「1.」「2.」這樣的編號開頭，第一行先寫結論，之後換行寫依據（引用數據裡的影片、時間或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
   let text;
   try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, buttons: [[CHAN_BTN, MENU_BTN]] };
+  // 頻道數據卡在上、改善建議卡在下，一次滑過兩張
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
 // 一次性清理：刪掉已經用完的暫時狀態，騰出指令碼屬性空間（上限 50 筆）。在 Apps Script 編輯器選「清理暫時狀態」按「執行」即可，不用重新部署。
@@ -752,6 +843,16 @@ function 清理暫時狀態() {
   const p = PropertiesService.getScriptProperties();
   STALE.forEach(k => p.deleteProperty(k));
   Logger.log('已清理 ' + STALE.length + ' 筆，目前剩 ' + Object.keys(p.getProperties()).length + ' 筆');
+}
+
+// 檢查指令碼屬性：在編輯器選「檢查YouTube金鑰」按「執行」，看執行記錄。只記筆數、大小與名稱，不顯示任何值。
+function 檢查YouTube金鑰() {
+  const all = PropertiesService.getScriptProperties().getProperties();
+  const names = Object.keys(all).map(k => ({ k: k, n: (all[k] || '').length })).sort((a, b) => b.n - a.n);
+  const total = names.reduce((s, x) => s + x.n, 0);
+  Logger.log('YOUTUBE_API_KEY ' + (all.YOUTUBE_API_KEY ? '有值，長度 ' + all.YOUTUBE_API_KEY.length : '沒有值（找不到）'));
+  Logger.log('共 ' + names.length + ' 筆，總字數約 ' + total);
+  names.forEach(x => Logger.log(x.k + '　' + x.n));
 }
 
 // LINE 與 Telegram 共用：說明、清除對話，其餘交給 AI
@@ -1245,10 +1346,9 @@ function stratCard_(k, th, pair) {
     '第 1 張封面：title 主標每行最多四字、最多三行（用 \\n 分行），跟貼文標題不同；主標要是反骨句；hook 一句鉤子 16 字內，接著反骨點製造懸念（例如「問題不在你，在順序」），讓人想往下滑；封面不寫 body、gold。',
     '第 2、3 張：title 主標每行最多四字、最多三行，只講一個重點；body 正文 2 到 3 行、每行一句短句 10 字內（整張最多 36 字）；gold 反骨金句一句 20 字內：先順著大家以為的常識說，再用「真正的⋯⋯，從不⋯⋯」反轉，不加解釋。',
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
-    '③留言建議（comment）：貼文發出後，彥彬自己貼在下面的第一則留言。用一個具體的問題或觀察，請讀者說說自己的經驗；一句，20 到 60 字；不叫人私訊、不索取東西，不寫療效或成效保證，不重複貼文標題。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
-    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"],"comment":"留言建議"}',
+    '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
@@ -1274,7 +1374,6 @@ function stratCard_(k, th, pair) {
     tags: (Array.isArray(c.tags) ? c.tags : String(c.tags || '').split(/\s+/)).map(s => String(s).trim()).filter(Boolean)
       .filter(s => !STRAT_NO_TAG.test(s))
       .map(s => s.charAt(0) === '#' ? s : '#' + s).slice(0, 5),
-    comment: String(c.comment || '').replace(/\s+/g, ' ').trim().slice(0, 120),   // 留言建議：貼在貼文下面，不放進發社群的內文
   };
   // 火山草本（含軍師判定成火山草本）：結尾一定要附「以上是個人感受」
   card.note = k === 'herb' || /火山草本/.test(card.cat) ? '以上是個人感受' : '';
@@ -1739,8 +1838,10 @@ function stratText_(c) {
     .filter((s, i, a) => s !== '' || (a[i - 1] !== '' && i > 0)).join('\n').trim();
 }
 // 給對話的回覆：文案＋留言建議（留言建議是貼在貼文下面的第一則留言，不進發社群的內文）
+// 回覆照區塊排列（2026-10-28 比照神對話 EP03 的結構）：基本資料在上、複製貼上專區在下；發社群用的 stratText_ 不加區塊標題
 function stratReply_(c) {
-  return stratText_(c) + (c.pair ? '\n\n👥 對話：' + c.pair : '') + (c.comment ? '\n\n💬 留言建議（貼在貼文下面）：\n' + c.comment : '');
+  const info = ['【基本資料】', '主題：' + c.theme, '分類：' + (c.cat2 || c.label), c.pair ? '對話：' + c.pair : '', '圖卡：' + (c.cards || []).length + ' 張（圖卡另外傳）'].filter(Boolean);
+  return info.join('\n') + '\n\n【複製貼上專區】\n' + stratText_(c);
 }
 
 // 圖卡版面（直式 4:5）；2026-10-22 使用者：軍師圖卡都改淺色系、要有質感 → 用該主題配套款的暖光淺色底（kit/<款式>/card3_bg.jpg，沒有桌面）＋雙層金框，字用該款深色
@@ -3662,6 +3763,10 @@ function tgSend_(chatId, msg) {
   if (msg && typeof msg === 'object' && msg.imgs && msg.imgs.length) {   // 款式預覽圖：先送一組相簿
     tgApi_('sendMediaGroup', { chat_id: chatId, media: msg.imgs.slice(0, 10).map((u, i) => ({ type: 'photo', media: u, caption: (msg.caps || [])[i] || '' })) });
   }
+  if (msg && typeof msg === 'object' && msg.png) {   // 萬元質感卡：先傳圖，文字照常接著傳（可以複製）
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/sendPhoto', {
+      method: 'post', muteHttpExceptions: true, payload: { chat_id: String(chatId), photo: msg.png } });
+  }
   rich = msg && typeof msg === 'object' && !!msg.buttons;
   if (msg && typeof msg === 'object' && !msg.buttons) msg = msg.text;
   tgApi_('sendMessage', { chat_id: chatId, text: String(rich ? msg.text : msg).slice(0, 4000),
@@ -3892,7 +3997,9 @@ function reply_(replyToken, msg, extra, menu) {
   const buttons = rich && msg.flex && !msg.alt ? QUICK : quick_(rich && msg.buttons ? msg.buttons : menu ? MENU : null);
   const items = lineItems_(buttons);
   if (items.length) m.quickReply = { items: items };
-  lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
+  const code = lineApi_('reply', { replyToken: replyToken, messages: (extra || []).concat([m]).slice(0, 5) });
+  // 卡片被 LINE 拒絕時（畫面送不出去，按了沒反應），改用文字版再回一次，不讓使用者只看到沒反應
+  if (code !== 200 && m.type === 'flex') lineApi_('reply', { replyToken: replyToken, messages: [{ type: 'text', text: String(rich ? msg.text : msg).slice(0, 5000), quickReply: m.quickReply }] });
 }
 // LINE 快速回覆的按鈕列（已經過 quick_）轉成 items，最多 13 個
 function lineItems_(rows) {
@@ -6462,6 +6569,8 @@ function leadHandle_(body) {
   (body.entry || []).forEach(en => (en.changes || []).forEach(ch => {
     const v = ch.value || {};
     let c = null;
+    // 只處理本粉專的留言；別人粉專的留言沒有權限回，直接略過不報錯
+    if (body.object === 'page' && String(en.id) !== String(prop_('FB_PAGE'))) { leadLog_('收到別的粉專的通知，略過（只處理本粉專）'); return; }
     if (body.object === 'instagram' && ch.field === 'comments')
       c = { p: 'ig', id: v.id, text: v.text, from: v.from && v.from.id, who: v.from && ('@' + v.from.username), self: prop_('IG_USER') };
     else if (body.object === 'page' && ch.field === 'feed' && v.item === 'comment' && v.verb === 'add')

@@ -131,12 +131,17 @@ header b span{font-size:19px;letter-spacing:1.5px;white-space:nowrap}
 #cfgok{color:var(--soft);font-size:14px}#cfg{margin-top:10px}
 #login.first #opts,#login.first #setx,#login.first #logout{display:none}
 #qsel{flex:1 1 100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:0 12px}
-#schedb{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
-#sched,#sform{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#schedb,#ham{width:50px;height:50px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--gold);font-size:22px;display:grid;place-items:center}
+#sched,#sform,#tmenu,#tres{position:fixed;inset:0;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;z-index:9}
 #sform{z-index:10}
-#sched .box,#sform .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
+#ham{color:var(--gold)}#ham svg{width:26px;height:26px}
+#tmenu .box{height:auto;max-height:80vh;overflow:auto}
+#tmenu .tbtn{display:block;width:100%;text-align:left;min-height:52px;padding:0 16px;margin-top:8px;border-radius:14px;background:transparent;border:1px solid var(--line);color:inherit;font-size:17px}
+#tmenu .tbtn small{display:block;color:var(--soft);font-size:15px;margin-top:2px}
+
+#sched .box,#sform .box,#tmenu .box,#tres .box{background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.3);border-radius:22px 22px 0 0;width:100%;max-width:560px;height:88vh;display:flex;flex-direction:column;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px -20px #000}
 #sform .box{height:auto;max-height:92vh;overflow:auto}
-html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
+html[data-theme=light] #sched .box,html[data-theme=light] #sform .box,html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:#FFFDF8;color:#3b2a20;border-color:var(--line)}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh b{font-family:var(--serif);letter-spacing:2px;color:var(--gold);font-size:19px}
 .sr{display:flex;align-items:center;gap:8px}
@@ -178,8 +183,195 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background
 .frow button{flex:1;width:auto;height:50px;border-radius:14px;background:transparent;border:1px solid var(--line);color:var(--ink);font-size:16px;font-weight:700}
 .frow .sv{background:var(--champ);color:#1A150D;border:none}
 .frow .dl{flex:0 0 92px;color:#D98A6B;border-color:rgba(217,138,107,.4)}
+/* 萬元質感：交易、☰ 選單、設定面板（黑曜石＋香檳金，只改外觀） */
+#tmenu .box,#tres .box,#login .box{background:linear-gradient(180deg,#221E18 0%,#15120E 100%);border:1px solid rgba(220,195,148,.28);box-shadow:0 -30px 80px -24px #000,inset 0 1px 0 rgba(241,223,180,.12)}
+#tmenu .sh,#tres .sh{padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:8px}
+#tmenu .sh b,#tres .sh b{font-family:var(--serif);font-size:20px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent}
+#tmenu .tbtn,#tres .tbtn{display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:12px 18px;margin-top:10px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:1.5px;text-align:left;box-shadow:inset 0 1px 0 rgba(241,223,180,.08);transition:border-color .2s,background .2s}
+#tmenu .tbtn:active,#tres .tbtn:active{background:rgba(201,165,106,.14)}
+#tmenu .tbtn small,#tres .tbtn small{font-family:-apple-system,"PingFang TC",sans-serif;font-weight:400;letter-spacing:.3px;color:rgba(243,238,229,.55);font-size:13px;margin-top:4px}
+#tmenu .mgrp{margin-top:14px}
+#tmenu .mgh{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;-webkit-user-select:none;user-select:none;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold);padding:12px 4px;border-bottom:1px solid var(--line)}
+#tmenu .mgh::-webkit-details-marker{display:none}
+#tmenu .mgh i{font-style:normal;font-size:12px;transition:transform .2s}
+#tmenu .mgrp[open] .mgh i{transform:rotate(180deg)}
+#tmenu .mgrp[open] .mgh{border-bottom-color:rgba(220,195,148,.45)}
+#tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:16px;line-height:1.85;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(220,195,148,.18)}
+#tres #trbtn{display:grid;gap:8px}
+#tres #trbtn .tbtn{margin-top:0;min-height:52px;flex-direction:row;align-items:center;justify-content:center;text-align:center;font-size:16px}
+html[data-theme=light] #tmenu .box,html[data-theme=light] #tres .box{background:linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
+html[data-theme=light] #tmenu .tbtn,html[data-theme=light] #tres .tbtn{color:#3A2E1E;background:#FFFDF8;border-color:var(--line)}
+html[data-theme=light] #tmenu .tbtn small,html[data-theme=light] #tres .tbtn small{color:rgba(20,18,15,.55)}
+/* 交易面板（萬元質感）：深色金框、結果用襯線字與金色重點，主要按鈕香檳金，其餘按鈕淡金線框 */
+#tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(201,165,106,.16),transparent 60%),linear-gradient(180deg,#221E18 0%,#120F0C 100%)}
+html[data-theme=light] #tres .box{background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(176,141,87,.14),transparent 60%),linear-gradient(180deg,#FFFDF8 0%,#F7F1E5 100%)}
+#tres .sh{padding-bottom:14px}
+#tres #trt{font-family:var(--serif);font-size:18px;letter-spacing:2px}
+#tres #trb{font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5;font-size:15px;line-height:1.7;word-break:break-word}
+#tres #trb b,#tres #trb strong{color:var(--gold);font-weight:700}
+html[data-theme=light] #tres #trb{color:#2A2118;background:#FFFDF8}
+#tres #trbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;width:100%}
+#tres #trbtn .tbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%;height:auto;margin-top:0;min-height:54px;text-align:center;font-size:15px;letter-spacing:1px;white-space:nowrap;padding:10px 12px;border-radius:14px}
+#tres #trbtn .tbtn:first-child{grid-column:1/-1;background:var(--champ);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+html[data-theme=light] #tres #trbtn .tbtn:first-child{color:#1A150D}
+/* 每一筆持倉一張卡片；面板高度跟內容走，不再超出螢幕底部 */
+#tres .box{height:auto;max-height:88vh;overflow:auto}
+#tres #trb{padding:0;border:0;background:none;box-shadow:none}
+html[data-theme=light] #tres #trb{background:none;border:0}
+.tline{font-family:-apple-system,"PingFang TC",sans-serif;font-size:15px;line-height:1.8;color:#F3EEE5;margin:6px 2px}
+.tpos{margin-top:12px;padding:14px 16px;border-radius:16px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
+.tposh{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:1px;color:var(--gold);margin-bottom:6px}
+.tposd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;line-height:1.75;color:rgba(243,238,229,.72)}
+.tposd.pos{color:#E9D3A2;font-weight:600}
+.tposd.neg{color:#D98A6B;font-weight:600}
+html[data-theme=light] .tline,html[data-theme=light] .tposd{color:#3A2E1E}
+html[data-theme=light] .tposd{color:rgba(20,18,15,.7)}
+html[data-theme=light] .tposd.pos{color:#8A6A37}
+html[data-theme=light] .tpos{background:#FFFDF8;border-color:var(--line)}
+/* 手機點按尺寸：按鈕至少 44px 高、間距加大，避免擠在一起或被手指誤觸 */
+button,.chip,.cc .ca a,.cc .ca button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#endc{height:44px;padding:0 28px}
+.sx{width:44px;height:44px}
+.stxt{height:44px;padding:0 16px}
+.stabs{gap:8px}
+.stabs button{height:44px}
+.chip{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;max-width:100%;white-space:normal;line-height:1.25}
+.cc .ca{gap:8px}
+.cc .ca a,.cc .ca button{min-height:44px;padding:10px 10px}
+#vs .x{height:48px}
+#tmenu .tbtn,#tres .tbtn{min-height:60px}
+#tres #trbtn .tbtn{min-height:52px}
+@media (max-width:360px){
+  header b{font-size:18px}
+  #mic{width:60px;height:60px}
+  .chip{font-size:14px;padding:9px 12px}
+  #tmenu .tbtn,#tres .tbtn{font-size:16px;padding:12px 14px}
+}
+/* 持倉卡片：金色刻線、損益綠紅分明、淺色版加陰影 */
+.tpos{position:relative;padding:16px 18px 14px 22px;border-radius:18px;overflow:hidden;box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12)}
+.tpos::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:var(--champ)}
+.tposh{font-size:18px;line-height:1.5;color:#F3EEE5;margin-bottom:8px}
+.tposd{font-size:14.5px;line-height:1.8}
+.tposd.pos{color:#8FDBB2;font-weight:700}
+.tposd.neg{color:#F2998A;font-weight:700}
+html[data-theme=light] .tpos{box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .tposh{color:#2A2118}
+html[data-theme=light] .tposd{color:rgba(42,33,24,.72)}
+html[data-theme=light] .tposd.pos{color:#2F7D5B}
+html[data-theme=light] .tposd.neg{color:#B5523A}
+/* 字體加大（手機看得清楚）：☰ 選單所有文字 */
+#tmenu .sh b{font-size:24px}
+#tres .sh b{font-size:23px}
+#tmenu .mgh{font-size:20px;letter-spacing:2px;padding:16px 4px}
+#tmenu .mgh i{font-size:17px}
+#tmenu .tbtn{font-size:19px;line-height:1.35;height:auto;min-height:72px;padding:14px 18px}
+#tmenu .tbtn small{font-size:16px;line-height:1.6;margin-top:6px}
+#tres #trt{font-size:21px}
+#tres #trb{font-size:17px}
+#tres #trbtn .tbtn{font-size:17px;min-height:58px}
+#tres #trbtn .tbtn:first-child{font-size:18px}
+.tline{font-size:17px}
+.tposh{font-size:20px}
+.tposd{font-size:16px}
+/* 行程面板：上方按鈕與分頁拉開距離，手指比較好點 */
+#sched .sh{margin-bottom:18px;padding-top:6px}
+#sched .sr{gap:12px}
+#sched .sr .stxt,#sched .sr .sx{height:46px}
+#sched .sr .sx{width:46px}
+#sched .stabs{margin:6px 0 14px}
+/* 貼上行程：新增與貼上並排，兩顆都是金色系大按鈕；預覽每筆一張金框卡，解析不了的標紅、不能勾 */
+.srow{display:flex;gap:10px;margin-top:10px}
+.srow .sadd{flex:1;margin-top:0}
+.spst{flex:1;height:50px;border-radius:14px;background:transparent;border:1px solid rgba(220,195,148,.45);color:var(--gold);font-weight:700;font-size:16px;letter-spacing:1px}
+.spaste{height:auto;min-height:190px;padding:12px;line-height:1.7;resize:vertical;font-family:inherit}
+.prl{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:48vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.pr{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.06),rgba(255,255,255,.012))}
+.pr input{flex:0 0 22px;width:22px;height:22px;margin-top:4px;accent-color:#C9A56A}
+.pr.bad{border-color:rgba(217,138,107,.45)}
+.pr .prd{display:block;font-size:13px;color:var(--gold);letter-spacing:.5px}
+.pr .pri{display:block;margin-top:3px;font-size:16px;font-weight:600;line-height:1.5;word-break:break-all}
+.pr .pre{display:block;margin-top:3px;font-size:13px;color:#D98A6B}
+.pr.bad .pri{opacity:.6}
+.pcount{font-size:13px;color:var(--soft);margin-top:12px}
+/* 頻道面板（萬元質感）：數據卡用金色大數字，影片與改善建議各一張金框卡片，淺色版同樣分明 */
+#tres .chead{font-family:var(--serif);font-size:19px;letter-spacing:1.5px;color:#F3EEE5;padding:2px 2px 14px;margin-bottom:12px;border-bottom:1px solid rgba(220,195,148,.3)}
+.cstats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cst{position:relative;overflow:hidden;padding:16px 16px 14px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:radial-gradient(ellipse 120% 80% at 0% 0%,rgba(241,223,180,.14),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));box-shadow:inset 0 1px 0 rgba(241,223,180,.12)}
+.cstl{font-family:-apple-system,"PingFang TC",sans-serif;font-size:12px;letter-spacing:.3px;line-height:1.45;min-height:2.9em;color:rgba(243,238,229,.6);text-wrap:balance}
+.cstv{margin-top:6px;font-family:"Cormorant Garamond",var(--serif);font-size:28px;font-weight:600;line-height:1.1;color:#F1DFB4;font-variant-numeric:lining-nums}
+.csec{margin:20px 2px 4px;font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--gold)}
+.cvid{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:18px 18px 16px 22px;border-radius:18px;border:1px solid rgba(220,195,148,.24);background:radial-gradient(ellipse 110% 90% at 0% 0%,rgba(241,223,180,.10),transparent 60%),linear-gradient(180deg,rgba(241,223,180,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(241,223,180,.10)}
+.cvlist{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.cvid::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--champ)}
+.cvd{font-family:-apple-system,"PingFang TC",sans-serif;font-size:12px;letter-spacing:.8px;color:rgba(243,238,229,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cvt{margin-top:8px;font-family:var(--serif);font-size:17px;font-weight:700;line-height:1.6;letter-spacing:.3px;color:#F3EEE5;text-wrap:pretty}
+.cvv{margin-top:12px;padding-top:10px;border-top:1px solid rgba(220,195,148,.18);font-family:-apple-system,"PingFang TC",sans-serif;font-size:13px;font-weight:600;letter-spacing:.4px;color:#E9D3A2;font-variant-numeric:tabular-nums}
+.cadv{display:grid;grid-template-columns:auto 1fr;gap:14px;margin-top:12px;padding:16px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.1)}
+.cadvn{width:34px;height:34px;border-radius:50%;background:var(--champ);color:#1A150D;font-family:"Cormorant Garamond",var(--serif);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;font-variant-numeric:lining-nums;box-shadow:0 8px 18px -10px rgba(201,165,106,.7)}
+.cadvh{font-family:var(--serif);font-size:16.5px;font-weight:700;line-height:1.5;color:#F3EEE5}
+.cadvb{margin-top:6px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14.5px;line-height:1.8;color:rgba(243,238,229,.78)}
+html[data-theme=light] #tres .chead{color:#2A2118;border-bottom-color:var(--line)}
+html[data-theme=light] .cst,html[data-theme=light] .cvid,html[data-theme=light] .cadv{background:#FFFDF8;border-color:var(--line);box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .cstl,html[data-theme=light] .cvd{color:rgba(20,18,15,.55)}
+html[data-theme=light] .cstv,html[data-theme=light] .cvv{color:#8A6A37}
+html[data-theme=light] .cvv{border-top-color:var(--line)}
+html[data-theme=light] .cvt,html[data-theme=light] .cadvh{color:#2A2118}
+html[data-theme=light] .cadvb{color:rgba(42,33,24,.75)}
+html[data-theme=light] .csec{color:#8A6A37}
+@media (max-width:360px){.cstv{font-size:26px}.cadvh{font-size:15.5px}}
+/* 獲利查詢：交易 App 列表版面（方向與商品在上，開倉→現價與損益並排，成本與停損停利列在下） */
+.pcard{position:relative;margin-top:14px;padding:14px 16px 6px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.08),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5}
+.phead{display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid rgba(220,195,148,.2)}
+.pdir{font-size:12px;font-weight:700;line-height:1;padding:5px 8px;border-radius:7px;border:1px solid;white-space:nowrap}
+.pdir.up{color:#8FDBB2;border-color:rgba(143,219,178,.5);background:rgba(143,219,178,.08)}
+.pdir.dn{color:#F2998A;border-color:rgba(242,153,138,.5);background:rgba(242,153,138,.08)}
+.pname{flex:1;min-width:0;font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:1px;color:#F1DFB4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.psize{font-size:13px;color:rgba(243,238,229,.55);white-space:nowrap}
+.pmain{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0 12px}
+.pflow{display:flex;align-items:baseline;white-space:nowrap;gap:8px;font-family:"Cormorant Garamond",var(--serif);font-size:20px;font-weight:600;color:rgba(243,238,229,.78);font-variant-numeric:lining-nums tabular-nums}
+.parr{font-family:-apple-system,sans-serif;font-size:14px;color:rgba(243,238,229,.4)}
+.pv-now{color:#F3EEE5}
+.plb{font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.55)}
+.pv{font-family:"Cormorant Garamond",var(--serif);font-size:20px;font-weight:600;color:#F3EEE5;font-variant-numeric:lining-nums tabular-nums}
+.pbig{text-align:right;flex:none}
+.pbig .plb{text-align:right}
+.pbv{font-family:"Cormorant Garamond",var(--serif);font-size:24px;font-weight:600;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
+.ppc{margin-top:2px;font-size:14px;font-weight:700}
+.prow,.plv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(220,195,148,.14)}
+.prow .pv{font-size:17px}
+.pval{text-align:right}
+.pval .pbv{font-size:20px}
+.pval .ppc{font-size:13px}
+.plv .plb{line-height:1.5}
+.pnote{padding:10px 0;font-size:13px;color:rgba(243,238,229,.55);border-top:1px solid rgba(220,195,148,.14)}
+.tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
+html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
+html[data-theme=light] .phead,html[data-theme=light] .pnote{border-color:var(--line)}
+html[data-theme=light] .pname{color:#2A2118}
+html[data-theme=light] .psize,html[data-theme=light] .plb,html[data-theme=light] .pnote{color:rgba(42,33,24,.6)}
+html[data-theme=light] .pdir.up,html[data-theme=light] .tn-pos{color:#2F7D5B}
+html[data-theme=light] .pdir.dn,html[data-theme=light] .tn-neg{color:#B5523A}
+html[data-theme=light] .pdir.up{border-color:rgba(47,125,91,.45);background:rgba(47,125,91,.06)}
+html[data-theme=light] .pdir.dn{border-color:rgba(181,82,58,.45);background:rgba(181,82,58,.06)}
+html[data-theme=light] .pflow{color:rgba(42,33,24,.72)}
+html[data-theme=light] .parr{color:rgba(42,33,24,.45)}
+html[data-theme=light] .pv,html[data-theme=light] .pv-now{color:#2A2118}
+html[data-theme=light] .prow,html[data-theme=light] .plv{border-color:var(--line)}
+/* 快速下單：一個畫面，商品、數量、買賣按鈕都在同一頁 */
+.tkr{display:flex;gap:8px;margin-top:12px;align-items:stretch}
+.tkc{flex:1;height:50px;border-radius:14px;border:1px solid var(--line);background:transparent;color:inherit;font-family:var(--serif);font-size:17px;font-weight:700}
+.tkc.on{background:var(--champ);color:#1A150D;border-color:transparent}
+.tkn{flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--num);font-size:24px;color:#F1DFB4;font-variant-numeric:lining-nums tabular-nums}
+.tkn button{width:50px;height:50px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--gold);font-size:24px;padding:0}
+.tkb{flex:1;height:62px;border-radius:16px;border:none;font-size:18px;font-weight:700;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.tkb.buy{background:linear-gradient(135deg,#2F9E72,#1F7A56)}
+.tkb.sell{background:linear-gradient(135deg,#D9624A,#B5523A)}
+.tkb:disabled{opacity:.35}
+.tktout{margin-top:6px}
+#tres #tktout .tbtn{width:100%;margin-top:8px;flex-direction:row;align-items:center;justify-content:center;text-align:center;min-height:52px;white-space:nowrap;font-size:16px}
+#tres #tktout .tbtn.main{background:var(--champ);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5)}
 </style></head><body>
-<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="schedb" type="button" title="行程" style="margin-left:auto">📅</button><button id="gear" type="button" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></header>
+<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
@@ -246,12 +438,14 @@ html[data-theme=light] #sched .box,html[data-theme=light] #sform .box{background
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-ticket="1">⚡ 下單<small>選商品、數量與買賣，同一畫面看提案，確認後才送出</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📊 查看持倉" data-title="💰 獲利查詢">💰 獲利查詢<small>持倉的開倉成本、未實現損益，與停損停利碰到的損益，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button><button type="button" class="tbtn" data-remind="1">🔔 適合交易提醒<small>看提醒狀態，點確認只做記錄，不會送出下單</small></button></details><details class="mgrp"><summary class="mgh">📺 頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="🧘 修行">🧘 修行<small>選主題，寫一篇修行文案，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📕 7張＋PDF">📕 7張＋PDF<small>選主題，做成 7 張輪播圖卡與 PDF（約 1～2 分鐘）</small></button><button type="button" class="tbtn" data-t="👤 設定主角">👤 設定主角<small>短劇主角，一步步設定</small></button><button type="button" class="tbtn" data-t="👤 設定第二主角">👤 設定第二主角<small>短劇第二位主角（一男一女）</small></button><button type="button" class="tbtn" data-t="⚙️ 圖卡設定">⚙️ 圖卡設定<small>圖卡署名與文案標題</small></button><button type="button" class="tbtn" data-t="🕗 自動發文開關">🕗 自動發文<small>每天晚上自動發智囊軍師圖卡，按一下開啟或關閉</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button><button type="button" class="tbtn" data-t="🔎 見證庫">🔎 見證庫<small>網頁找見證，一鍵分享</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
+<div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trbtn"></div><div id="trb"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
  <div class="stabs"><button id="stN" type="button" class="on">接下來</button><button id="stP" type="button">過去</button></div>
  <div class="smsg" id="smsg"></div>
  <div id="slist"></div>
- <button id="sadd" type="button" class="sadd">＋ 新增行程</button>
+ <div class="srow"><button id="sadd" type="button" class="sadd">＋ 新增行程</button><button id="spaste" type="button" class="spst">📋 貼上行程</button></div>
  <div class="sbar" id="sbar" hidden><button id="sAll" type="button">全選</button><button id="sDelSel" type="button" disabled>刪除已選（0 筆）</button><button id="sCancel" type="button">取消</button></div>
 </div></div>
 <div id="sform"><div class="box" id="sfbox"></div></div>
@@ -285,7 +479,6 @@ function login(msg){$('login').classList.toggle('first',!KEY||!URL);cfgShow(true
 $('pwgo').onclick=()=>{const u=$('url').value.trim().replace(/\?.*$/,''),k=$('pw').value.trim()||KEY;if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){$('lgmsg').textContent='網址要是 https://script.google.com/macros/s/…/exec';return;}if(!k){$('lgmsg').textContent='請輸入同步密碼';return;}const first=$('login').classList.contains('first');URL=u;KEY=k;saveCfg();$('login').classList.remove('first');if(first)$('login').style.display='none';else cfgShow(false);};
 $('logout').onclick=()=>{try{localStorage.removeItem('xg_talk');}catch(e){}KEY='';URL='';login('已清除。要再用請重新設定。');};
 function setOpen(){if(!KEY||!URL){login();return;}$('login').classList.remove('first');cfgShow(false);$('login').style.display='flex';}
-$('gear').onclick=setOpen;
 $('cfgedit').onclick=()=>{cfgShow(true);$('lgmsg').textContent='修改連線設定（密碼留空就沿用原本的）';$('url').value=URL;$('pw').value='';};
 $('setx').onclick=()=>{$('login').style.display='none';};
 $('login').onclick=e=>{if(e.target.id==='login'&&KEY&&URL)$('login').style.display='none';};
@@ -296,13 +489,13 @@ function optSave(){$('real').disabled=!$('spk').checked;try{localStorage.setItem
 $('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
 if(!KEY||!URL)login();const log=$('log'),hint=$('hint');
 let busy=false,rec=null,photo=null;const Q=[];setInterval(()=>{if(!busy&&Q.length){const a=Q.shift();send(a[0],a[1],a[2]);}},300);
-const QCATS=[['常用',['💎 選單','📋 試算','🛒 下單','🪶 智囊軍師','🧘 修行','⏰ 今天行程','✅ 我的待辦','📝 我的筆記']],['交易',['📊 查看持倉','📉 平倉','📜 下單紀錄','🔔 交易提醒']],['影片與案例',['🎬 剪 Reels','🎞️ 剪大片','📕 7張＋PDF','🗂️ 案例分類','💬 見證案例','🔍 查詢案例']],['找東西',['📁 本機找','🌐 上網找']],['行程',['➕ 新增行程','🗑️ 刪除行程']],['設定與其他',['👤 設定主角','💬 自動留言','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明']]];
+const QCATS=[['常用',['💎 選單','📋 試算','🛒 下單','🪶 智囊軍師','⏰ 今天行程','✅ 我的待辦','📝 我的筆記']],['交易',['📊 查看持倉','📉 平倉','📜 下單紀錄','🔔 交易提醒']],['影片與案例',['🎬 剪 Reels','🎞️ 剪大片','📕 7張＋PDF','🗂️ 案例分類','💬 見證案例','🔍 查詢案例']],['找東西',['📁 本機找','🌐 上網找']],['行程',['➕ 新增行程','🗑️ 刪除行程']],['設定與其他',['👤 設定主角','💬 自動留言','🎤 換聲音','⚙️ 圖卡設定','🎙️ 語音快捷指令','❓ 說明']]];
 const MENU=[].concat(...QCATS.map(c=>c[1]));
 // 「⚡ 最新一張」：網頁讀不到相簿，改叫 iPhone 捷徑「試算報表」自動抓最新照片
 const LATEST='⚡ 最新一張';
 // 點一下 ⚡ 快速功能展開，從類別下拉選單選一個就送出（使用者 2026-10-24：按鈕太多）
 function runChip(t){if(t==='📋 試算'){$('q').value='試算';pickPhoto(false);return;}if(t===LATEST){location.href='shortcuts://run-shortcut?name='+encodeURIComponent('試算報表');return;}if(t==='📷 選照片'){pickPhoto(false);return;}if(t==='📸 拍照'){pickPhoto(true);return;}if(t==='🎙️ 語音快捷指令'){vsOpen();return;}send(t);}
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask&&list.indexOf('📷 選照片')>=0&&list.indexOf(LATEST)<0)list=[LATEST].concat(list);
+function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;if(ask)list=[LATEST].concat(list.filter(t=>t!==LATEST));
  if(!ask){const tg=document.createElement('button');tg.className='chip';tg.id='qtog';tg.setAttribute('aria-expanded','false');tg.textContent='⚡ 快速功能 ▾';
   const sel=document.createElement('select');sel.id='qsel';sel.hidden=true;sel.setAttribute('aria-label','快速功能');
   sel.appendChild(new Option('選一個功能…',''));
@@ -347,7 +540,7 @@ let lpT=null;log.addEventListener('touchstart',e=>{const d=e.target.closest('.m'
 ['touchend','touchmove','touchcancel'].forEach(k=>log.addEventListener(k,()=>{clearTimeout(lpT);lpT=null;},{passive:true}));
 log.addEventListener('contextmenu',e=>{const d=e.target.closest('.m');if(d&&!d.classList.contains('hello')){e.preventDefault();if(!document.body.classList.contains('sel'))selMode(true,d);}});
 // iPhone 不讓網頁自己出聲：第一次按按鈕時先播一段無聲音檔「解鎖」，之後小乖的語音才放得出來
-const SIL='data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAABgAAAykAWlpaWlpaWlpaWlpaWlpaWnt7e3t7e3t7e3t7e3t7e3t7nJycnJycnJycnJycnJycnL29vb29vb29vb29vb29vb293t7e3t7e3t7e3t7e3t7e3t7/////////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQCowAAAAAAAAMpso+sIAAAAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NAxKQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEowAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
+const SIL='data:audio/wav;base64,UklGRoQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YWAAAAB/gIB/gICAgYB/gICBf3+AgIF/f4CAgYGBgICAf4CBf4CBf4B/gICAgX9/gX+BgICAgYF/f4CBgYCAgYB/gH+AgH+AgICAgYF/f4CBgIF/f4CBgICBgIGBgYGBf39/gYE=';
 // 共用一個音效環境：在你按按鈕時開好、之後一直沿用（iPhone 在按鈕以外新開的會卡在暫停，聽不到你講話，連續對話才會講一句就停）
 let AC=null,acSrc=null,auSrc=null,ttsT=null;
 function getAC(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume().catch(()=>{});}catch(e){AC=null;}return AC;}
@@ -386,7 +579,7 @@ function localAct(t){const s=String(t||'').replace(/[\s。．.！!？?，,、]+/
   return {label:'打開 LINE（LINE 不能直接用名字開聊天，要說「LINE ○○ 說 內容」）',url:'line://'};}
  return null;}
 function localOpen(a,w){w=w||add('','xg');w.textContent='好，'+a.label+'。沒有自己打開的話，點下面的按鈕。';const b=document.createElement('button');b.className='appbtn';b.textContent='開啟';b.onclick=()=>{location.href=a.url;};w.appendChild(b);log.scrollTop=1e9;saveLog();convOff('');setTimeout(()=>{location.href=a.url;},300);}
-function P(b){const ac=new AbortController();setTimeout(()=>ac.abort(),45000);return fetch(URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
+function P(b,ms){const ac=new AbortController();setTimeout(()=>ac.abort(),ms||45000);return fetch(URL,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){const t=x.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error('小乖回的不是正常格式：'+(t||'空白'));}});}
 function send(q,img,aud){q=(q||'').trim();if(busy){if(q||img||aud){Q.push([q,img,aud]);if(q&&$('q').value.trim()===q)$('q').value='';}return;}if(!q&&!img&&!aud)return;
  if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}const la=localAct(q);if(la){add(q,'me');$('q').value='';localOpen(la);return;}}busy=true;const tm={s:Date.now()};const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
@@ -512,6 +705,7 @@ function sVisible(){const t=sToday();return sEvents.filter(e=>sTab==='next'?e.da
 function sSelUI(){
  $('sbar').hidden=!sSelMode;
  $('sadd').hidden=sSelMode;
+ $('spaste').hidden=sSelMode;
  const n=sPicked.size, vis=sVisible();
  const all=vis.length>0&&vis.every(e=>sPicked.has(e.id));
  $('sAll').textContent=all?'取消全選':'全選';
@@ -536,8 +730,174 @@ $('sDelSel').onclick=async()=>{
  }
  sSelMode=false;sPicked.clear();sRender();sSelUI();
  sMsg(failed?'已刪除 '+done+' 筆，'+failed+' 筆失敗，請再試一次':'已刪除 '+done+' 筆');};
-$('schedb').onclick=openSched;
+// 貼上行程：一次貼多行 → 解析成預覽（看不懂的標紅不能存）→ 勾選後才照單筆新增的規則逐筆寫入，不經過對話串
+let sPasteRows=[];
+function sDateAdd(k){const x=new Date();x.setDate(x.getDate()+k);return x.getFullYear()+'-'+sPad(x.getMonth()+1)+'-'+sPad(x.getDate());}
+function sPasteDate(s){
+ let m=s.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+ if(m)return {d:m[1]+'-'+sPad(m[2])+'-'+sPad(m[3]),t:m[0]};
+ m=s.match(/(\d{1,2})[\/\-.月](\d{1,2})[日號]?/);
+ if(m)return {d:new Date().getFullYear()+'-'+sPad(m[1])+'-'+sPad(m[2]),t:m[0]};
+ for(const [w,k] of [['今天',0],['今日',0],['明天',1],['明日',1],['後天',2]])if(s.includes(w))return {d:sDateAdd(k),t:w};
+ return null;}
+function sPasteTime(s){
+ const m=s.match(/(上午|早上|中午|下午|晚上|凌晨)?\s*(\d{1,2})(?:\s*[:：]\s*(\d{2})|\s*[點時](?:\s*(半|\d{1,2})分?)?)/);
+ if(!m)return null;
+ let h=+m[2];const mi=m[3]?+m[3]:m[4]==='半'?30:m[4]?+m[4]:0,p=m[1]||'';
+ if((p==='下午'||p==='晚上')&&h<12)h+=12;
+ if(p==='中午'&&h<11)h+=12;
+ if(p==='凌晨'&&h===12)h=0;
+ if(h>23||mi>59)return {bad:true,t:m[0]};
+ return {time:sPad(h)+':'+sPad(mi),t:m[0]};}
+function sParseLine(raw){
+ let s=raw.replace(/^\s*(?:[-•・*]|\d+[.、)])\s+/,'').replace(/[（(][一二三四五六日天][）)]|[週星期][一二三四五六日天]/g,' ').trim();
+ if(!s)return null;
+ const allDay=s.includes('整天'),r={title:'',date:'',time:'',err:''};
+ const dt=sPasteDate(s);if(dt){r.date=dt.d;s=s.replace(dt.t,' ');}
+ const tm=sPasteTime(s);
+ if(tm&&tm.bad)r.err='時間看不懂';
+ else if(tm){if(!allDay)r.time=tm.time;s=s.replace(tm.t,' ');}
+ r.title=s.replace(/整天/g,' ').replace(/\s+/g,' ').replace(/^[\s\-｜|:：,，、。]+|[\s\-｜|:：,，、。]+$/g,'').trim();
+ if(!r.title)r.err=r.err||'缺行程名稱';
+ if(!r.date)r.err=r.err||'缺日期';
+ return r;}
+function sOpenPaste(){
+ sPasteRows=[];
+ $('sfbox').innerHTML='<div class="sh"><b>📋 貼上行程</b><button id="sfx" type="button" class="sx" aria-label="關閉">×</button></div>'+
+  '<label class="ff">每行一筆，直接從訊息或行事曆複製貼上<textarea id="sfPaste" class="fi spaste" rows="7" placeholder="10/30 14:00 牙醫回診&#10;11/2 下午3點 家長會&#10;11/5 整天 出國"></textarea></label>'+
+  '<div class="ffh">日期可寫 10/30、2026-10-30、10月30日，也可以寫今天、明天、後天；時間可寫 14:00、下午3點、3點半。沒寫時間就當整天。</div>'+
+  '<div class="ferr" id="sfE"></div>'+
+  '<div class="frow"><button id="sfC" type="button">取消</button><button id="sfPv" type="button" class="sv">預覽</button></div>';
+ $('sform').style.display='flex';
+ $('sfx').onclick=sCloseForm;$('sfC').onclick=sCloseForm;
+ $('sfPv').onclick=sPastePreview;}
+function sPastePreview(){
+ const rows=$('sfPaste').value.split('\n').map(sParseLine).filter(Boolean);
+ if(!rows.length)return sErr('請先貼上行程');
+ sPasteRows=rows.map(r=>({...r,on:!r.err}));
+ sPasteShow();}
+function sPasteCount(){const n=sPasteRows.filter(r=>r.on).length;const b=$('sfPs');if(b){b.textContent='儲存 '+n+' 筆';b.disabled=!n;}}
+function sPasteShow(){
+ const list=sPasteRows.map((r,i)=>'<label class="pr'+(r.err?' bad':'')+'"><input type="checkbox" data-i="'+i+'"'+(r.on?' checked':'')+(r.err?' disabled':'')+'><span><span class="prd">'+(r.date?sEsc(sDayLabel(r.date)):'日期未定')+' · '+(r.time?sEsc(r.time):'整天')+'</span><span class="pri">'+sEsc(r.title||'（沒有名稱）')+'</span>'+(r.err?'<span class="pre">'+sEsc(r.err)+'，請回上一步修正</span>':'')+'</span></label>').join('');
+ $('sfbox').innerHTML='<div class="sh"><b>📋 預覽</b><button id="sfx" type="button" class="sx" aria-label="關閉">×</button></div>'+
+  '<div class="pcount">共 '+sPasteRows.length+' 行，請勾選要儲存的行程</div>'+
+  '<div class="prl">'+list+'</div>'+
+  '<div class="ferr" id="sfE"></div>'+
+  '<div class="frow"><button id="sfBack" type="button">返回修改</button><button id="sfPs" type="button" class="sv">儲存</button></div>';
+ $('sfx').onclick=sCloseForm;$('sfBack').onclick=sOpenPaste;$('sfPs').onclick=sPasteSave;
+ $('sfbox').querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{sPasteRows[+c.dataset.i].on=c.checked;sPasteCount();});
+ sPasteCount();}
+async function sPasteSave(){
+ const pick=sPasteRows.filter(r=>r.on);
+ if(!pick.length)return sErr('請勾選要儲存的行程');
+ $('sfPs').disabled=true;
+ let done=0,failed=0;
+ for(const r of pick){
+  try{const o=await sApi({action:'evSave',title:r.title,date:r.date,time:r.time,place:''});
+   sEvents.push(o.event);r.saved=true;done++;}
+  catch(e){failed++;}
+ }
+ sRender();
+ if(!failed){sCloseForm();sMsg('已新增 '+done+' 筆');return;}
+ sPasteRows=sPasteRows.filter(r=>!r.saved);
+ sPasteShow();
+ sErr('已新增 '+done+' 筆，'+failed+' 筆儲存失敗，請再按一次儲存');}
+$('spaste').onclick=sOpenPaste;
 $('schedx').onclick=closeSched;
+// 右上角 ☰ 選單：對齊 LINE 的大項目（小乖、行程、交易、軍師、見證、試算、搜尋、頻道）再加 ⚙ 設定。交易等結果只顯示在網頁面板，不送進對話串（下單仍要按提案的確認）；data-f 只帶入輸入列，data-cam 開照片選擇
+function openT(){if(!KEY||!URL){login();return;}$('tmenu').style.display='flex';}
+function closeT(){$('tmenu').style.display='none';}
+$('ham').onclick=openT;$('tmx').onclick=closeT;
+$('tmenu').onclick=e=>{if(e.target.id==='tmenu')closeT();};
+// 交易結果：以「・」開頭的每一行是一筆持倉，做成獨立卡片；空行結束一張卡片
+function tradeView(el,text){let card=null;
+ String(text||'').split('\n').forEach(l=>{const t=l.trim();
+  if(!t){card=null;return;}
+  if(/^・/.test(t)){card=document.createElement('div');card.className='tpos';const h=document.createElement('div');h.className='tposh';h.textContent=t.slice(1).trim();card.appendChild(h);el.appendChild(card);return;}
+  const d=document.createElement('div');d.className=card?'tposd':'tline';
+  if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
+  lk(d,t);(card||el).appendChild(d);});}
+// 獲利查詢（交易 App 列表版面）：每筆持倉一張卡，上方方向與商品，中間開倉→現價與未實現損益，下方開倉成本與停損停利；未取得或未設定的行照原樣顯示
+function pEl(p,cls,text){const d=document.createElement('div');d.className=cls;d.textContent=text;p.appendChild(d);return d;}
+function pTone(v){if(/未/.test(v))return'tn-nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'tn-neg':'tn-pos';}
+function pPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
+function pMoney(v){return String(v).replace(/[（(].*?[）)]/g,'').trim();}
+function profitView(el,text){let card=null;
+ String(text||'').split('\n').forEach(l=>{const t=l.trim();
+  if(!t){card=null;return;}
+  if(/^・/.test(t)){card=pEl(el,'pcard','');
+    const h=t.match(/^・(.+?)\s+(\S+?)\s*(?:📈|📉)\s*([\d.]+)\s*單位，開倉\s*([\d.]+)，現價\s*(\S+)$/);
+    if(!h){pEl(card,'pname',t.slice(1).trim());return;}
+    const top=pEl(card,'phead','');pEl(top,'pdir '+(/📈/.test(t)?'up':'dn'),h[2]);pEl(top,'pname',h[1]);pEl(top,'psize',h[3]+' 單位');
+    const main=pEl(card,'pmain','');const flow=pEl(main,'pflow','');
+    pEl(flow,'pv',h[4]);pEl(flow,'parr','→');pEl(flow,'pv pv-now',h[5]);
+    card.pmain=main;return;}
+  if(card){let m;
+    if((m=t.match(/^開倉成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','開倉成本');pEl(r,'pv',m[1]);return;}
+    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
+    if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
+    pEl(card,'pnote',t);return;}
+  chanAdd(el,'tline',t);});}
+// 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
+function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q,title);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
+// 快速下單（一個畫面）：選商品、按買進或賣出就直接要提案，提案的「確認下單」按鈕照舊才會送出，不另外經過選單
+const TKT={p:'',n:1};
+function openTicket(){$('trt').textContent='⚡ 快速下單';$('trbtn').innerHTML='';$('tres').style.display='flex';tktDraw('選商品與數量，再按買進或賣出，會先出提案，確認後才送出。');}
+function tktDraw(msg){const bx=$('trb');bx.innerHTML='';
+ const row=c=>{const d=document.createElement('div');d.className=c;bx.appendChild(d);return d;};
+ const r1=row('tkr');['黃金','原油','納指'].forEach(n=>{const b=document.createElement('button');b.type='button';b.className='tkc'+(TKT.p===n?' on':'');b.textContent=n;b.onclick=()=>{TKT.p=n;tktDraw(msg);};r1.appendChild(b);});
+ const r2=row('tkr');const nb=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=f;return b;};
+ const num=document.createElement('div');num.className='tkn';
+ num.appendChild(nb('−',()=>{if(TKT.n>1){TKT.n--;tktDraw(msg);}}));const v=document.createElement('span');v.textContent=TKT.n+' 單位';num.appendChild(v);num.appendChild(nb('＋',()=>{if(TKT.n<5){TKT.n++;tktDraw(msg);}}));r2.appendChild(num);
+ const r3=row('tkr');[['buy','📈 買進'],['sell','📉 賣出']].forEach(a=>{const b=document.createElement('button');b.type='button';b.className='tkb '+a[0];b.textContent=a[1];b.disabled=!TKT.p;b.onclick=()=>tktSend(a[0]);r3.appendChild(b);});
+ const note=document.createElement('div');note.className='tline';note.textContent=TKT.p?TKT.p+'，數量 '+TKT.n+'：'+(msg||''):(msg||'');bx.appendChild(note);
+ const out=row('tktout');out.id='tktout';}
+function tktSend(side){if(!TKT.p)return;const out=$('tktout');out.innerHTML='';out.textContent='小乖送出提案中…';
+ P({action:'talk',key:KEY,ask:(side==='buy'?'買進':'賣出')+TKT.p+' '+TKT.n,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}
+  out.innerHTML='';tradeView(out,r.show||r.say);(r.buttons||[]).forEach((l,i)=>{const b=document.createElement('button');b.type='button';b.className='tbtn'+(i===0?' main':'');b.textContent=l;b.onclick=()=>webAsk(l);out.appendChild(b);});})
+  .catch(e=>{out.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+// 適合交易提醒：只讀取提醒狀態（不帶任何下單指令），「確認」只在本機記錄時間，不送出任何下單，也不會接到確認下單的流程
+function remindAckText(){try{const t=localStorage.getItem('xg_remind_ack');return t?'上次確認：'+new Date(t).toLocaleString('zh-TW'):'尚未確認';}catch(e){return'';}}
+function openRemind(){const bx=$('trb'),bs=$('trbtn');$('trt').textContent='🔔 適合交易提醒';bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';
+ const note=document.createElement('div');note.className='pnote';
+ const draw=()=>{bs.innerHTML='';const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent='✅ 確認提醒（不下單）';
+  b.onclick=()=>{try{localStorage.setItem('xg_remind_ack',new Date().toISOString());}catch(e){}note.textContent='已記錄確認，沒有送出任何下單。'+remindAckText();};
+  bs.appendChild(b);note.textContent=remindAckText();};
+ P({action:'talk',key:KEY,ask:'交易提醒',image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}
+  bx.textContent='';tradeView(bx,r.show||r.say);bx.appendChild(note);draw();}).catch(e=>{bx.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+// 頻道面板（萬元質感）：數據做成數據卡與影片卡，改善建議做成編號卡；文字仍來自既有的對話端點，不進對話串
+function chanAdd(el,cls,t){const d=document.createElement('div');d.className=cls;d.textContent=t;el.appendChild(d);return d;}
+function chanData(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let stats=null,list=null;
+ lines.forEach((t,i)=>{
+  if(i===0){chanAdd(el,'chead',t.replace(/^📺\s*/,''));return;}
+  const vid=t.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+週.)\s+(.+?)\s*[（(]\s*([\d,]+)\s*次\s*[）)]\s*$/);
+  if(vid){if(!list){list=document.createElement('div');list.className='cvlist';el.appendChild(list);}const c=document.createElement('div');c.className='cvid';const dt=vid[1].match(/^\d{4}-(\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(週.)$/);chanAdd(c,'cvd',dt?dt[1]+' '+dt[3]+' '+dt[2]:vid[1]);chanAdd(c,'cvt',vid[2]);chanAdd(c,'cvv','觀看 '+vid[3]+' 次');list.appendChild(c);return;}
+  const st=!/^\d{4}-/.test(t)&&t.match(/^(.{1,16}?)[：:]\s*(.*)$/);
+  if(st&&st[2]){if(!stats){stats=document.createElement('div');stats.className='cstats';el.appendChild(stats);}const c=document.createElement('div');c.className='cst';chanAdd(c,'cstl',st[1]);chanAdd(c,'cstv',st[2]);stats.appendChild(c);return;}
+  if(st){chanAdd(el,'csec',st[1]);list=null;return;}
+  chanAdd(el,'tline',t);});}
+function chanAdvice(el,text){const lines=String(text||'').split('\n').map(s=>s.trim()).filter(Boolean);let cur=null;
+ lines.forEach((t,i)=>{
+  if(i===0){chanAdd(el,'chead',t.replace(/^💡\s*/,''));return;}
+  const n=t.match(/^(\d+)\.\s*(.+)$/);
+  if(n){const card=document.createElement('div');card.className='cadv';chanAdd(card,'cadvn',n[1]);cur=document.createElement('div');cur.className='cadvi';chanAdd(cur,'cadvh',n[2]);card.appendChild(cur);el.appendChild(card);return;}
+  if(cur)chanAdd(cur,'cadvb',t);else chanAdd(el,'tline',t);});}
+function chanRender(el,text,q,title){if(/頻道數據/.test(q))chanData(el,text);else if(/改善建議/.test(q))chanAdvice(el,text);else if(/獲利/.test(title||''))profitView(el,text);else tradeView(el,text);}
+function closeWeb(){$('tres').style.display='none';}
+$('trx').onclick=closeWeb;$('tres').onclick=e=>{if(e.target.id==='tres')closeWeb();};
+document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
+ closeT();
+ const w=b.dataset.web;
+ if(w==='sched'){openSched();return;}
+ if(w==='add'){openSched();sOpenForm(null);return;}
+ if(w==='paste'){openSched();sOpenPaste();return;}
+ if(w==='set'){setOpen();return;}
+ if(w==='theme'){$('thm').click();return;}
+ if(b.dataset.f!==undefined){$('q').value=b.dataset.f;kb('接著打上內容，按「傳送」');return;}
+ if(b.dataset.cam!==undefined){$('q').value='試算';pickPhoto(false);return;}
+ if(b.dataset.remind!==undefined){openRemind();return;}
+ if(b.dataset.ticket!==undefined){openTicket();return;}
+ webAsk(b.dataset.t,b.dataset.title);});
 $('sadd').onclick=()=>sOpenForm(null);
 $('stN').onclick=()=>{sTab='next';sPicked.clear();sRender();sSelUI();};
 $('stP').onclick=()=>{sTab='past';sPicked.clear();sRender();sSelUI();};
