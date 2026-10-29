@@ -6555,6 +6555,8 @@ function leadHandle_(body) {
   (body.entry || []).forEach(en => (en.changes || []).forEach(ch => {
     const v = ch.value || {};
     let c = null;
+    // 只處理本粉專的留言；別人粉專的留言沒有權限回，直接略過不報錯
+    if (body.object === 'page' && String(en.id) !== String(prop_('FB_PAGE'))) { leadLog_('收到別的粉專的通知，略過（只處理本粉專）'); return; }
     if (body.object === 'instagram' && ch.field === 'comments')
       c = { p: 'ig', id: v.id, text: v.text, from: v.from && v.from.id, who: v.from && ('@' + v.from.username), self: prop_('IG_USER') };
     else if (body.object === 'page' && ch.field === 'feed' && v.item === 'comment' && v.verb === 'add')
