@@ -231,13 +231,13 @@ function tradeOpenPositions_() {
   });
 }
 
-// 投入成本 = 開倉價 × 數量；損益的百分比都以投入成本為分母
-function tradeCostText_(x) {
+// 開倉成本 = 開倉價 × 數量；損益的百分比都以開倉成本為分母
+function tradeOpenCostText_(x) {
   return (x.open * x.size).toFixed(2) + (x.cur ? ' ' + x.cur : '');
 }
 
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
-// 百分比 = 損益 ÷ 投入成本（開倉價 × 數量），已含方向
+// 百分比 = 損益 ÷ 開倉成本（開倉價 × 數量），已含方向
 function tradePnlText_(x, upl) {
   const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
@@ -398,7 +398,7 @@ function tradePosLine_(x) {
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
   return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
-    '\n  投入成本 ' + tradeCostText_(x) +
+    '\n  開倉成本 ' + tradeOpenCostText_(x) +
     '\n  未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得') +
     '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.sl) +
     '\n  停利 ' + tradeLevel_(x.tp, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.tp);
@@ -839,7 +839,7 @@ function tradePosFlex_(list) {
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('投入成本', tradeCostText_(x)),
+          cell('開倉成本', tradeOpenCostText_(x)),
           cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
