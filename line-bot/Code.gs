@@ -351,6 +351,13 @@ function askByVoice_(q, image, spoken) {
   ASK_SHOW_ = String(ans && typeof ans === 'object' ? ans.text : ans || '');
   askButtons_(ans);
   const tg = prop_('TG_OWNER_CHAT_ID');
+  if (LAST_QUOTE_ && TALK_MODE_) {   // 對話頁：跟 LINE 一樣在畫面上顯示報表，不傳到 Telegram
+    const rp = reportLine_();
+    const imgs = rp.msgs.filter(m => m.type === 'image').map(m => m.originalContentUrl);
+    ASK_IMGS_ = imgs;
+    ASK_SHOW_ = imgs.length ? rp.short : ASK_SHOW_ + '\n\n' + rp.msgs[0].text;
+    return speechText_(rp.short || ASK_SHOW_) || '試算好了。';
+  }
   if (LAST_QUOTE_ && tg) {   // 回答完試算問題就出報表：圖片傳到 Telegram
     const short = sendReportTg_(tg);
     tgSend_(tg, short || ans);
