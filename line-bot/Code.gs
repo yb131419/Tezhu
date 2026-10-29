@@ -302,7 +302,7 @@ function talkHeard(key, audio64, audioType) {
 }
 function transcribeAudio_(audio64, audioType) {
   const mt = String(audioType || 'audio/mp4');
-  const ext = /webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : 'm4a';
+  const ext = /webm/.test(mt) ? 'webm' : /ogg/.test(mt) ? 'ogg' : /wav/.test(mt) ? 'wav' : 'm4a';
   return transcribe_(Utilities.newBlob(Utilities.base64Decode(String(audio64)), mt, 'voice.' + ext), 'voice.' + ext);
 }
 function talk(key, q, image, voice, audio64, audioType, spoken) {
