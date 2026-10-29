@@ -231,8 +231,13 @@ function tradeOpenPositions_() {
   });
 }
 
+// 投入成本 = 開倉價 × 數量；損益的百分比都以投入成本為分母
+function tradeCostText_(x) {
+  return (x.open * x.size).toFixed(2) + (x.cur ? ' ' + x.cur : '');
+}
+
 // 未實現損益（約）後面加上幣別，例如「約 20.80 USD」；幣別未知就標示
-// 百分比 = 損益 ÷ 開倉價值（開倉價 × 數量），也就是價格相對開倉價的變動（已含方向）
+// 百分比 = 損益 ÷ 投入成本（開倉價 × 數量），已含方向
 function tradePnlText_(x, upl) {
   const pct = x.open && x.size ? upl / (x.open * x.size) * 100 : NaN;
   const cur = x.cur ? ' ' + x.cur : '（幣別未知）';
@@ -250,6 +255,17 @@ function tradeCurrencyOf_(epic) {
 
 function tradeLevel_(v, prec) {
   return v === null || v === undefined || v === '' ? '未設定' : Number(v).toFixed(prec);
+}
+
+// 停損、停利價位碰到時的損益（約）：NaN 代表沒設定
+function tradeLevelUpl_(x, v) {
+  return v === null || v === undefined || v === '' ? NaN : (x.dir === 'buy' ? Number(v) - x.open : x.open - Number(v)) * x.size;
+}
+
+// 停損、停利碰到時的損益文字；沒設定就回傳「未設定」
+function tradeLevelPnlText_(x, v) {
+  const upl = tradeLevelUpl_(x, v);
+  return isFinite(upl) ? tradePnlText_(x, upl) : '未設定';
 }
 
 /* ---------- 平倉：先出提案，按「✅ 確認平倉」才送出；不自動平倉，只有主人能用 ---------- */
@@ -382,7 +398,10 @@ function tradePosLine_(x) {
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
   return '・' + x.name + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
-    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '　停利 ' + tradeLevel_(x.tp, x.prec) + '　未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得');
+    '\n  投入成本 ' + tradeCostText_(x) +
+    '\n  未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得') +
+    '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.sl) +
+    '\n  停利 ' + tradeLevel_(x.tp, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.tp);
 }
 
 function tradeNoteFlex_(t) {
@@ -805,9 +824,10 @@ function tradePosFlex_(list) {
   const cell = (label, value, color) => ({
     type: 'box', layout: 'vertical', flex: 1, spacing: 'xs', contents: [
       { type: 'text', text: label, size: 'xs', color: SOFT },
-      { type: 'text', text: value, size: 'md', weight: 'bold', color: color || INK },
+      { type: 'text', text: value, size: 'md', weight: 'bold', color: color || INK, wrap: true },
     ],
   });
+  const pnlColor = v => { const u = tradeLevelUpl_(v.x, v.p); return !isFinite(u) ? SOFT : u < 0 ? DOWN : UP; };
   return list.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
     const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
@@ -819,10 +839,16 @@ function tradePosFlex_(list) {
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('停損', tradeLevel_(x.sl, x.prec)), cell('停利', tradeLevel_(x.tp, x.prec)),
+          cell('投入成本', tradeCostText_(x)),
+          cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
+          cell('停損', tradeLevel_(x.sl, x.prec)),
+          cell('停損碰到損益', tradeLevelPnlText_(x, x.sl), pnlColor({ x: x, p: x.sl })),
+        ] },
+        { type: 'box', layout: 'horizontal', contents: [
+          cell('停利', tradeLevel_(x.tp, x.prec)),
+          cell('停利碰到損益', tradeLevelPnlText_(x, x.tp), pnlColor({ x: x, p: x.tp })),
         ] },
       ],
     };
