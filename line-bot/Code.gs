@@ -656,7 +656,7 @@ function handleLine_(ev) {
   const card = cardLine_();
   const media = caseLine_();   // 看見證／案例時的圖片、影片
   const voice = !rp.short && !card.length && !media.length && voiceMode_() === 'always' && !/^語音回覆/.test(text) ? lineVoice_(ans) : [];
-  reply_(ev.replyToken, rp.short || ans, advLine_(ans).concat(rp.msgs, card, media, voice).slice(0, 5), true);
+  reply_(ev.replyToken, rp.short || ans, [].concat(rp.msgs, card, media, voice).slice(0, 5), true);
 }
 
 function lineContent_(messageId) {
