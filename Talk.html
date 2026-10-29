@@ -316,45 +316,44 @@ html[data-theme=light] .cvt,html[data-theme=light] .cadvh{color:#2A2118}
 html[data-theme=light] .cadvb{color:rgba(42,33,24,.75)}
 html[data-theme=light] .csec{color:#8A6A37}
 @media (max-width:360px){.cstv{font-size:26px}.cadvh{font-size:15.5px}}
-/* 獲利查詢：專業交易版面（開倉與現價並排、未實現損益放大、停損停利各一列） */
-.pcard{position:relative;margin-top:14px;padding:16px 18px 14px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.08),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5}
-.phead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid rgba(220,195,148,.2)}
-.pname{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:1px;color:#F1DFB4}
-.pdir{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
-.pdir.up{color:#8FDBB2;border-color:rgba(143,219,178,.5)}
-.pdir.dn{color:#F2998A;border-color:rgba(242,153,138,.5)}
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.pst{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04)}
+/* 獲利查詢：交易 App 列表版面（方向與商品在上，開倉→現價與損益並排，成本與停損停利列在下） */
+.pcard{position:relative;margin-top:14px;padding:14px 16px 6px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.08),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);font-family:-apple-system,"PingFang TC",sans-serif;color:#F3EEE5}
+.phead{display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid rgba(220,195,148,.2)}
+.pdir{font-size:12px;font-weight:700;line-height:1;padding:5px 8px;border-radius:7px;border:1px solid;white-space:nowrap}
+.pdir.up{color:#8FDBB2;border-color:rgba(143,219,178,.5);background:rgba(143,219,178,.08)}
+.pdir.dn{color:#F2998A;border-color:rgba(242,153,138,.5);background:rgba(242,153,138,.08)}
+.pname{flex:1;min-width:0;font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:1px;color:#F1DFB4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.psize{font-size:13px;color:rgba(243,238,229,.55);white-space:nowrap}
+.pmain{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0 12px}
+.pflow{display:flex;align-items:baseline;white-space:nowrap;gap:8px;font-family:"Cormorant Garamond",var(--serif);font-size:20px;font-weight:600;color:rgba(243,238,229,.78);font-variant-numeric:lining-nums tabular-nums}
+.parr{font-family:-apple-system,sans-serif;font-size:14px;color:rgba(243,238,229,.4)}
+.pv-now{color:#F3EEE5}
 .plb{font-size:12.5px;letter-spacing:.5px;color:rgba(243,238,229,.55)}
-.pv{margin-top:4px;font-family:"Cormorant Garamond",var(--serif);font-size:22px;font-weight:600;color:#F3EEE5;font-variant-numeric:lining-nums tabular-nums}
-.pbig{margin-top:12px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(241,223,180,.12),rgba(201,165,106,.04));border:1px solid rgba(220,195,148,.22)}
-.pbv{margin-top:4px;font-family:"Cormorant Garamond",var(--serif);font-size:30px;font-weight:600;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
-.ppc{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;background:rgba(255,255,255,.06)}
-.prow{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(220,195,148,.2)}
-.prow .pv{margin-top:0;font-size:17px}
-.plv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.plv .pbv{font-size:23px}
-.plv .pst:last-child{background:transparent;border:1px solid rgba(220,195,148,.18)}
-.pnote{margin-top:10px;font-size:13px;color:rgba(243,238,229,.55)}
+.pv{font-family:"Cormorant Garamond",var(--serif);font-size:20px;font-weight:600;color:#F3EEE5;font-variant-numeric:lining-nums tabular-nums}
+.pbig{text-align:right;flex:none}
+.pbig .plb{text-align:right}
+.pbv{font-family:"Cormorant Garamond",var(--serif);font-size:24px;font-weight:600;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
+.ppc{margin-top:2px;font-size:14px;font-weight:700}
+.prow,.plv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(220,195,148,.14)}
+.prow .pv{font-size:17px}
+.pval{text-align:right}
+.pval .pbv{font-size:20px}
+.pval .ppc{font-size:13px}
+.plv .plb{line-height:1.5}
+.pnote{padding:10px 0;font-size:13px;color:rgba(243,238,229,.55);border-top:1px solid rgba(220,195,148,.14)}
 .tn-pos{color:#8FDBB2}.tn-neg{color:#F2998A}.tn-nt{color:rgba(243,238,229,.5)}
-.pbig.tn-pos .ppc{background:rgba(143,219,178,.14)}.pbig.tn-neg .ppc{background:rgba(242,153,138,.14)}
-.plv.tn-pos .ppc{background:rgba(143,219,178,.14)}.plv.tn-neg .ppc{background:rgba(242,153,138,.14)}
 html[data-theme=light] .pcard{background:#FFFDF8;color:#2A2118;box-shadow:0 14px 28px -22px rgba(90,64,28,.45),inset 0 1px 0 #fff}
-html[data-theme=light] .phead{border-bottom-color:var(--line)}
+html[data-theme=light] .phead,html[data-theme=light] .pnote{border-color:var(--line)}
 html[data-theme=light] .pname{color:#2A2118}
+html[data-theme=light] .psize,html[data-theme=light] .plb,html[data-theme=light] .pnote{color:rgba(42,33,24,.6)}
 html[data-theme=light] .pdir.up,html[data-theme=light] .tn-pos{color:#2F7D5B}
 html[data-theme=light] .pdir.dn,html[data-theme=light] .tn-neg{color:#B5523A}
-html[data-theme=light] .pdir.up{border-color:rgba(47,125,91,.45)}
-html[data-theme=light] .pdir.dn{border-color:rgba(181,82,58,.45)}
-html[data-theme=light] .pst{background:#FBF8F2}
-html[data-theme=light] .plb{color:rgba(42,33,24,.6)}
-html[data-theme=light] .pv{color:#2A2118}
-html[data-theme=light] .pbig{background:#FBF8F2;border-color:var(--line)}
-html[data-theme=light] .prow{border-top-color:var(--line)}
-html[data-theme=light] .plv .pst:last-child{background:transparent;border-color:var(--line)}
-html[data-theme=light] .pnote{color:rgba(42,33,24,.6)}
-html[data-theme=light] .pbig.tn-pos .ppc,html[data-theme=light] .plv.tn-pos .ppc{background:rgba(47,125,91,.1)}
-html[data-theme=light] .pbig.tn-neg .ppc,html[data-theme=light] .plv.tn-neg .ppc{background:rgba(181,82,58,.1)}
+html[data-theme=light] .pdir.up{border-color:rgba(47,125,91,.45);background:rgba(47,125,91,.06)}
+html[data-theme=light] .pdir.dn{border-color:rgba(181,82,58,.45);background:rgba(181,82,58,.06)}
+html[data-theme=light] .pflow{color:rgba(42,33,24,.72)}
+html[data-theme=light] .parr{color:rgba(42,33,24,.45)}
+html[data-theme=light] .pv,html[data-theme=light] .pv-now{color:#2A2118}
+html[data-theme=light] .prow,html[data-theme=light] .plv{border-color:var(--line)}
 </style></head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
@@ -802,7 +801,7 @@ function tradeView(el,text){let card=null;
   const d=document.createElement('div');d.className=card?'tposd':'tline';
   if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
   lk(d,t);(card||el).appendChild(d);});}
-// 獲利查詢（專業交易版面）：每筆持倉一張卡，開倉與現價並排、未實現損益放大、停損停利各一列；未取得或未設定的行照原樣顯示
+// 獲利查詢（交易 App 列表版面）：每筆持倉一張卡，上方方向與商品，中間開倉→現價與未實現損益，下方開倉成本與停損停利；未取得或未設定的行照原樣顯示
 function pEl(p,cls,text){const d=document.createElement('div');d.className=cls;d.textContent=text;p.appendChild(d);return d;}
 function pTone(v){if(/未/.test(v))return'tn-nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'tn-neg':'tn-pos';}
 function pPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
@@ -813,16 +812,15 @@ function profitView(el,text){let card=null;
   if(/^・/.test(t)){card=pEl(el,'pcard','');
     const h=t.match(/^・(.+?)\s+(\S+?)\s*(?:📈|📉)\s*([\d.]+)\s*單位，開倉\s*([\d.]+)，現價\s*(\S+)$/);
     if(!h){pEl(card,'pname',t.slice(1).trim());return;}
-    const top=pEl(card,'phead','');pEl(top,'pname',h[1]);pEl(top,'pdir '+(/📈/.test(t)?'up':'dn'),h[2]+' · '+h[3]+' 單位');
-    const g=pEl(card,'pgrid','');
-    [['開倉',h[4]],['現價',h[5]]].forEach(c=>{const b=pEl(g,'pst','');pEl(b,'plb',c[0]);pEl(b,'pv',c[1]);});
-    return;}
+    const top=pEl(card,'phead','');pEl(top,'pdir '+(/📈/.test(t)?'up':'dn'),h[2]);pEl(top,'pname',h[1]);pEl(top,'psize',h[3]+' 單位');
+    const main=pEl(card,'pmain','');const flow=pEl(main,'pflow','');
+    pEl(flow,'pv',h[4]);pEl(flow,'parr','→');pEl(flow,'pv pv-now',h[5]);
+    card.pmain=main;return;}
   if(card){let m;
     if((m=t.match(/^開倉成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','開倉成本');pEl(r,'pv',m[1]);return;}
-    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
+    if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
     if((m=t.match(/^(停損|停利)\s+(\S+)，碰到損益\s+(.+)$/))){const r=pEl(card,'plv '+pTone(m[3]),'');
-      const a=pEl(r,'pst','');pEl(a,'plb',m[1]);pEl(a,'pv',m[2]);
-      const c=pEl(r,'pst','');pEl(c,'plb','碰到損益');pEl(c,'pbv',pMoney(m[3]));const pc=pPct(m[3]);if(pc)pEl(c,'ppc',pc);return;}
+      pEl(r,'plb',m[1]+' '+m[2]+'　碰到損益');const v=pEl(r,'pval','');pEl(v,'pbv',pMoney(m[3]));const pc=pPct(m[3]);if(pc)pEl(v,'ppc',pc);return;}
     pEl(card,'pnote',t);return;}
   chanAdd(el,'tline',t);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
