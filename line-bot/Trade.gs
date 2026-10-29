@@ -510,7 +510,6 @@ function tradePosLine_(x) {
   const upl = (x.dir === 'buy' ? now - x.open : x.open - now) * x.size;
   return '・' + tradeLabelOf_(x.name) + ' ' + x.dirZh + (x.dir === 'buy' ? ' 📈 ' : ' 📉 ') + x.size + ' 單位，開倉 ' + x.open.toFixed(x.prec) +
     '，現價 ' + (ok ? now.toFixed(x.prec) : '未取得') +
-    '\n  開倉成本 ' + tradeOpenCostText_(x) +
     '\n  投入成本 ' + (x.margin > 0 ? '約 ' + x.margin.toFixed(2) + (x.cur ? ' ' + x.cur : '') : '未知') +
     '\n  未實現損益 ' + (ok ? tradePnlText_(x, upl) : '未取得') +
     '\n  停損 ' + tradeLevel_(x.sl, x.prec) + '，碰到損益 ' + tradeLevelPnlText_(x, x.sl) +
@@ -1107,7 +1106,7 @@ function tradePosFlex_(list) {
           cell('開倉', x.open.toFixed(x.prec)), cell('現價', isFinite(now) ? now.toFixed(x.prec) : '未取得'),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
-          cell('開倉成本', tradeOpenCostText_(x)),
+          cell('投入成本', x.margin > 0 ? '約 ' + x.margin.toFixed(2) + (x.cur ? ' ' + x.cur : '') : '未知'),
           cell('未實現損益', isFinite(upl) ? tradePnlText_(x, upl) : '未取得', upl >= 0 ? UP : DOWN),
         ] },
         { type: 'box', layout: 'horizontal', contents: [
