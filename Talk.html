@@ -833,8 +833,7 @@ function profitView(el,text){let card=null;
   if(card){let m;
     if((m=t.match(/^開倉成本\s+(.+)$/))){const r=pEl(card,'prow','');pEl(r,'plb','開倉成本');pEl(r,'pv',m[1]);return;}
     if((m=t.match(/^未實現損益\s+(.+)$/))){const b=pEl(card.pmain||card,'pbig '+pTone(m[1]),'');pEl(b,'plb','未實現損益');pEl(b,'pbv',pMoney(m[1]));const pc=pPct(m[1]);if(pc)pEl(b,'ppc',pc);return;}
-    if((m=t.match(/^(停損|停利)\s+(\S+)，碰到損益\s+(.+)$/))){const r=pEl(card,'plv '+pTone(m[3]),'');
-      pEl(r,'plb',m[1]+' '+m[2]+'　碰到損益');const v=pEl(r,'pval','');pEl(v,'pbv',pMoney(m[3]));const pc=pPct(m[3]);if(pc)pEl(v,'ppc',pc);return;}
+    if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
     pEl(card,'pnote',t);return;}
   chanAdd(el,'tline',t);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
