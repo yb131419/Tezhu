@@ -43,6 +43,8 @@ body.conv #endc{display:block}
 .sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
 #chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
+.qbox{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px}
+.qbox[hidden]{display:none}
 .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
 
@@ -512,7 +514,12 @@ function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.leng
   tg.onclick=()=>{if(sel.hidden){sel.hidden=false;tg.setAttribute('aria-expanded','true');tg.textContent='⚡ 快速功能 ▴';}else shut();};
   sel.onchange=()=>{const t=sel.value;sel.value='';shut();if(t)runChip(t);};
   c.append(tg,sel);return;}
- list.forEach(t=>{const b=document.createElement('button');b.className='chip ask';b.textContent=t;b.onclick=()=>runChip(t);c.appendChild(b);});}
+ // 小乖回的快速回覆預設收合，點「⚡ 快速功能」才展開（使用者 2026-10-29：不要佔版面）
+ const box=document.createElement('div');box.className='qbox';box.hidden=true;
+ list.forEach(t=>{const b=document.createElement('button');b.className='chip ask';b.textContent=t;b.onclick=()=>runChip(t);box.appendChild(b);});
+ const tg=document.createElement('button');tg.className='chip';tg.setAttribute('aria-expanded','false');tg.textContent='⚡ 快速功能 ▾';
+ tg.onclick=()=>{box.hidden=!box.hidden;tg.setAttribute('aria-expanded',String(!box.hidden));tg.textContent=box.hidden?'⚡ 快速功能 ▾':'⚡ 快速功能 ▴';};
+ c.append(tg,box);}
 chips();
 // 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
 const LOGK='xg_talk_log';
@@ -533,7 +540,9 @@ function caseCards(w,list){if(!list||!list.length)return;w.classList.add('hc');w
    const l=document.createElement('a');l.className='cl';l.href='https://line.me/R/share?text='+encodeURIComponent((c.text?c.text+'\n':'')+c.link);l.target='_blank';l.rel='noopener';l.textContent='② 分享到 LINE';a.appendChild(l);}
   else if(c.type!=='text'){const s2=document.createElement('button');s2.className='co';s2.textContent='📤 分享';s2.onclick=e=>{e.stopPropagation();send('📤 分享案例 '+c.k);};a.appendChild(s2);}
   if(a.children.length)b.appendChild(a);d.append(th,b);box.appendChild(d);});w.appendChild(box);}
-function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){lk(d,t);}log.appendChild(d);log.scrollTop=1e9;return d;}
+// 持倉卡片不顯示「停損／停利 碰到損益」兩行（使用者 2026-10-29：圖一要刪除）
+function hideStopLines(t){return String(t).split('\n').filter(l=>!/^\s*(停損|停利)\s+\S+，碰到損益/.test(l)).join('\n');}
+function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){lk(d,who==='xg'?hideStopLines(t):t);}log.appendChild(d);log.scrollTop=1e9;return d;}
 try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>{const d=add(x.t,x.c,x.i||null);if(x.cs)try{caseCards(d,JSON.parse(x.cs));}catch(e){}});const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
 // 刪除對話（像 LINE）：長按一則訊息 → 勾選單則或多則 → 刪除；全選就是清空
 const pickable=()=>[...log.querySelectorAll('.m:not(.hello)')];
