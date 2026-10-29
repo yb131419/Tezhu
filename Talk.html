@@ -602,7 +602,7 @@ $('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sen
 let mr=null,chunks=[],stream=null,recOn=false,stopT=null,relT=null,maxT=null,drop=false;
 function micUI(on){recOn=on;$('mic').classList.toggle('on',on);$('mic').innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>';}
 // 停止錄音和音量偵測；麥克風先不關（iPhone 每次重新開麥克風都要再按一次「允許」），5 分鐘沒用或離開頁面才真的關
-function micCleanup(){clearTimeout(stopT);clearTimeout(maxT);if(acSrc){try{acSrc.disconnect();}catch(e){}acSrc=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
+function micCleanup(){rtStop();clearTimeout(stopT);clearTimeout(maxT);if(acSrc){try{acSrc.disconnect();}catch(e){}acSrc=null;}mr=null;micUI(false);clearTimeout(relT);if(stream)relT=setTimeout(micRelease,300000);}
 function micRelease(){clearTimeout(relT);if(recOn)return;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!recOn)micRelease();});
 const micLive=()=>stream&&stream.getAudioTracks().some(t=>t.readyState==='live'&&!t.muted);
@@ -627,7 +627,7 @@ async function micStart(){
  const ac=getAC();if(ac&&ac.state!=='running')await Promise.race([ac.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
  if(!mr)return;
  if(!ac||ac.state!=='running'){maxT=setTimeout(micStop,15000);return;}   // 偵測不到音量時：最多錄 15 秒就送出（也可以按麥克風提早送）
- try{const an=ac.createAnalyser();an.fftSize=1024;acSrc=ac.createMediaStreamSource(stream);acSrc.connect(an);
+ try{const an=ac.createAnalyser();an.fftSize=1024;acSrc=ac.createMediaStreamSource(stream);acSrc.connect(an);rtTap(ac);
   const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now(),floor=0,th=10;
   const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
    if(Date.now()-t0<700){floor=Math.max(floor,m);th=Math.min(14,Math.max(6,floor+5));}
@@ -638,6 +638,60 @@ async function micStart(){
    if((heard&&quiet>2000)||(!heard&&Date.now()-t0>10000)||Date.now()-t0>120000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){maxT=setTimeout(micStop,15000);}
 }
 function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
+// 邊聽邊執行（只限唯讀指令）：錄音中每 2.5 秒取出這一段聲音，直接從錄音用的音訊路徑取樣（不另開錄音器、不另開即時辨識），
+// 有聲音才送去辨識；比對到「查看持倉」「今天行程」「查詢案例 ○○」就直接執行。完整錄音與輸入框的結果不變。
+let rtNode=null,rtGain=null,rtBusy=false,rtBuf=[],rtN=0,rtText='',rtFired=new Set();
+const RT_SEC=2.5;
+function rtTap(ac){
+ rtStop();
+ try{
+  rtNode=ac.createScriptProcessor(4096,1,1);rtGain=ac.createGain();rtGain.gain.value=0;
+  acSrc.connect(rtNode);rtNode.connect(rtGain);rtGain.connect(ac.destination);
+  rtText='';rtFired=new Set();rtBusy=false;
+  rtNode.onaudioprocess=e=>{
+   if(!recOn)return;
+   const d=e.inputBuffer.getChannelData(0);rtBuf.push(new Float32Array(d));rtN+=d.length;
+   if(rtN<ac.sampleRate*RT_SEC)return;
+   const all=new Float32Array(rtN);let o=0;rtBuf.forEach(c=>{all.set(c,o);o+=c.length;});
+   rtBuf=[];rtN=0;
+   let sq=0;for(let i=0;i<all.length;i++)sq+=all[i]*all[i];
+   if(Math.sqrt(sq/all.length)<0.01||rtBusy)return;   // 沒有聲音，或上一段還沒回來：跳過
+   rtSend(all,ac.sampleRate);
+  };
+ }catch(e){rtStop();}
+}
+function rtStop(){
+ if(rtNode){try{rtNode.disconnect();}catch(e){}rtNode.onaudioprocess=null;rtNode=null;}
+ if(rtGain){try{rtGain.disconnect();}catch(e){}rtGain=null;}
+ rtBuf=[];rtN=0;
+}
+// 轉成 16 kHz 單聲道 WAV（較省流量；Whisper 夠用）
+function rtWav(x,rate){
+ const R=16000,n=Math.floor(x.length*R/rate),b=new DataView(new ArrayBuffer(44+n*2));
+ const w=(o,t)=>{for(let i=0;i<t.length;i++)b.setUint8(o+i,t.charCodeAt(i));};
+ w(0,'RIFF');b.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');b.setUint32(16,16,true);b.setUint16(20,1,true);b.setUint16(22,1,true);
+ b.setUint32(24,R,true);b.setUint32(28,R*2,true);b.setUint16(32,2,true);b.setUint16(34,16,true);w(36,'data');b.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++){const v=Math.max(-1,Math.min(1,x[Math.floor(i*rate/R)]));b.setInt16(44+i*2,v<0?v*0x8000:v*0x7fff,true);}
+ return new Blob([b],{type:'audio/wav'});
+}
+function rtSend(x,rate){
+ rtBusy=true;
+ const fr=new FileReader();
+ fr.onload=()=>{P({action:'transcribe',key:KEY,audio:String(fr.result).split(',')[1],audioType:'audio/wav'},20000).then(t=>{rtBusy=false;if(!recOn)return;rtText=(rtText+toTW(t.heard||'')).replace(/[\s。．.！!？?，,、]+/g,'').slice(-40);rtCheck();}).catch(()=>{rtBusy=false;});};
+ fr.onerror=()=>{rtBusy=false;};
+ fr.readAsDataURL(rtWav(x,rate));
+}
+function rtCheck(){
+ if(!recOn||busy)return;
+ const t=rtText;let cmd=null,m;
+ if(/(查看持倉|看持倉)$/.test(t))cmd='查看持倉';
+ else if(/(今天行程|今日行程)$/.test(t))cmd='今天行程';
+ else if((m=t.match(/查詢案例(\S{1,8})$/)))cmd='查詢案例 '+m[1];
+ if(!cmd||rtFired.has(cmd))return;
+ rtFired.add(cmd);
+ drop=true;micStop();rtStop();   // 這段錄音不再送出，改直接執行指令
+ send(cmd);
+}
 $('mic').onclick=()=>{unlock();stopTalk();if(recOn)return micStop();convOn();micStart();};
 // 結束對話：馬上停止講話和聆聽，不送出
 $('endc').onclick=()=>{stopTalk();convOff('好，有事再按麥克風叫我');if(recOn){drop=true;micStop();}};
