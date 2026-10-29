@@ -603,7 +603,8 @@ function P(b,ms){const ac=new AbortController();setTimeout(()=>ac.abort(),ms||45
 function send(q,img,aud){q=(q||'').trim();if(busy){if(q||img||aud){Q.push([q,img,aud]);if(q&&$('q').value.trim()===q)$('q').value='';}return;}if(!q&&!img&&!aud)return;
  if(!img&&!aud){const ap=appOf(q);if(ap){add(q,'me');$('q').value='';openApp(ap);return;}const la=localAct(q);if(la){add(q,'me');$('q').value='';localOpen(la);return;}}busy=true;const tm={s:Date.now()};const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
  if(!KEY||!URL){busy=false;w.textContent='請先完成連線設定';login();return;}
- P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;tm.t1=Date.now();const h=toTW(t.heard||'');if(!h){me.textContent='🎤 （沒聽清楚）';busy=false;return {say:'抱歉，我沒聽清楚，請再說一次。',show:'抱歉，我沒聽清楚，請再說一次。',buttons:[]};}const ro=roCmd(h.replace(/[\s。．.！!？?，,、]+/g,''),true);if(ro){me.remove();w.remove();busy=false;send(ro);return null;}   // 整句就是唯讀指令：直接執行，不進輸入框
+ P(aud?{action:'transcribe',key:KEY,audio:aud.b64,audioType:aud.mime}:{action:'talk',key:KEY,ask:q,image:img?img.split(',')[1]:'',voice:$('spk').checked&&$('real').checked,audio:'',audioType:''}).then(t=>{if(!aud)return t;tm.t1=Date.now();const h=toTW(t.heard||'');if(!h){me.textContent='🎤 （沒聽清楚）';busy=false;return {say:'抱歉，我沒聽清楚，請再說一次。',show:'抱歉，我沒聽清楚，請再說一次。',buttons:[]};}const cs=h.replace(/[\s。．.！!？?，,、]+/g,'');if(tradeVoice(cs)){me.remove();w.remove();busy=false;convOff('買賣與平倉不能用語音，請在卡片按鈕上確認');add('🔒 「'+h+'」是買賣或平倉，不能用語音執行。請到卡片上按按鈕，確認後才會送出。','xg');return null;}   // 買賣與平倉一律不經語音執行，只能用卡片按鈕
+const ro=roCmd(cs,true)||(appOf(h)&&h)||(localAct(h)&&h);if(ro){me.remove();w.remove();busy=false;send(ro);return null;}   // 整句就是指令（唯讀指令、開 App、導航、打電話）：直接執行，不進輸入框
 me.remove();w.remove();busy=false;$('q').value=h;$('q').focus();convOff('聽到了，確認文字後按「傳送」');return null;})
  .then(r=>{if(!r)return;busy=false;if(aud)console.info('[小乖計時] 轉文字 '+(tm.t1-tm.s)+'ms、小乖回答＋語音 '+(Date.now()-tm.t1)+'ms');if(/同步密碼不對/.test(r.say)){login('同步密碼不對，請重新輸入');}const ap=aud&&appOf(r.heard);if(ap)return openApp(ap,w);w.textContent='';lk(w,r.show||r.say);caseCards(w,r.cases);if(aud){const tt=document.createElement('div');tt.style.cssText='font-size:12px;opacity:.6;margin-top:6px';tt.textContent='⏱ 轉文字 '+((tm.t1-tm.s)/1000).toFixed(1)+' 秒｜回答＋語音 '+((Date.now()-tm.t1)/1000).toFixed(1)+' 秒';w.appendChild(tt);}(r.imgs&&r.imgs.length?r.imgs:(r.img?[r.img]:[])).slice().reverse().forEach(src=>{const i=new Image();i.className='card';i.alt='智囊軍師圖卡';i.onload=()=>{log.scrollTop=1e9;};i.src=src;thumb(src,th=>{i.dataset.th=th;saveLog();});w.insertBefore(i,w.firstChild);});saveLog();chips(r.buttons);if((r.buttons||[]).indexOf('📷 選照片')>=0){convOff('按「⚡ 最新一張」用相簿最新的照片試算，或按「📷 選照片」自己選');}else if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');if(aud&&$('spk').checked&&$('real').checked&&r.say)speakReal(r.say);else speak(r.say,/碰到損益/.test(r.say)?'':r.audio);})
  .catch(e=>{busy=false;w.textContent='連線有問題，請確認網址，再試一次（'+(e.name==='AbortError'?'小乖回應太久，請再說一次':e.message)+'）';});}
@@ -691,6 +692,8 @@ function rtSend(x,rate){
  fr.onerror=()=>{rtBusy=false;};
  fr.readAsDataURL(rtWav(x,rate));
 }
+// 買賣與平倉：語音一律不執行（不論整句或句中），免得誤下單；提示改用卡片按鈕確認（2026-10-29）
+function tradeVoice(t){return /(買進|買入|賣出|平倉|平掉)/.test(t)||/^(幫我|請|小乖)?[買賣]/.test(t);}
 // 唯讀指令判斷：邊聽邊執行用句尾比對（exact=false）；整段錄音要整句就是指令才自動執行（exact=true），免得「我想看查看持倉」誤觸
 function roCmd(t,exact){
  const e=exact?'^':'';let m;
