@@ -6625,8 +6625,10 @@ function leadHandle_(body) {
     if (body.object === 'instagram' && ch.field === 'comments')
       c = { p: 'ig', id: v.id, text: v.text, from: v.from && v.from.id, who: v.from && ('@' + v.from.username), self: prop_('IG_USER') };
     else if (body.object === 'page' && ch.field === 'feed' && v.item === 'comment' && v.verb === 'add')
-      c = { p: 'fb', id: v.comment_id, text: v.message, from: v.from && v.from.id, who: v.from && v.from.name, self: prop_('FB_PAGE') };
+      c = { p: 'fb', id: v.comment_id, text: v.message, from: v.from && v.from.id, who: v.from && v.from.name, self: prop_('FB_PAGE'), post: v.post_id };
     if (!c || !c.id) { leadLog_('收到通知，但不是新留言（' + body.object + '／' + ch.field + (v.item ? '／' + v.item : '') + '）'); return; }
+    // 只回自己粉專貼文底下的留言；別人的貼文、社團的貼文一律略過（貼文編號是「粉專編號_貼文編號」）
+    if (c.p === 'fb' && String(c.post || '').split('_')[0] !== String(prop_('FB_PAGE'))) { leadLog_('FB 留言「' + String(c.text || '').slice(0, 20) + '」不是自己粉專的貼文（別人的貼文或社團），略過'); return; }
     const src = (c.p === 'ig' ? 'IG' : 'FB') + ' 留言「' + String(c.text || '').slice(0, 20) + '」';
     if (c.from && String(c.from) === String(c.self)) { leadLog_(src + '：是你自己帳號的留言，不回'); return; }   // 自己的留言（含小乖的公開回覆）不理；FB 有時不給留言者，照樣回
     const kw = leadMatch_(c.text);
