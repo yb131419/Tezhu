@@ -412,15 +412,7 @@ function tradeCloseConfirm_(token) {
       const c = done.reduce((a, i) => a + i.done.cost, 0);
       total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, cost: c }, u, ' ');
     }
-    const fill = Number(conf.level).toFixed(hit.prec);
-    // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 投入成本（保證金）
-    const pnl = (hit.dir === 'buy' ? 1 : -1) * (Number(fill) - hit.open) * hit.size;
-    const pct = tradePctOf_(pnl, hit);
-    const pctTxt = isFinite(pct) ? '（' + (pnl >= 0 ? '+' : '-') + Math.abs(pct).toFixed(2) + '%）' : '';
-    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交', pnl: Number(pnl.toFixed(2)), pct: isFinite(pct) ? Number(pct.toFixed(2)) : null, cur: hit.cur || 'USD' });
-    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill + '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD'));
-    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill +
-      '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD') + pctTxt;
+    return '（' + label + '）\n' + lines.join('\n') + total;
   });
 }
 
@@ -983,18 +975,31 @@ function tradeReconcile_(cur) {
   const st = tradeState_();
   const stops = st.stops || [];
   (st.snap || []).forEach(p => {
-    if (!(p.now > 0) || cur.some(x => x.dealId === p.dealId)) return;
-    const buy = p.dir === 'buy';
-    let kind = '';
-    if (p.sl !== null && (buy ? p.now <= p.sl : p.now >= p.sl)) kind = '停損';
-    else if (p.tp !== null && (buy ? p.now >= p.tp : p.now <= p.tp)) kind = '停利';
-    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: p.now, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
+    if (cur.some(x => x.dealId === p.dealId)) return;
+    // 持倉不見了：上次看到的報價可能還沒碰到停損或停利，所以再用目前報價比一次（碰到的時間可能在兩次查詢之間）
+    let kind = tradeKindOf_(p, p.now), price = p.now;
+    if (!kind) { price = tradeNowOf_(p); kind = tradeKindOf_(p, price); }
+    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
   });
   const snap = cur.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
     return { dealId: x.dealId, name: x.name, dir: x.dir, dirZh: x.dirZh, size: x.size, sl: x.sl === null || x.sl === undefined || x.sl === '' ? null : Number(x.sl), tp: x.tp === null || x.tp === undefined || x.tp === '' ? null : Number(x.tp), open: x.open > 0 ? x.open : null, margin: x.margin > 0 ? x.margin : null, cur: x.cur || '', now: isFinite(now) ? now : 0, prec: x.prec };
   });
   tradeSaveState_(Object.assign(tradeState_(), { snap: snap, stops: stops.slice(-20) }));
+}
+
+// 價格碰到這筆持倉的停損回傳「停損」，碰到停利回傳「停利」，都沒有就回傳空字串
+function tradeKindOf_(p, price) {
+  if (!(price > 0)) return '';
+  const buy = p.dir === 'buy';
+  if (p.sl !== null && (buy ? price <= p.sl : price >= p.sl)) return '停損';
+  if (p.tp !== null && (buy ? price >= p.tp : price <= p.tp)) return '停利';
+  return '';
+}
+
+// 目前報價（給比對停損停利用）：取不到回傳 NaN，不影響其他流程
+function tradeNowOf_(p) {
+  try { return tradeQuote_(TRADE_ITEMS[p.name]); } catch (e) { return NaN; }
 }
 
 // 加一筆停損停利紀錄（平倉或比對到的停損停利），並把這筆持倉從比對快照拿掉
