@@ -412,15 +412,7 @@ function tradeCloseConfirm_(token) {
       const c = done.reduce((a, i) => a + i.done.cost, 0);
       total = '\n合計盈虧 ' + tradePnlText_({ cur: done[0].done.cur, cost: c }, u, ' ');
     }
-    const fill = Number(conf.level).toFixed(hit.prec);
-    // 損益沿用持倉的算法：多單 = 成交價 − 開倉價，空單 = 開倉價 − 成交價，再乘數量；百分比 = 損益 ÷ 投入成本（保證金）
-    const pnl = (hit.dir === 'buy' ? 1 : -1) * (Number(fill) - hit.open) * hit.size;
-    const pct = tradePctOf_(pnl, hit);
-    const pctTxt = isFinite(pct) ? '（' + (pnl >= 0 ? '+' : '-') + Math.abs(pct).toFixed(2) + '%）' : '';
-    tradeLogSet_(ref, { price: fill, label: '平倉（' + label + '），已成交', pnl: Number(pnl.toFixed(2)), pct: isFinite(pct) ? Number(pct.toFixed(2)) : null, cur: hit.cur || 'USD' });
-    tradeNotify_('📣 平倉通知\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位，成交價 ' + fill + '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD'));
-    return '✅ 已平倉（' + label + '）\n' + hit.name + ' 平' + hit.dirZh + ' ' + hit.size + ' 單位\n成交價：' + fill +
-      '\n' + (pnl >= 0 ? '🟢 獲利 +' : '🔴 虧損 ') + pnl.toFixed(2) + ' ' + (hit.cur || 'USD') + pctTxt;
+    return '（' + label + '）\n' + lines.join('\n') + total;
   });
 }
 
