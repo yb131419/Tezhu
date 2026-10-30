@@ -567,8 +567,9 @@ document.addEventListener('click',unlock,true);document.addEventListener('touche
 let conv=false,wl=null;
 function convOn(){conv=true;document.body.classList.add('conv');try{if(navigator.audioSession)navigator.audioSession.type='play-and-record';}catch(e){}try{if(navigator.wakeLock&&!wl)navigator.wakeLock.request('screen').then(l=>{wl=l;}).catch(()=>{});}catch(e){}}
 function convOff(msg){conv=false;document.body.classList.remove('conv');if(wl){wl.release().catch(()=>{});wl=null;}if(msg)hint.textContent=msg;}
-// 小乖講完才開麥克風（講話時不聽，免得錄到自己的聲音）
-function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(window.speechSynthesis&&speechSynthesis.speaking)return next();micStart();},250);}
+// 小乖講完才開麥克風（講話時不聽，免得錄到自己的聲音）：真人語音（音效環境、<audio>）與手機內建聲音都要確認講完
+function talking(){const a=$('au');return !!auSrc||(!a.paused&&!a.ended)||!!(window.speechSynthesis&&speechSynthesis.speaking);}
+function next(){clearTimeout(ttsT);if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(!conv||busy||recOn)return;if(talking())return next();micStart();},250);}
 function stopTalk(){clearTimeout(ttsT);if(window.speechSynthesis)speechSynthesis.cancel();$('au').onended=null;$('au').pause();if(auSrc){const s=auSrc;auSrc=null;s.onended=null;try{s.stop();}catch(e){}}}
 function speak(t,audio){if(!$('spk').checked)return next();if(conv&&$('loop').checked)hint.textContent='小乖說話中…講完會自動再聽你說（按麥克風可以直接插話）';if(audio)return playMp3(t,audio);if($('real').checked)return speakReal(t);tts(t);}
 // 真人語音用同一個音效環境播放（iPhone 用 <audio> 播完常常把麥克風弄成靜音）；不行再退回 <audio>
