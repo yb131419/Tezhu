@@ -697,6 +697,7 @@ function chanReply_(t) {
   const flat = String(t || '').replace(/\s+/g, '');
   if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanSafe_(chanData_);
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
+  if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   return null;
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
@@ -735,6 +736,33 @@ function chanFetch_() {
       views: Number(v.statistics.viewCount || 0), likes: Number(v.statistics.likeCount || 0), comments: Number(v.statistics.commentCount || 0),
     })),
   };
+}
+// 金鑰狀態：只回報金鑰有沒有設定、實際呼叫一次能不能用，失敗時說可能的原因；金鑰內容一律不顯示
+function chanKeyStatus_() {
+  const key = prop_('YOUTUBE_API_KEY');
+  const L = ['🔑 YouTube 金鑰狀態', ''];
+  if (!key) {
+    L.push('金鑰：未設定');
+    L.push('', '到 Apps Script 的「專案設定」→「指令碼屬性」新增 YOUTUBE_API_KEY，再傳一次「金鑰狀態」。');
+    return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
+  }
+  L.push('金鑰：已設定（長度 ' + key.length + '）');
+  try {
+    chanGet_('channels', { part: 'id', id: CHAN_ID_DEFAULT });
+    L.push('測試呼叫：成功，金鑰可以用。');
+  } catch (e) {
+    const m = String((e && e.message) || e).split(key).join('（金鑰已隱藏）');
+    L.push('測試呼叫：失敗（' + m + '）');
+    L.push('', '可能原因：' + chanKeyHint_(m));
+  }
+  return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+function chanKeyHint_(m) {
+  if (/quota/i.test(m)) return 'YouTube API 今天的配額用完了，隔天會重設。';
+  if (/not been used|disabled|not been enabled/i.test(m)) return 'YouTube Data API v3 還沒啟用，到 Google Cloud 專案裡啟用它。';
+  if (/API key not valid|invalid|expired/i.test(m)) return '金鑰不正確或已過期，請到 Google Cloud 重新複製金鑰，貼到 YOUTUBE_API_KEY。';
+  if (/referer|ip address|restrict/i.test(m)) return '金鑰的應用程式或 API 限制擋住了，請確認金鑰有包含 YouTube Data API v3。';
+  return '請到 Apps Script 的「執行」看詳細紀錄，或確認金鑰與 API 設定。';
 }
 function chanErr_(e) {
   const m = String((e && e.message) || e);
