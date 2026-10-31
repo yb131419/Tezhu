@@ -6639,7 +6639,7 @@ function leadHandle_(body) {
     if (!kw && c.from) cache.put('leadu_' + c.from, '1', 21600);
     leadLog_(src + '：' + (kw ? '有關鍵字「' + kw + '」' : '一般留言') + '，正在私訊');
     cache.put('lead_' + c.id, '1', 21600);   // Meta 會重送，同一則留言只處理一次
-    try { leadLog_(src + '：' + leadReply_(c, kw)); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); leadTell_('💬 ' + (c.p === 'ig' ? 'IG' : 'FB') + ' 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」（' + (c.who || '') + '），但小乖私訊和公開回覆都失敗：' + err.message + '\n請你手動回他 LINE 連結。'); }
+    try { leadLog_(src + '：' + leadReply_(c, kw)); } catch (err) { console.error(err); leadLog_(src + '：私訊失敗 ❌ ' + err.message); if (c.p === 'ig') leadTell_('💬 IG 有人留言「' + (kw || String(c.text || '').slice(0, 20)) + '」（' + (c.who || '') + '），但小乖私訊和公開回覆都失敗：' + err.message + '\n請你手動回他 LINE 連結。'); }   // FB 的失敗只記在「留言狀態」，不發通知
   }));
 }
 function leadReply_(c, kw) {
@@ -6658,9 +6658,11 @@ function leadReply_(c, kw) {
   if (dmErr && pubErr) throw new Error('私訊：' + dmErr + '／公開回覆：' + pubErr);
   const n = Number(prop_('LEAD_N') || 0) + 1;
   setProp_('LEAD_N', String(n));
-  leadTell_('💬 ' + tag + ' 有人留言「' + what + '」：' + (c.who || '') + '\n'
-    + (dmErr ? '私訊沒成功（' + dmErr + '），已改成在留言底下公開回 LINE 連結' : '已私訊官方 LINE 連結' + (pubErr ? '（公開回覆沒成功）' : ''))
-    + '（累計 ' + n + ' 人）。');
+  // FB 只有成功時才通知；有失敗的只記在「留言狀態」，不再發到 Telegram／LINE
+  if (c.p === 'ig' || (!dmErr && !pubErr))
+    leadTell_('💬 ' + tag + ' 有人留言「' + what + '」：' + (c.who || '') + '\n'
+      + (dmErr ? '私訊沒成功（' + dmErr + '），已改成在留言底下公開回 LINE 連結' : '已私訊官方 LINE 連結' + (pubErr ? '（公開回覆沒成功）' : ''))
+      + '（累計 ' + n + ' 人）。');
   return dmErr ? '已公開回 LINE 連結（私訊失敗：' + dmErr + '）' : '已私訊 ✅';
 }
 function leadKey_() { return Utilities.getUuid().replace(/-/g, ''); }
