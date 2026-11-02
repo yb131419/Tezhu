@@ -1271,7 +1271,13 @@ function rwWrite_(th) {
     if (!card) return { text: '這次沒改寫出來，再按一次主題試試看。', buttons: rwPickButtons_() };
     LAST_CARD_ = card;   // 圖卡照一般智囊軍師的流程畫出來
     setProp_('RW_UNTIL', String(Date.now() + RW_WAIT_MS));
-    return { text: '✍️ 貼文案改寫（' + th.name + '）\n\n' + stratReply_(card), buttons: [[RW_BTN, STRAT_SWITCH]].concat(MENU) };
+    // 同一篇原文再照「貼文改寫YT」的規則產出 YouTube 標題與說明（失敗不影響前面的貼文與圖卡）
+    let yt = null;
+    try { yt = ytRewrite_(th, prop_('RW_ARTICLE') || ''); } catch (err) { console.error('貼文案改寫的 YouTube 版本失敗：' + err.message); }
+    const ytPart = yt
+      ? '\n\n【🎬 YouTube 標題】\n' + yt.title + '\n\n【YouTube 說明】\n' + yt.desc
+      : '\n\n（YouTube 標題與說明這次沒改寫出來，再按一次主題試試看。）';
+    return { text: '✍️ 貼文案改寫（' + th.name + '）\n\n' + stratReply_(card) + ytPart, buttons: [[RW_BTN, STRAT_SWITCH]].concat(MENU) };
   } finally { busyEnd_('RW_BUSY'); }
 }
 
