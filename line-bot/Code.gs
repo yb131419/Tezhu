@@ -964,6 +964,8 @@ function answer_(text) {
   const ad = addPending_(t2, raw);   // 「✍️ 新增筆記」按下後的下一句
   if (ad && ad.rewrite) return answer_(ad.rewrite);
   if (ad) return ad;
+  const rwr = rwAsk_(t2, raw);   // 「✍️ 貼文案改寫」：貼上文案 → 選智囊軍師主題 → 照模板改寫
+  if (rwr) return rwr;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
   if (isChanAdvice_(raw)) return chanUpgrade_(raw);   // 貼上「頻道改善建議」的四段：寫升級腳本與提升方案
@@ -1190,7 +1192,7 @@ const CHAN_ADV_TXT = '頻道建議';   // 軍師卡片最後一排：照 chanAdv
 function stratMenu_() {
   const b = STRAT_THEMES.map(t => t.btn);
   const auto = prop_('AUTO_POST') === 'on' ? '開著' : '關著';
-  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN], [CHAN_ADV_TXT]] };
+  return { text: '🪶 智囊軍師\n\n選一個主題，我幫你寫一篇文案（附 55 秒短劇腳本），再做成 3 張圖卡：\n（要把別人的文章改成 YouTube 標題和說明，按「' + YT_BTN + '」）\n（想收名單就按「📕 7張＋PDF」；只要短劇腳本就按「' + REEL_BTN + '」）\n\n🕗 自動發文：' + auto + (prop_('AUTO_POST') === 'on' ? '（' + autoSlot_().label + '）' : ''), buttons: [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6).concat([FIRST_CMT_BTN]), [KIT_BTN, REEL_BTN], [AUTO_BTN, YT_BTN], [RW_BTN], [CHAN_ADV_TXT]] };
 }
 // 短劇腳本選主題：按鈕是「🎭 觀念短劇」這類（跟文案的主題按鈕分開，不會誤觸）
 function reelMenu_() {
@@ -1226,6 +1228,53 @@ function ytPick_(article) {
   return { text: '好，文章收到了（' + body.length + ' 字）。\n要用哪個主題的模板改寫？選一個按鈕，我回你 YouTube 的標題和說明。', buttons: ytPickButtons_() };
 }
 // 「🎬 貼文改寫YT」的下一步：等文章 → 等模板；按了別的功能就不再等
+// 貼文案改寫（2026-11-02）：貼上一段文案 → 選智囊軍師主題 → 照該主題的寫作規則改寫成貼文＋3 張圖卡
+const RW_BTN = '✍️ 貼文案改寫', RW_CANCEL = '取消', RW_WAIT_MS = 10 * 60 * 1000;
+const RW_RULE_ = '【原文至上】這次是改寫使用者貼上的文案：主題模板只決定語氣與切入角度；內容只能來自原文，保留原文的觀點、用字與專有名詞，不加原文沒有的情節、人物、數字、療效或設定。分類照原文內容判斷。';
+function rwPickButtons_() {
+  const b = STRAT_THEMES.map(t => t.btn);
+  return [b.slice(0, 2), b.slice(2, 4), b.slice(4, 6), b.slice(6), [RW_CANCEL]];
+}
+function rwEnd_(text) { setProp_('RW_STATE', ''); return { text: text, buttons: MENU }; }
+function rwAsk_(t, raw) {
+  const flat = String(t || '').replace(/\s+/g, '');
+  if (/^(貼文案改寫|改寫文案|文案改寫|改寫文章)$/.test(flat)) {
+    setProp_('RW_STATE', 'article');
+    setProp_('RW_ARTICLE', '');
+    setProp_('RW_UNTIL', String(Date.now() + RW_WAIT_MS));
+    return { text: '✍️ 貼文案改寫\n\n把要改寫的文案整段貼給我。\n接著選一個智囊軍師主題，我照那個主題的寫法改寫成貼文與 3 張圖卡。\n\n（打「取消」就不改）', buttons: [[RW_CANCEL]] };
+  }
+  const st = Number(prop_('RW_UNTIL')) > Date.now() ? prop_('RW_STATE') : '';
+  if (!st) return null;
+  if (/^(取消|不用|算了)$/.test(flat)) return rwEnd_('好，不改寫。');
+  const th = flat.length <= 12 ? ytTheme_(flat) : null;   // 短字才當成主題按鈕
+  if (th) {
+    if (prop_('RW_ARTICLE')) return rwWrite_(th);
+    return { text: '先把要改寫的文案貼給我，再選主題。', buttons: [[RW_CANCEL]] };
+  }
+  if (flat.length <= 12) return null;   // 其他短字（像是點了別的選單）：結束改寫，交給別的功能
+  return rwPick_(raw || t);
+}
+function rwPick_(article) {
+  const body = String(article || '').trim().slice(0, 6000);
+  if (body.length < 20) return { text: '文案太短了，再貼一段完整的給我。', buttons: [[RW_CANCEL]] };
+  setProp_('RW_STATE', 'pick');
+  setProp_('RW_ARTICLE', body);
+  setProp_('RW_UNTIL', String(Date.now() + RW_WAIT_MS));
+  return { text: '好，文案收到了（' + body.length + ' 字）。\n要用哪個主題的寫法改寫？選一個按鈕。', buttons: rwPickButtons_() };
+}
+function rwWrite_(th) {
+  if (!prop_('OPENAI_API_KEY')) return rwEnd_('還沒設定 OpenAI 金鑰，沒辦法改寫。');
+  if (busy_('RW_BUSY', 3 * 60 * 1000)) return '✍️ 上一篇還在改寫，寫好就傳給你，不用再按喔。';
+  try {
+    const card = stratCard_(th.k, th, '', prop_('RW_ARTICLE') || '');
+    if (!card) return { text: '這次沒改寫出來，再按一次主題試試看。', buttons: rwPickButtons_() };
+    LAST_CARD_ = card;   // 圖卡照一般智囊軍師的流程畫出來
+    setProp_('RW_UNTIL', String(Date.now() + RW_WAIT_MS));
+    return { text: '✍️ 貼文案改寫（' + th.name + '）\n\n' + stratReply_(card), buttons: [[RW_BTN, STRAT_SWITCH]].concat(MENU) };
+  } finally { busyEnd_('RW_BUSY'); }
+}
+
 function ytAsk_(t, raw) {
   const flat = String(t || '').replace(/\s+/g, '');
   const st = Number(prop_('YT_UNTIL')) > Date.now() ? prop_('YT_STATE') : '';
@@ -1404,7 +1453,7 @@ function stratWrite_(k, th, pair) {
   return { text: stratReply_(card) + (reel ? '\n\n' + reel : ''), buttons: [[STRAT_AGAIN, STRAT_SWITCH, KIT_BTN], [REEL_BTN, HERO_BTN, HERO2_BTN]].concat(igReady_() ? [[IG_BTN]] : [], MENU) };
 }
 // 寫一篇文案（貼文＋3 張圖卡內容），不畫圖、不附短劇；軍師的寫作規則都在這裡，短劇也用同一份
-function stratCard_(k, th, pair) {
+function stratCard_(k, th, pair, src) {
   let hist = [];
   try { hist = JSON.parse(prop_('STRAT_HIST') || '[]'); } catch (e) { hist = []; }
   const sys = [
@@ -1425,11 +1474,15 @@ function stratCard_(k, th, pair) {
     '兩個版本共用 5 個主題標籤（標籤不可以出現「康園道」「分享」「大健康」這些字）。',
     '【不可以寫】具體金額、收入、業績或任何成效保證；療效、治療、改善疾病、前後對比；電話、地址等個人資料；不要叫人留言、私訊或索取東西。',
     hist.length ? '【避免重複】最近寫過的標題：' + hist.join('、') + '，這次換一個不同的切角。' : '',
+    src ? RW_RULE_ : '',
     '只輸出 JSON：{"cat":"這篇的分類（觀念、健康、火山草本、經營、網路行銷其中之一）","post_title":"貼文標題","post":"貼文內文，句子之間換行，段落之間空一行","cards":[{"title":"封面主標","hook":"一句鉤子"},{"title":"主標","body":"正文，每行一句短句","gold":"反骨金句"},{...第三張}],"tags":["#詞","#詞","#詞","#詞","#詞"]}',
   ].filter(Boolean).join('\n');
   let c = null;
   try {
-    const out = callOpenAI_(sys, [{ role: 'user', content: '請寫一篇「' + th.name + '」的文案。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。' }]);
+    const ask = src
+      ? '請把下面這段文案改寫成「' + th.name + '」的文案（貼文＋圖卡），照上面的規則寫，內容只能取自原文：\n\n' + String(src).slice(0, 6000)
+      : '請寫一篇「' + th.name + '」的文案。今天是 ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '。';
+    const out = callOpenAI_(sys, [{ role: 'user', content: ask }]);
     c = JSON.parse(String(out).slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
   } catch (err) {
     console.error('智囊軍師失敗：' + err.message);
