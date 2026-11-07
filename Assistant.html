@@ -583,19 +583,40 @@
       <div class="ws-ic" style="background:rgba(46,111,176,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></div>
       <div class="ws-title"><h2>行程表</h2><p>依日期排好，一眼看完</p></div>
     </div>
-    <div class="input-card">
-      <input class="main-in" id="evTitle" placeholder="行程名稱，例如：牙醫回診" maxlength="80">
-      <div class="in-grid">
+    <style>
+      /* 行程快速新增（仿 plantri：一行輸入、時間寫在前面、按勾勾加入） */
+      .qa-card{position:relative;overflow:hidden;background:var(--paper-2);border:1px solid var(--line);
+        border-radius:22px;padding:18px 18px 16px;box-shadow:var(--shadow);margin-bottom:16px;}
+      .qa-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c-sched);opacity:.85;}
+      .qa-prompt{font-size:13px;letter-spacing:.06em;color:var(--ink-soft,#6B6358);margin-bottom:10px;font-weight:600;}
+      .qa-row{display:flex;align-items:center;gap:10px;}
+      .qa-in{flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:19px;font-weight:700;
+        color:var(--ink,#1E1B16);padding:6px 0;border-bottom:1.5px solid var(--line);}
+      .qa-in:focus{border-bottom-color:var(--c-sched);}
+      .qa-in::placeholder{color:#B5ABA0;font-weight:500;}
+      .qa-ok{flex:0 0 46px;width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;color:#fff;
+        background:var(--c-sched);display:flex;align-items:center;justify-content:center;font-size:22px;
+        box-shadow:0 6px 16px rgba(46,111,176,.28);transition:transform .15s;}
+      .qa-ok:active{transform:scale(.92);}
+      .qa-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:14px;font-size:14px;}
+      .qa-meta input[type=date]{border:1.5px solid var(--line);border-radius:12px;padding:7px 10px;background:transparent;
+        color:inherit;font:inherit;}
+      .qa-chk{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-soft,#6B6358);}
+      .qa-chk input{width:18px;height:18px;accent-color:var(--c-sched);}
+      .qa-hint{font-size:12px;color:#8C8377;margin-top:10px;}
+    </style>
+    <div class="qa-card">
+      <div class="qa-prompt">要新增什麼行程？</div>
+      <div class="qa-row">
+        <input class="qa-in" id="evQuick" placeholder="例如：15:00 看牙醫" maxlength="80" enterkeyhint="done"
+          onkeydown="if(event.key==='Enter')addEvent()" aria-label="行程內容">
+        <button class="qa-ok" onclick="addEvent()" aria-label="加入行程">✓</button>
+      </div>
+      <div class="qa-meta">
         <input type="date" id="evDate" aria-label="日期">
-        <input type="time" id="evTime" aria-label="時間">
-        <input type="text" id="evPlace" placeholder="地點／備註（可留空）" maxlength="80" style="flex-basis:100%">
+        <label class="qa-chk"><input type="checkbox" id="evRemind" checked> 提前 30 分鐘提醒</label>
       </div>
-      <div class="input-actions">
-        <label class="it-sub" style="display:flex;align-items:center;gap:6px;margin:0">
-          <input type="checkbox" id="evRemind" checked style="width:20px;height:20px;accent-color:var(--accent)"> 提前 30 分鐘提醒
-        </label>
-        <button class="run-btn" style="background:var(--c-sched)" onclick="addEvent()">＋ 加入行程</button>
-      </div>
+      <div class="qa-hint">時間寫在最前面就會自動設定，例如「5點 開會」、「下午3:30 取件」</div>
     </div>
     <div class="filter" id="evFilter"></div>
     <div id="evList"></div>
@@ -1119,17 +1140,29 @@ function clearDone(){ state.todos=state.todos.filter(t=>!t.done); save(); render
 
 /* ============ 行程 ============ */
 function evCmp(a,b){ return (a.date+(a.time||"00:00")).localeCompare(b.date+(b.time||"00:00")); }
+// 解析一行輸入：開頭的時間（15:00、5點、下午3:30、晚上7點）自動抓出來，其餘當行程名稱
+function parseQuickEvent(raw){
+  const s=raw.trim();
+  const m=s.match(/^(上午|早上|中午|下午|晚上)?\s*(\d{1,2})(?:\s*[:：]\s*(\d{2})|\s*點\s*(?:(\d{1,2})\s*分?)?)\s*(.*)$/);
+  if(!m) return {time:"",title:s};
+  const period=m[1]||""; let h=+m[2]; const min=+(m[3]||m[4]||0); const rest=(m[5]||"").trim();
+  if(h>23||min>59||!rest) return {time:"",title:s};
+  if((period==="下午"||period==="晚上") && h<12) h+=12;
+  else if(period==="中午" && h>=1 && h<11) h+=12;
+  else if(!period && h>=1 && h<=6) h+=12; // 沒寫上午下午，1–6 點視為下午
+  return {time:String(h).padStart(2,"0")+":"+String(min).padStart(2,"0"),title:rest};
+}
 function addEvent(){
-  const title=document.getElementById("evTitle").value.trim();
+  const parsed=parseQuickEvent(document.getElementById("evQuick").value);
+  const title=parsed.title;
   const date=document.getElementById("evDate").value;
-  if(!title){ toast("請填行程名稱"); return; }
+  if(!title){ toast("請填行程內容"); return; }
   if(!date){ toast("請選日期"); return; }
-  const ev={id:uid(),title,date,time:document.getElementById("evTime").value||"",
-    place:document.getElementById("evPlace").value.trim(),time0:Date.now()};
+  const ev={id:uid(),title,date,time:parsed.time,place:"",time0:Date.now()};
   state.events.push(ev);
   if(document.getElementById("evRemind").checked && ev.time) addEventReminder(ev);
   save();
-  ["evTitle","evTime","evPlace"].forEach(i=>document.getElementById(i).value="");
+  document.getElementById("evQuick").value="";
   renderEvents(); toast("已加入行程");
 }
 function addEventReminder(ev){
