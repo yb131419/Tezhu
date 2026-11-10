@@ -834,8 +834,10 @@ function sPasteTime(s){
  if(h>23||mi>59)return {bad:true,t:m[0]};
  return {time:sPad(h)+':'+sPad(mi),t:m[0]};}
 function sParseLine(raw){
- let s=raw.replace(/^\s*(?:[-•・*]|\d+[.、)])\s+/,'').replace(/[（(][一二三四五六日天][）)]|[週星期][一二三四五六日天]/g,' ').trim();
+ let s=raw.replace(/^\s*(?:[-•・*]|\d+[.、)])\s+/,'').replace(/[（(]\s*(?:[一二三四五六七八九十]|[週星期][一二三四五六日天])\s*[）)]|[週星期][一二三四五六日天]/g,' ').trim();
  if(!s)return null;
+ // 標題行（例如「115年11月3日訊息通知：」）沒有時間又以冒號結尾，當作說明文字略過
+ if(/[：:]\s*$/.test(s)&&!sPasteTime(s))return null;
  const allDay=s.includes('整天'),r={title:'',date:'',time:'',err:''};
  const dt=sPasteDate(s);if(dt){r.date=dt.d;s=s.replace(dt.t,' ');}
  const tm=sPasteTime(s);
@@ -855,8 +857,11 @@ function sOpenPaste(){
  $('sform').style.display='flex';
  $('sfx').onclick=sCloseForm;$('sfC').onclick=sCloseForm;
  $('sfPv').onclick=sPastePreview;}
+// 一段 LINE 訊息可能把 (一)(二)… 接在同一行，先在編號前換行再逐行解析
+function sSplitPaste(text){
+ return String(text||'').replace(/\r/g,'').replace(/([（(][一二三四五六七八九十]+[）)])/g,'\n$1').split('\n');}
 function sPastePreview(){
- const rows=$('sfPaste').value.split('\n').map(sParseLine).filter(Boolean);
+ const rows=sSplitPaste($('sfPaste').value).map(sParseLine).filter(Boolean);
  if(!rows.length)return sErr('請先貼上行程');
  sPasteRows=rows.map(r=>({...r,on:!r.err}));
  sPasteShow();}
