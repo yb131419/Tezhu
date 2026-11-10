@@ -726,6 +726,16 @@ function sToday(){const n=new Date();return n.getFullYear()+'-'+sPad(n.getMonth(
 function sEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function sDayLabel(ds){const [y,m,d]=ds.split('-').map(Number);return m+'/'+d+'（週'+sWeek[new Date(y,m-1,d).getDay()]+'）'+(ds===sToday()?'・今天':'');}
 function sCmp(a,b){return (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00'));}
+// 成功浮窗：畫面中央短暫顯示，不擋操作
+function sPop(m){
+ let el=document.getElementById('spop');
+ if(!el){el=document.createElement('div');el.id='spop';
+  el.style.cssText='position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.96);z-index:20;background:#1B1814;color:#F4EBDA;border:1px solid rgba(220,195,148,.45);border-radius:18px;padding:18px 26px;font-size:17px;font-weight:600;box-shadow:0 18px 50px -12px #000;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center;max-width:82vw';
+  document.body.appendChild(el);}
+ el.textContent='✅ '+m;
+ requestAnimationFrame(()=>{el.style.opacity='1';el.style.transform='translate(-50%,-50%) scale(1)';});
+ clearTimeout(sPopT);sPopT=setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-50%) scale(.96)';},1800);}
+let sPopT=null, sBusy=false;
 function sMsg(m){$('smsg').textContent=m;clearTimeout(sMsgT);sMsgT=setTimeout(()=>{$('smsg').textContent='';},1800);}
 async function sApi(b){
  const r=await fetch(URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,key:KEY})});
@@ -768,17 +778,19 @@ function sOpenForm(ev){
 function sCloseForm(){$('sform').style.display='none';sEditId=null;}
 function sErr(m){$('sfE').textContent=m;}
 async function sSave(){
+ if(sBusy)return;
  const title=$('sfT').value.trim(),date=$('sfD').value,allDay=$('sfA').checked,time=allDay?'':$('sfM').value,place=$('sfP').value.trim();
  if(!title)return sErr('請填行程名稱');
  if(!date)return sErr('請選日期');
  if(!allDay&&!time)return sErr('請選時間，或勾選「整天」');
- $('sfS').disabled=true;
+ sBusy=true;$('sfS').disabled=true;$('sfS').textContent='儲存中…';
  try{
   const o=await sApi({action:'evSave',id:sEditId||undefined,title,date,time,place});
   const i=sEvents.findIndex(e=>e.id===o.event.id);
   if(i>=0)sEvents[i]=o.event;else sEvents.push(o.event);
-  sCloseForm();sRender();sMsg('已儲存');
- }catch(e){sErr('儲存失敗：'+e.message);$('sfS').disabled=false;}}
+  sCloseForm();sRender();sPop('已儲存行程');
+ }catch(e){sErr('儲存失敗：'+e.message);$('sfS').disabled=false;}
+ finally{sBusy=false;$('sfS').textContent='儲存';}}
 async function sDel(){
  const id=sEditId;if(!id)return;
  if(!confirm('確定要刪除這筆行程嗎？'))return;
@@ -877,20 +889,25 @@ function sPasteShow(){
  $('sfbox').querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{sPasteRows[+c.dataset.i].on=c.checked;sPasteCount();});
  sPasteCount();}
 async function sPasteSave(){
+ if(sBusy)return;
  const pick=sPasteRows.filter(r=>r.on);
  if(!pick.length)return sErr('請勾選要儲存的行程');
- $('sfPs').disabled=true;
+ sBusy=true;
+ const btn=$('sfPs');btn.disabled=true;
  let done=0,failed=0;
+ // 逐筆寫入時按鈕顯示進度，讓使用者知道正在儲存（手機網路慢時不會像沒反應）
  for(const r of pick){
+  btn.textContent='儲存中 '+(done+failed+1)+' / '+pick.length+' 筆…';
   try{const o=await sApi({action:'evSave',title:r.title,date:r.date,time:r.time,place:''});
-   sEvents.push(o.event);r.saved=true;done++;}
+   if(o&&o.event)sEvents.push(o.event);r.saved=true;done++;}
   catch(e){failed++;}
  }
- sRender();
- if(!failed){sCloseForm();sMsg('已新增 '+done+' 筆');return;}
+ sBusy=false;
  sPasteRows=sPasteRows.filter(r=>!r.saved);
+ if(!failed){sCloseForm();sRender();sPop('已新增 '+done+' 筆行程');return;}
  sPasteShow();
- sErr('已新增 '+done+' 筆，'+failed+' 筆儲存失敗，請再按一次儲存');}
+ sErr('已新增 '+done+' 筆，'+failed+' 筆儲存失敗，請再按一次儲存');
+ sRender();}
 $('spaste').onclick=sOpenPaste;
 $('schedx').onclick=closeSched;
 // 右上角 ☰ 選單：對齊 LINE 的大項目（小乖、行程、交易、軍師、見證、試算、搜尋、頻道）再加 ⚙ 設定。交易等結果只顯示在網頁面板，不送進對話串（下單仍要按提案的確認）；data-f 只帶入輸入列，data-cam 開照片選擇
