@@ -47,7 +47,7 @@ const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // Y
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
+  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🌊 Threads 海巡', '巡查新留言，草擬溫和回覆']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -977,6 +977,8 @@ function answer_(text) {
   if (rwr) return rwr;
   const rpl = rpAsk_(t2, raw);   // 「📨 回覆留言」：貼上別人的留言 → 照神對話的角度寫回覆
   if (rpl) return rpl;
+  const thp = thPatrolAsk_(t2);   // 「🌊 Threads 海巡」：巡查最近貼文的新留言，草擬溫和回覆（不會自動發出）
+  if (thp) return thp;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
   if (isChanAdvice_(raw)) return chanUpgrade_(raw);   // 貼上「頻道改善建議」的四段：寫升級腳本與提升方案
@@ -1369,6 +1371,67 @@ function rpPhoto_(image) {
   if (typeof r === 'string') return r;   // 上一則還在寫
   ASK_BTNS_ = [].concat.apply([], r.buttons || []);
   return r.text;
+}
+
+// 🌊 Threads 海巡（2026-11-14）：巡查最近幾則 Threads 貼文的新留言，照神對話的角度草擬回覆。
+// 只草擬、不自動發到 Threads（對外的話要彥彬自己確認後貼上）。已巡過的留言記在 TH_SEEN，不重複草擬。
+const TH_PATROL_BTN = '🌊 Threads 海巡';
+const TH_PATROL_DAYS = 7, TH_PATROL_POSTS = 10, TH_PATROL_MAX = 8, TH_SEEN_MAX = 400;
+function thPatrolAsk_(t) {
+  const flat = String(t || '').replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
+  if (!/^(threads|th)?海巡(threads)?$/i.test(flat)) return null;
+  if (!SOC.th.ok()) return { text: '🧵 還沒設定 Threads。先傳「設定 Threads金鑰 權杖」，設定好再來海巡。', buttons: [[TH_PATROL_BTN, RP_BTN]] };
+  return thPatrol_();
+}
+// Threads 時間格式是 +0000（沒有冒號），補成標準格式再解析
+function thTime_(s) { return new Date(String(s || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime() || 0; }
+function thPatrol_() {
+  if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法草擬回覆。', buttons: [[TH_PATROL_BTN, RP_BTN]] };
+  if (busy_('TH_PATROL_BUSY', 4 * 60 * 1000)) return '🌊 上一輪海巡還在跑，跑完會回你，不用再按。';
+  try {
+    const since = Date.now() - TH_PATROL_DAYS * 86400000;
+    const posts = (thCall_('get', prop_('TH_USER') + '/threads', { fields: 'id,text,timestamp', limit: TH_PATROL_POSTS }).data || [])
+      .filter(p => thTime_(p.timestamp) >= since);
+    const btns = [[TH_PATROL_BTN, RP_BTN]];
+    if (!posts.length) return { text: '🌊 Threads 海巡\n\n最近 ' + TH_PATROL_DAYS + ' 天沒有新貼文，沒有要巡的留言。', buttons: btns };
+    let seen = []; try { seen = JSON.parse(prop_('TH_SEEN') || '[]'); } catch (e) { seen = []; }
+    const seenSet = {}; seen.forEach(id => { seenSet[id] = true; });
+    const me = String(prop_('TH_NAME') || '').toLowerCase();
+    const fresh = [], skip = [];
+    let failed = 0, lastErr = '';
+    posts.forEach(p => {
+      let rs = [];
+      try { rs = thCall_('get', p.id + '/replies', { fields: 'id,text,username,timestamp', limit: 25 }).data || []; }
+      catch (err) { failed++; lastErr = err.message; return; }
+      rs.forEach(r => {
+        if (seenSet[r.id]) return;
+        seenSet[r.id] = true;
+        if (!r.text || String(r.username || '').toLowerCase() === me) { skip.push(r.id); return; }   // 沒文字或是自己的回覆：不草擬，直接記下
+        fresh.push({ id: r.id, user: r.username || '', text: String(r.text).replace(/\s+/g, ' ').trim() });
+      });
+    });
+    // 一次最多草擬 TH_PATROL_MAX 則；其餘的不記，下次海巡再看
+    const batch = fresh.slice(0, TH_PATROL_MAX);
+    const drafts = [], done = skip.slice();
+    batch.forEach(r => {
+      try {
+        const out = callOpenAI_(RP_RULE_, [{ role: 'user', content: '對方的留言：\n' + r.text }], false, null, { maxTokens: 400, temperature: 0.8 });
+        const reply = String(out || '').replace(/^["「『]+|["」』]+$/g, '').trim();
+        if (reply) { drafts.push({ r: r, reply: reply }); done.push(r.id); }   // 寫好才記下；失敗的下次再巡
+      } catch (err) { lastErr = err.message; }
+    });
+    setProp_('TH_SEEN', JSON.stringify(seen.concat(done).slice(-TH_SEEN_MAX)));
+    const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
+    const lines = ['🌊 Threads 海巡（最近 ' + TH_PATROL_DAYS + ' 天，' + posts.length + ' 則貼文）', ''];
+    if (!drafts.length) lines.push(fresh.length ? '這次草擬失敗了，過一陣子再海巡。' : '目前沒有新留言。');
+    drafts.forEach((d, i) => lines.push((i + 1) + '. @' + (d.r.user || '有人') + '：' + clip(d.r.text, 80), '   回覆：' + d.reply, ''));
+    if (fresh.length > batch.length) lines.push('還有 ' + (fresh.length - batch.length) + ' 則新留言，下次海巡再看。');
+    if (failed) lines.push('（' + failed + ' 則貼文讀不到留言：' + noTok_(lastErr) + '。若是權限問題，要在 Threads 權杖加上 threads_read_replies。）');
+    lines.push('', '草擬的回覆不會自動發到 Threads，要回覆請到 Threads 手動貼上。');
+    return { text: lines.join('\n'), buttons: btns };
+  } catch (err) {
+    return { text: '🌊 海巡出錯了：' + noTok_(err.message), buttons: [[TH_PATROL_BTN, RP_BTN]] };
+  } finally { busyEnd_('TH_PATROL_BUSY'); }
 }
 
 function ytAsk_(t, raw) {
