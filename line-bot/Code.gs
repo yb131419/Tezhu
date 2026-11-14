@@ -616,6 +616,13 @@ function handleLine_(ev) {
   if (ev.type !== 'message' || !ev.replyToken) return;
   if (ev.message.type === 'image' || ev.message.type === 'video') {
     if (!owner || uid !== owner) return;
+    // 按了「📨 回覆留言」（💎 選單或文字）後傳截圖：讀出截圖裡的留言，照神對話規則寫回覆
+    if (ev.message.type === 'image' && rpActive_()) {
+      ASK_BTNS_ = [];
+      let rpr = '';
+      try { rpr = rpPhoto_(lineImage_(ev.message.id)); } catch (err) { console.error(err); rpr = '讀截圖時出錯了：' + err.message; }
+      return reply_(ev.replyToken, { text: rpr, buttons: ASK_BTNS_.length ? ASK_BTNS_ : [RP_CANCEL] }, null, true);
+    }
     // 按了「➕ 新增見證」：圖片、影片存進案例庫；影片一律當案例存
     if (ev.message.type === 'video' || casePending_()) {
       let res;
