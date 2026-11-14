@@ -47,7 +47,7 @@ const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // Y
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
+  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -1294,7 +1294,7 @@ function rwWrite_(th) {
 
 /* ============ 回覆留言（2026-11-14）：貼上別人的留言 → 照神對話的角度寫回覆 ============ */
 // 角度沿用神對話的規則：佛祖（二十五歲女相，溫和、話少）、台詞不提術語、不做療效與成效保證、不寫免責聲明
-const RP_BTN = '📨 回覆留言', RP_AGAIN = '🔄 換一版', RP_CANCEL = '取消', RP_WAIT_MS = 10 * 60 * 1000;
+const RP_BTN = '📨 回覆留言', RP_AGAIN = '🔄 換一版', RP_CANCEL = '取消', RP_SHOT = '📷 上傳截圖', RP_WAIT_MS = 10 * 60 * 1000;
 const RP_RULE_ = '你是「佛祖」的口吻：二十五歲女相，溫和、慈悲、話少，一句點到為止。請用這個角度回覆一則留言：先接住對方的感受或處境，再點出一個覺察（例如「念頭會互相感染」「心與心會互相感應」），最後給一句溫柔的提醒。\n' +
   '規則：\n' +
   '1. 只用繁體中文（台灣用語），回覆 1 到 3 句，總長不超過 60 字，句子短、語速慢。\n' +
@@ -1310,7 +1310,13 @@ function rpAsk_(t, raw) {
     setProp_('RP_STATE', 'await');
     setProp_('RP_LAST', '');
     setProp_('RP_UNTIL', String(Date.now() + RP_WAIT_MS));
-    return { text: '📨 回覆留言\n\n把對方的留言整段貼給我，我照神對話的角度，寫一段溫和的回覆。\n\n（打「取消」就結束；寫好一則後，下一則留言直接貼上來就好）', buttons: [[RP_CANCEL]] };
+    return { text: '📨 回覆留言\n\n把對方的留言整段貼給我，我照神對話的角度，寫一段溫和的回覆。\n\n📷 留言是截圖也可以：按下面的「📷 上傳截圖」，再直接傳截圖給我（在 LINE 按 ＋ 選相片），我會讀出截圖裡的留言再回覆。\n\n（打「取消」就結束；寫好一則後，下一則留言直接貼上來就好）', buttons: [[RP_SHOT, RP_CANCEL]] };
+  }
+  if (/^上傳截圖$/.test(flat)) {   // 按「📷 上傳截圖」：進入回覆流程，等下一張截圖
+    setProp_('RP_STATE', 'await');
+    setProp_('RP_LAST', '');
+    setProp_('RP_UNTIL', String(Date.now() + RP_WAIT_MS));
+    return { text: '📷 上傳截圖\n\n請直接傳留言的截圖給我（在 LINE 按 ＋ 選相片）。我會讀出截圖裡的留言，照神對話的角度寫一段溫和的回覆。\n\n（打「取消」就結束）', buttons: [[RP_CANCEL]] };
   }
   const st = Number(prop_('RP_UNTIL')) > Date.now() ? prop_('RP_STATE') : '';
   if (!st) return null;
@@ -1333,7 +1339,7 @@ function rpWrite_(comment) {
     if (!reply) return { text: '這次沒寫出來，再貼一次留言試試看。', buttons: [[RP_AGAIN, RP_CANCEL]] };
     setProp_('RP_LAST', comment);
     setProp_('RP_UNTIL', String(Date.now() + RP_WAIT_MS));
-    return { text: '📨 回覆留言\n\n【對方的留言】\n' + comment + '\n\n【回覆】\n' + reply + '\n\n（不滿意就按「🔄 換一版」；下一則留言直接貼給我）', buttons: [[RP_AGAIN, RP_CANCEL]] };
+    return { text: '📨 回覆留言\n\n【對方的留言】\n' + comment + '\n\n【回覆】\n' + reply + '\n\n（不滿意就按「🔄 換一版」；要看下一則截圖就按「📷 上傳截圖」；下一則留言直接貼給我）', buttons: [[RP_AGAIN, RP_SHOT], [RP_CANCEL]] };
   } catch (err) {
     return { text: '寫回覆時出錯了：' + err.message, buttons: [[RP_CANCEL]] };
   } finally { busyEnd_('RP_BUSY'); }
