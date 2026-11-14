@@ -340,7 +340,7 @@ function voiceText_(t) { return String(t || '').trim().replace(/[\s。．.！!�
 function askByVoice_(q, image, spoken) {
   VOICE_IN_ = !!spoken;
   q = voiceText_(q);
-  if (image) return askPhoto_(q, image);
+  if (image) { const rpp = rpPhoto_(image); if (rpp) return rpp; return askPhoto_(q, image); }   // 回覆留言等截圖時，先讀出留言再照規則寫回覆
   if (!q) return '我在，請說。';
   // 用講的、又不像要小乖做事或問問題（例如電視或旁人的話被辨識出來）：不叫 AI，免得它回「我會幫你記下」卻沒記
   if (VOICE_IN_ && !ADD_WORDS.test(q) && !WHEN_WORDS.test(q) && !DEL_WORDS.test(q) && !ASK_WORDS.test(q)) return '我沒有聽出要我做的事。要我記下什麼，請說「幫我記…」；想問什麼，直接問我。';
@@ -1329,6 +1329,25 @@ function rpWrite_(comment) {
   } catch (err) {
     return { text: '寫回覆時出錯了：' + err.message, buttons: [[RP_CANCEL]] };
   } finally { busyEnd_('RP_BUSY'); }
+}
+
+// 截圖回覆（2026-11-14）：「📨 回覆留言」等待中，上傳截圖 → 先讀出截圖裡的留言 → 照同一套規則寫回覆
+function rpActive_() { return !!prop_('RP_STATE') && Number(prop_('RP_UNTIL')) > Date.now(); }
+function rpRead_(image) {
+  const sys = '你是讀截圖的助手。請找出這張截圖裡「別人留言」的文字，只輸出留言內容本身；有多則留言就用換行分開，不要寫時間、按鈕、用戶名稱或說明。如果完全看不到留言，只輸出「無」。';
+  const out = callOpenAI_(sys, [{ role: 'user', content: [{ type: 'text', text: '請讀出截圖中的留言' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }] }], false, null, { maxTokens: 800, temperature: 0 });
+  return String(out || '').trim().slice(0, 1000);
+}
+function rpPhoto_(image) {
+  if (!rpActive_()) return null;
+  if (!prop_('OPENAI_API_KEY')) return rpEnd_('還沒設定 OpenAI 金鑰，沒辦法讀截圖。').text;
+  let comment = '';
+  try { comment = rpRead_(image); } catch (err) { return '讀截圖時出錯了：' + err.message; }
+  if (!comment || comment === '無') { ASK_BTNS_ = [RP_CANCEL]; return '這張截圖裡看不到留言，換一張清楚一點的截圖，或直接把留言打給我。'; }
+  const r = rpWrite_(comment);
+  if (typeof r === 'string') return r;   // 上一則還在寫
+  ASK_BTNS_ = [].concat.apply([], r.buttons || []);
+  return r.text;
 }
 
 function ytAsk_(t, raw) {
