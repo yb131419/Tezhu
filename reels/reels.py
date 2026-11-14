@@ -919,6 +919,40 @@ def ass_text(s):
     return re.sub(r'[{}\\]', '', s).replace('\n', ' ').strip()
 
 
+def ass_secs(s):
+    h, m, sec = s.strip().split(':')
+    return int(h) * 3600 + int(m) * 60 + float(sec)
+
+
+def srt_time(t):
+    ms = int(round(t * 1000))
+    h, ms = divmod(ms, 3600000)
+    m, ms = divmod(ms, 60000)
+    s, ms = divmod(ms, 1000)
+    return '%02d:%02d:%02d,%03d' % (h, m, s, ms)
+
+
+def ass_to_srt(ass, out):
+    """把成片的字幕（Sub 樣式）存成 SRT，使用者可拿去剪映、CapCut、OpenReel 匯入再修改。回傳句數。
+    （做法參考 OpenReel 的字幕 SRT 匯入／匯出；程式是自己寫的，沒有複製他們的程式碼。）"""
+    rows = []
+    with open(ass, encoding='utf-8') as f:
+        for line in f:
+            if not line.startswith('Dialogue:'):
+                continue
+            parts = line[len('Dialogue:'):].split(',', 9)   # 共 10 欄，最後一欄是台詞本文
+            if len(parts) < 10 or parts[3].strip() != 'Sub':
+                continue
+            text = re.sub(r'\{[^}]*\}', '', parts[9]).replace('\\N', '\n').replace('\\n', '\n').strip()
+            if text:
+                rows.append((ass_secs(parts[1]), ass_secs(parts[2]), text))
+    rows.sort()
+    with open(out, 'w', encoding='utf-8') as f:
+        for i, (a, b, t) in enumerate(rows, 1):
+            f.write('%d\n%s --> %s\n%s\n\n' % (i, srt_time(a), srt_time(b), t))
+    return len(rows)
+
+
 def ass_color(hexc, alpha=0):
     h = hexc.lstrip('#')
     return '&H%02X%s%s%s' % (alpha, h[4:6], h[2:4], h[0:2])
@@ -1772,6 +1806,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         pad = OUTRO if FRAME and (plan or {}).get('tags') else 0   # 教學框：結尾多 3 秒放重點整理
         total += pad
         n = build_ass(plan, segs, spans, opt, total, ass)
+        srt_n = ass_to_srt(ass, out + '.srt') if n else 0   # 字幕檔跟著影片一起回傳
         silent = opt['kind'] == 'silent'
         sfx = (list(SFX) + [(t - .25, 'whoosh') for t in (plan or {}).get('xfades') or []]) if opt['sfx'] else []
         log('音效 %d 個' % len(sfx))
@@ -1796,7 +1831,7 @@ def make(src, out, note, transcript=None, style='', mode='reels', music_file='',
         if os.path.getsize(out) > TG_LIMIT:
             raise Oops('剪好的影片太大，傳不回 Telegram。請在說明寫短一點的秒數（例如「剪 Reels 30秒」）再試一次。')
         shutil.copy(thumb, out + '.jpg')
-        return {'seconds': total, 'clips': len(spans), 'subs': n, 'subs_diff': diff, 'subs_lang': opt['subs'], 'timeline': tl,
+        return {'seconds': total, 'clips': len(spans), 'subs': n, 'srt': srt_n, 'subs_diff': diff, 'subs_lang': opt['subs'], 'timeline': tl,
                 'kind': opt['kind'], 'fx': opt['fx'], 'fx_desc': fx_desc,
                 'music': '你的配樂' if mine else os.path.basename(music or '')[:-4],
                 'credit': '' if mine else music_credit(music),
@@ -1887,6 +1922,8 @@ def main():
                     json.dump(timeline_doc(info, src_id=os.environ.get('FILE_ID', ''), ver=ver, note=a.note, mode=a.mode), f, ensure_ascii=False)
                 tg_send_document(chat, tl_path, '⏱ 第 %s 版的剪法（共 %d 段）。想調整：回覆這個檔案，例如「第 3 段多留 1 秒」「第 2 段少留 0.5 秒」「第 1 段刪掉」。'
                                  % (ver, info['clips']))
+            if info.get('srt') and os.path.exists(a.out + '.srt'):
+                tg_send_document(chat, a.out + '.srt', '📄 字幕檔（SRT，共 %d 句）：可以拿去剪映、CapCut 或 OpenReel 匯入，改錯字或時間後再用。' % info['srt'])
             post = info['post'] + ('\n\n' + info['credit'] if info.get('credit') else '')
             if post.strip():
                 txt = '📝 貼文文案參考（長按可複製；配樂署名要保留）：\n\n' + post.strip()
