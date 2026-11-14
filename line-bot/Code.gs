@@ -134,6 +134,7 @@ const HELP_MORE = [
   '',
   '【🪶 軍師】',
   '・按「🪶 智囊軍師」選主題：修行、軍師判定、觀念、健康、火山草本、經營、網路行銷',
+  '・按「📨 回覆留言」（或說「回覆留言」），貼上別人的留言，照神對話的角度寫一段溫和的回覆',
   '・文案會畫成 3 張圖卡（不同切角）一起給你，長按圖片可以存；「🔁 再寫一篇」同主題換一篇',
   '・按「⚙️ 圖卡設定」看、改圖卡署名、文案標題和「新增見證」的說明（打「預設」改回原本的）',
   '',
@@ -966,6 +967,8 @@ function answer_(text) {
   if (ad) return ad;
   const rwr = rwAsk_(t2, raw);   // 「✍️ 貼文案改寫」：貼上文案 → 選智囊軍師主題 → 照模板改寫
   if (rwr) return rwr;
+  const rpl = rpAsk_(t2, raw);   // 「📨 回覆留言」：貼上別人的留言 → 照神對話的角度寫回覆
+  if (rpl) return rpl;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
   if (isChanAdvice_(raw)) return chanUpgrade_(raw);   // 貼上「頻道改善建議」的四段：寫升級腳本與提升方案
@@ -1279,6 +1282,53 @@ function rwWrite_(th) {
       : '\n\n（YouTube 標題與說明這次沒改寫出來，再按一次主題試試看。）';
     return { text: '✍️ 貼文案改寫（' + th.name + '）\n\n' + stratReply_(card) + ytPart, buttons: [[RW_BTN, STRAT_SWITCH]].concat(MENU) };
   } finally { busyEnd_('RW_BUSY'); }
+}
+
+/* ============ 回覆留言（2026-11-14）：貼上別人的留言 → 照神對話的角度寫回覆 ============ */
+// 角度沿用神對話的規則：佛祖（二十五歲女相，溫和、話少）、台詞不提術語、不做療效與成效保證、不寫免責聲明
+const RP_BTN = '📨 回覆留言', RP_AGAIN = '🔄 換一版', RP_CANCEL = '取消', RP_WAIT_MS = 10 * 60 * 1000;
+const RP_RULE_ = '你是「佛祖」的口吻：二十五歲女相，溫和、慈悲、話少，一句點到為止。請用這個角度回覆一則留言：先接住對方的感受或處境，再點出一個覺察（例如「念頭會互相感染」「心與心會互相感應」），最後給一句溫柔的提醒。\n' +
+  '規則：\n' +
+  '1. 只用繁體中文（台灣用語），回覆 1 到 3 句，總長不超過 60 字，句子短、語速慢。\n' +
+  '2. 不爭辯、不說教、不罵人、不嘲諷留言者；對方質疑或抱怨時，先認同感受再回應。\n' +
+  '3. 不提「鏡像神經元」等專業術語；不講神通、不講開悟；不做療效、收入或成效保證；不提任何產品的功效。\n' +
+  '4. 不寫免責聲明、不寫「本回覆僅供參考」；不叫對方私訊、不索取個資。\n' +
+  '5. 只輸出回覆內容本身，不加引號、標題或說明。';
+function rpEnd_(text) { setProp_('RP_STATE', ''); return { text: text, buttons: MENU }; }
+function rpAsk_(t, raw) {
+  // 去掉按鈕上的表情符號再比對（例如「📨 回覆留言」→「回覆留言」）
+  const flat = String(t || '').replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
+  if (/^(回覆留言|回留言|寫回覆)$/.test(flat)) {
+    setProp_('RP_STATE', 'await');
+    setProp_('RP_LAST', '');
+    setProp_('RP_UNTIL', String(Date.now() + RP_WAIT_MS));
+    return { text: '📨 回覆留言\n\n把對方的留言整段貼給我，我照神對話的角度，寫一段溫和的回覆。\n\n（打「取消」就結束；寫好一則後，下一則留言直接貼上來就好）', buttons: [[RP_CANCEL]] };
+  }
+  const st = Number(prop_('RP_UNTIL')) > Date.now() ? prop_('RP_STATE') : '';
+  if (!st) return null;
+  if (/^(取消|不用|算了)$/.test(flat)) return rpEnd_('好，不回覆了。');
+  if (/^換一版$/.test(flat)) {
+    const last = prop_('RP_LAST');
+    return last ? rpWrite_(last) : { text: '先貼一則留言給我，再換版。', buttons: [[RP_CANCEL]] };
+  }
+  if (ytMenuWord_(flat)) { setProp_('RP_STATE', ''); return null; }   // 點了別的選單：結束回覆，交給別的功能
+  const body = String(raw || t || '').trim().slice(0, 1000);
+  if (body.length < 2) return { text: '留言太短了，整段貼給我。', buttons: [[RP_CANCEL]] };
+  return rpWrite_(body);
+}
+function rpWrite_(comment) {
+  if (!prop_('OPENAI_API_KEY')) return rpEnd_('還沒設定 OpenAI 金鑰，沒辦法寫回覆。');
+  if (busy_('RP_BUSY', 2 * 60 * 1000)) return '上一則回覆還在寫，寫好就傳給你，不用再貼喔。';
+  try {
+    const out = callOpenAI_(RP_RULE_, [{ role: 'user', content: '對方的留言：\n' + comment }], false, null, { maxTokens: 400, temperature: 0.8 });
+    const reply = String(out || '').replace(/^["「『]+|["」』]+$/g, '').trim();
+    if (!reply) return { text: '這次沒寫出來，再貼一次留言試試看。', buttons: [[RP_AGAIN, RP_CANCEL]] };
+    setProp_('RP_LAST', comment);
+    setProp_('RP_UNTIL', String(Date.now() + RP_WAIT_MS));
+    return { text: '📨 回覆留言\n\n【對方的留言】\n' + comment + '\n\n【回覆】\n' + reply + '\n\n（不滿意就按「🔄 換一版」；下一則留言直接貼給我）', buttons: [[RP_AGAIN, RP_CANCEL]] };
+  } catch (err) {
+    return { text: '寫回覆時出錯了：' + err.message, buttons: [[RP_CANCEL]] };
+  } finally { busyEnd_('RP_BUSY'); }
 }
 
 function ytAsk_(t, raw) {
