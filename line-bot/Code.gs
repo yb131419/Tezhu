@@ -1336,7 +1336,8 @@ function rpWrite_(comment) {
 function rpActive_() { return !!prop_('RP_STATE') && Number(prop_('RP_UNTIL')) > Date.now(); }
 function rpRead_(image) {
   const sys = '你是讀截圖的助手。請找出這張截圖裡「別人留言」的文字，只輸出留言內容本身；有多則留言就用換行分開，不要寫時間、按鈕、用戶名稱或說明。如果完全看不到留言，只輸出「無」。';
-  const out = callOpenAI_(sys, [{ role: 'user', content: [{ type: 'text', text: '請讀出截圖中的留言' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }] }], false, null, { maxTokens: 800, temperature: 0 });
+  // 看圖一定要用看圖的模型（同明細表辨識，預設 gpt-4o）；一般對話的 MODEL 可能不收圖，會回 400
+  const out = callOpenAI_(sys, [{ role: 'user', content: [{ type: 'text', text: '請讀出截圖中的留言' }, { type: 'image_url', image_url: { url: image, detail: 'high' } }] }], false, prop_('QUOTE_MODEL') || 'gpt-4o', { maxTokens: 800, temperature: 0 });
   return String(out || '').trim().slice(0, 1000);
 }
 function rpPhoto_(image) {
