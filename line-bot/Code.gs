@@ -1350,8 +1350,14 @@ function rpRead_(image) {
 function rpPhoto_(image) {
   if (!rpActive_()) return null;
   if (!prop_('OPENAI_API_KEY')) return rpEnd_('還沒設定 OpenAI 金鑰，沒辦法讀截圖。').text;
+  // 網頁送來的是「純 base64」（沒有 data: 開頭），LINE 送來的是完整 data URL；統一補成 data URL，OpenAI 才收得進去（同 askPhoto_）
+  const s = String(image || '');
+  const raw = s.replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
+  if (raw.length < 100) return '截圖沒有收到，再傳一次看看。';
+  const mm = s.match(/^data:([^;,]+)/);
+  const mime = mm ? mm[1] : (raw.indexOf('iVBOR') === 0 ? 'image/png' : 'image/jpeg');
   let comment = '';
-  try { comment = rpRead_(image); } catch (err) { return '讀截圖時出錯了：' + err.message; }
+  try { comment = rpRead_('data:' + mime + ';base64,' + raw); } catch (err) { return '讀截圖時出錯了：' + err.message; }
   if (!comment || comment === '無') { ASK_BTNS_ = [RP_CANCEL]; return '這張截圖裡看不到留言，換一張清楚一點的截圖，或直接把留言打給我。'; }
   const r = rpWrite_(comment);
   if (typeof r === 'string') return r;   // 上一則還在寫
@@ -5395,7 +5401,11 @@ function callOpenAI_(system, messages, asJson, modelOverride, opt) {
   });
   const code = res.getResponseCode();
   if (code === 401) throw new Error('OpenAI 金鑰無效');
-  if (code !== 200) throw new Error('OpenAI 回應 ' + code);
+  if (code !== 200) {   // 把 OpenAI 回的原因一起顯示（例如圖片網址格式不對），方便找問題
+    let detail = '';
+    try { detail = JSON.parse(res.getContentText()).error.message || ''; } catch (e) { detail = ''; }
+    throw new Error('OpenAI 回應 ' + code + (detail ? '：' + String(detail).slice(0, 200) : ''));
+  }
   const data = JSON.parse(res.getContentText());
   return ((data.choices && data.choices[0] && data.choices[0].message.content) || '').trim();
 }
