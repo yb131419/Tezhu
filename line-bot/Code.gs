@@ -1379,9 +1379,10 @@ function rpPhoto_(image) {
 }
 
 // 🌊 Threads 海巡（2026-11-14）：巡查最近幾則 Threads 貼文的新留言，照神對話的角度草擬回覆。
-// 只草擬、不自動發到 Threads（對外的話要彥彬自己確認後貼上）。已巡過的留言記在 TH_SEEN，不重複草擬。
+// 2026-11-15 篩選：只看按讚達 TH_LIKE_MIN（2 萬）的貼文或留言。貼文達標就看它底下的新留言；留言本身達標也會列出。
+// 只草擬、不自動發到 Threads（對外的話要彥彬自己確認後貼上）。已草擬的留言記在 TH_SEEN，不重複草擬。
 const TH_PATROL_BTN = '🌊 Threads 海巡';
-const TH_PATROL_DAYS = 7, TH_PATROL_POSTS = 10, TH_PATROL_MAX = 8, TH_SEEN_MAX = 400;
+const TH_PATROL_DAYS = 7, TH_PATROL_POSTS = 10, TH_PATROL_MAX = 8, TH_SEEN_MAX = 400, TH_LIKE_MIN = 20000;
 function thPatrolAsk_(t) {
   const flat = String(t || '').replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
   if (!/^(threads|th)?海巡(threads)?$/i.test(flat)) return null;
@@ -1390,29 +1391,41 @@ function thPatrolAsk_(t) {
 }
 // Threads 時間格式是 +0000（沒有冒號），補成標準格式再解析
 function thTime_(s) { return new Date(String(s || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime() || 0; }
+// 讀清單：先帶讚數欄位（like_count）；平台不認這個欄位就去掉重讀，並記下「沒有讚數」
+function thList_(path, fields, limit) {
+  try { return { data: thCall_('get', path, { fields: fields, limit: limit }).data || [], noLikes: false }; }
+  catch (err) {
+    if (fields.indexOf('like_count') < 0 || !/nonexisting|unsupported|field/i.test(err.message)) throw err;
+    return { data: thCall_('get', path, { fields: fields.replace(',like_count', ''), limit: limit }).data || [], noLikes: true };
+  }
+}
 function thPatrol_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法草擬回覆。', buttons: [[TH_PATROL_BTN, RP_BTN]] };
   if (busy_('TH_PATROL_BUSY', 4 * 60 * 1000)) return '🌊 上一輪海巡還在跑，跑完會回你，不用再按。';
   try {
     const since = Date.now() - TH_PATROL_DAYS * 86400000;
-    const posts = (thCall_('get', prop_('TH_USER') + '/threads', { fields: 'id,text,timestamp', limit: TH_PATROL_POSTS }).data || [])
-      .filter(p => thTime_(p.timestamp) >= since);
+    const pr = thList_(prop_('TH_USER') + '/threads', 'id,text,timestamp,like_count', TH_PATROL_POSTS);
+    const posts = pr.data.filter(p => thTime_(p.timestamp) >= since);
     const btns = [[TH_PATROL_BTN, RP_BTN]];
     if (!posts.length) return { text: '🌊 Threads 海巡\n\n最近 ' + TH_PATROL_DAYS + ' 天沒有新貼文，沒有要巡的留言。', buttons: btns };
     let seen = []; try { seen = JSON.parse(prop_('TH_SEEN') || '[]'); } catch (e) { seen = []; }
     const seenSet = {}; seen.forEach(id => { seenSet[id] = true; });
     const me = String(prop_('TH_NAME') || '').toLowerCase();
     const fresh = [], skip = [];
-    let failed = 0, lastErr = '';
+    let failed = 0, lastErr = '', noLikes = pr.noLikes;
     posts.forEach(p => {
+      const postHot = Number(p.like_count || 0) >= TH_LIKE_MIN;   // 貼文本身達標：底下的新留言都看
       let rs = [];
-      try { rs = thCall_('get', p.id + '/replies', { fields: 'id,text,username,timestamp', limit: 25 }).data || []; }
-      catch (err) { failed++; lastErr = err.message; return; }
+      try {
+        const rr = thList_(p.id + '/replies', 'id,text,username,timestamp,like_count', 25);
+        rs = rr.data; noLikes = noLikes || rr.noLikes;
+      } catch (err) { failed++; lastErr = err.message; return; }
       rs.forEach(r => {
         if (seenSet[r.id]) return;
+        if (!r.text || String(r.username || '').toLowerCase() === me) { seenSet[r.id] = true; skip.push(r.id); return; }   // 沒文字或是自己的回覆：不草擬，直接記下
+        if (!postHot && Number(r.like_count || 0) < TH_LIKE_MIN) return;   // 沒達標：不記，之後讚數變多還會再看
         seenSet[r.id] = true;
-        if (!r.text || String(r.username || '').toLowerCase() === me) { skip.push(r.id); return; }   // 沒文字或是自己的回覆：不草擬，直接記下
-        fresh.push({ id: r.id, user: r.username || '', text: String(r.text).replace(/\s+/g, ' ').trim() });
+        fresh.push({ id: r.id, user: r.username || '', text: String(r.text).replace(/\s+/g, ' ').trim(), likes: Number(r.like_count || 0) });
       });
     });
     // 一次最多草擬 TH_PATROL_MAX 則；其餘的不記，下次海巡再看
@@ -1427,10 +1440,11 @@ function thPatrol_() {
     });
     setProp_('TH_SEEN', JSON.stringify(seen.concat(done).slice(-TH_SEEN_MAX)));
     const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
-    const lines = ['🌊 Threads 海巡（最近 ' + TH_PATROL_DAYS + ' 天，' + posts.length + ' 則貼文）', ''];
-    if (!drafts.length) lines.push(fresh.length ? '這次草擬失敗了，過一陣子再海巡。' : '目前沒有新留言。');
-    drafts.forEach((d, i) => lines.push((i + 1) + '. @' + (d.r.user || '有人') + '：' + clip(d.r.text, 80), '   回覆：' + d.reply, ''));
-    if (fresh.length > batch.length) lines.push('還有 ' + (fresh.length - batch.length) + ' 則新留言，下次海巡再看。');
+    const lines = ['🌊 Threads 海巡（最近 ' + TH_PATROL_DAYS + ' 天，' + posts.length + ' 則貼文，只看按讚 ' + (TH_LIKE_MIN / 10000) + ' 萬以上）', ''];
+    if (noLikes) lines.push('（Threads 這次沒有回傳讚數，無法判斷按讚數，所以沒有列出留言。）', '');
+    if (!drafts.length) lines.push(fresh.length ? '這次草擬失敗了，過一陣子再海巡。' : (noLikes ? '' : '目前沒有按讚達 ' + (TH_LIKE_MIN / 10000) + ' 萬以上的新留言。'));
+    drafts.forEach((d, i) => lines.push((i + 1) + '. @' + (d.r.user || '有人') + '（' + d.r.likes + ' 讚）：' + clip(d.r.text, 80), '   回覆：' + d.reply, ''));
+    if (fresh.length > batch.length) lines.push('還有 ' + (fresh.length - batch.length) + ' 則符合的新留言，下次海巡再看。');
     if (failed) lines.push('（' + failed + ' 則貼文讀不到留言：' + noTok_(lastErr) + '。若是權限問題，要在 Threads 權杖加上 threads_read_replies。）');
     lines.push('', '草擬的回覆不會自動發到 Threads，要回覆請到 Threads 手動貼上。');
     return { text: lines.join('\n'), buttons: btns };
