@@ -979,6 +979,8 @@ function answer_(text) {
   if (rpl) return rpl;
   const thp = thPatrolAsk_(t2);   // 「🌊 Threads 海巡」：巡查最近貼文的新留言，草擬溫和回覆（不會自動發出）
   if (thp) return thp;
+  const ths = thSearchAsk_(t2);   // 「Threads 搜尋 關鍵字」：搜別人的公開貼文（審核通過後才啟用）
+  if (ths) return ths;
   const ytr = ytAsk_(t2, raw);   // 「🎬 貼文改寫YT」：貼文章 → 選模板 → 回 YouTube 標題與說明
   if (ytr) return ytr;
   if (isChanAdvice_(raw)) return chanUpgrade_(raw);   // 貼上「頻道改善建議」的四段：寫升級腳本與提升方案
@@ -1454,6 +1456,47 @@ function thPatrol_() {
   } catch (err) {
     return { text: '🌊 海巡出錯了：' + noTok_(err.message), buttons: [[TH_PATROL_BTN, RP_BTN]] };
   } finally { busyEnd_('TH_PATROL_BUSY'); }
+}
+
+// 🔎 Threads 關鍵字搜尋（2026-11-15）：搜別人的公開貼文，只列出讚數達 2 萬以上的結果。
+// 需要 Meta 審核通過 threads_keyword_search。審核前這個功能是關的；通過後傳「Threads 搜尋開」才會啟用（TH_SEARCH 記在指令碼屬性）。
+// 只列出結果，不草擬、不發文。
+const TH_SEARCH_BTN = '🔎 Threads 搜尋';
+const TH_SEARCH_MIN = 20000, TH_SEARCH_MAX = 10;
+function thSearchAsk_(t) {
+  const raw = String(t || '').replace(/\s+/g, ' ').trim();
+  const flat = raw.replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
+  if (/^threads搜尋開$/i.test(flat)) { setProp_('TH_SEARCH', 'on'); return { text: '🔎 Threads 關鍵字搜尋已開啟。傳「Threads 搜尋 關鍵字」試試看（例如「Threads 搜尋 減脂」）。', buttons: [[TH_SEARCH_BTN]] }; }
+  if (/^threads搜尋關$/i.test(flat)) { setProp_('TH_SEARCH', ''); return { text: '🔎 Threads 關鍵字搜尋已關閉。', buttons: [[TH_SEARCH_BTN]] }; }
+  const m = raw.replace(/^[^一-鿿A-Za-z0-9]+/, '').match(/^(?:threads|th)\s*搜尋\s*(.+)$/i);
+  if (!m) return null;
+  return thSearch_(m[1].trim());
+}
+function thSearch_(kw) {
+  if (!SOC.th.ok()) return { text: '🧵 還沒設定 Threads。先傳「設定 Threads金鑰 權杖」。', buttons: [[TH_SEARCH_BTN]] };
+  if (prop_('TH_SEARCH') !== 'on') return { text: '🔎 Threads 關鍵字搜尋還沒啟用。\n等 Meta 審核通過「threads_keyword_search」後，傳「Threads 搜尋開」就能用。', buttons: [[TH_SEARCH_BTN]] };
+  const q = kw.slice(0, 50);
+  try {
+    let data = [], noLikes = false;
+    const base = { q: q, search_type: 'TOP' };
+    try { data = thCall_('get', 'keyword_search', Object.assign({ fields: 'id,text,username,timestamp,permalink,like_count' }, base)).data || []; }
+    catch (err) {
+      if (!/nonexisting|unsupported|field/i.test(err.message)) throw err;   // 不是欄位問題（例如權限）：照實說
+      data = thCall_('get', 'keyword_search', Object.assign({ fields: 'id,text,username,timestamp,permalink' }, base)).data || [];
+      noLikes = true;   // 平台沒有回傳讚數：沒辦法篩選，列前幾則並說明
+    }
+    const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
+    const list = noLikes ? data : data.filter(x => Number(x.like_count || 0) >= TH_SEARCH_MIN);
+    const head = '🔎 Threads 搜尋「' + q + '」（' + (noLikes ? '未篩選' : '讚數 ' + (TH_SEARCH_MIN / 10000) + ' 萬以上') + '）';
+    const lines = [head, ''];
+    if (noLikes) lines.push('（Threads 這次沒有回傳讚數，無法篩選，下面是前幾則結果。）', '');
+    if (!list.length) lines.push('沒有找到符合條件的公開貼文。');
+    list.slice(0, TH_SEARCH_MAX).forEach((x, i) => lines.push((i + 1) + '. @' + (x.username || '有人') + (noLikes ? '' : '（' + Number(x.like_count || 0) + ' 讚）') + '：' + clip(String(x.text || '').replace(/\s+/g, ' ').trim(), 80), x.permalink ? '   ' + x.permalink : '', ''));
+    lines.push('只列出結果，不會自動回覆或發文。');
+    return { text: lines.join('\n'), buttons: [[TH_SEARCH_BTN]] };
+  } catch (err) {
+    return { text: '🔎 搜尋出錯了：' + noTok_(err.message), buttons: [[TH_SEARCH_BTN]] };
+  }
 }
 
 function ytAsk_(t, raw) {
