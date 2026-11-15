@@ -1382,17 +1382,26 @@ function rpPhoto_(image) {
 // 需要 Meta 審核通過 threads_keyword_search。審核前這個功能是關的；通過後傳「Threads 搜尋開」才會啟用（TH_SEARCH 記在指令碼屬性）。
 // 只列出結果，不草擬、不發文。
 const TH_SEARCH_BTN = '🔎 Threads 搜尋';
-const TH_SEARCH_MAX = 10;
+const TH_SEARCH_MAX = 10, TH_SEARCH_WAIT_MS = 5 * 60 * 1000;
 function thSearchAsk_(t) {
   const raw = String(t || '').replace(/\s+/g, ' ').trim();
   const flat = raw.replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
-  if (/^threads搜尋開$/i.test(flat)) { setProp_('TH_SEARCH', 'on'); return { text: '🔎 Threads 搜尋已開啟。傳「Threads 搜尋 關鍵字」試試看（例如「Threads 搜尋 減脂」）。', buttons: [[TH_SEARCH_BTN]] }; }
-  if (/^threads搜尋關$/i.test(flat)) { setProp_('TH_SEARCH', ''); return { text: '🔎 Threads 搜尋已關閉。', buttons: [[TH_SEARCH_BTN]] }; }
+  if (/^threads搜尋開$/i.test(flat)) { setProp_('TH_SEARCH', 'on'); return { text: '🔎 Threads 搜尋已開啟。點「🔎 Threads 搜尋」，再直接打關鍵字，例如「減脂」。', buttons: [[TH_SEARCH_BTN]] }; }
+  if (/^threads搜尋關$/i.test(flat)) { setProp_('TH_SEARCH', ''); setProp_('TH_SEARCH_WAIT', ''); return { text: '🔎 Threads 搜尋已關閉。', buttons: [[TH_SEARCH_BTN]] }; }
   const bare = raw.replace(/^[^一-鿿A-Za-z0-9]+/, '');
   const m = bare.match(/^(?:threads|th)\s*(?:搜尋|海巡)\s*(.*)$/i);
-  if (!m) return null;
-  if (!m[1].trim()) return { text: '🔎 Threads 搜尋\n\n請傳「Threads 搜尋 關鍵字」，例如「Threads 搜尋 減脂」。', buttons: [[TH_SEARCH_BTN]] };
-  return thSearch_(m[1].trim());
+  if (m) {
+    if (m[1].trim()) { setProp_('TH_SEARCH_WAIT', ''); return thSearch_(m[1].trim()); }   // 一次打完：「Threads 搜尋 減脂」
+    setProp_('TH_SEARCH_WAIT', String(Date.now() + TH_SEARCH_WAIT_MS));   // 只按按鈕：等下一句當關鍵字
+    return { text: '🔎 Threads 搜尋\n\n直接打關鍵字就能搜尋，例如「減脂」。\n（5 分鐘內有效，打「取消」就結束）', buttons: [[TH_SEARCH_BTN]] };
+  }
+  if (Number(prop_('TH_SEARCH_WAIT')) > Date.now()) {
+    if (/^(取消|不用|算了)$/.test(flat)) { setProp_('TH_SEARCH_WAIT', ''); return { text: '好，不搜尋了。', buttons: [[TH_SEARCH_BTN]] }; }
+    setProp_('TH_SEARCH_WAIT', '');
+    if (ytMenuWord_(flat)) return null;   // 點了別的選單：結束搜尋，交給別的功能
+    return thSearch_(bare);
+  }
+  return null;
 }
 function thSearch_(kw) {
   if (!SOC.th.ok()) return { text: '🧵 還沒設定 Threads。先傳「設定 Threads金鑰 權杖」。', buttons: [[TH_SEARCH_BTN]] };
