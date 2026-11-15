@@ -1458,11 +1458,11 @@ function thPatrol_() {
   } finally { busyEnd_('TH_PATROL_BUSY'); }
 }
 
-// 🔎 Threads 關鍵字搜尋（2026-11-15）：搜別人的公開貼文，只列出讚數達 2 萬以上的結果。
+// 🔎 Threads 關鍵字搜尋（2026-11-15）：搜別人的公開貼文，列出結果（不做讚數篩選，有回傳讚數就一併顯示）。
 // 需要 Meta 審核通過 threads_keyword_search。審核前這個功能是關的；通過後傳「Threads 搜尋開」才會啟用（TH_SEARCH 記在指令碼屬性）。
 // 只列出結果，不草擬、不發文。
 const TH_SEARCH_BTN = '🔎 Threads 搜尋';
-const TH_SEARCH_MIN = 20000, TH_SEARCH_MAX = 10;
+const TH_SEARCH_MAX = 10;
 function thSearchAsk_(t) {
   const raw = String(t || '').replace(/\s+/g, ' ').trim();
   const flat = raw.replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
@@ -1486,12 +1486,9 @@ function thSearch_(kw) {
       noLikes = true;   // 平台沒有回傳讚數：沒辦法篩選，列前幾則並說明
     }
     const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
-    const list = noLikes ? data : data.filter(x => Number(x.like_count || 0) >= TH_SEARCH_MIN);
-    const head = '🔎 Threads 搜尋「' + q + '」（' + (noLikes ? '未篩選' : '讚數 ' + (TH_SEARCH_MIN / 10000) + ' 萬以上') + '）';
-    const lines = [head, ''];
-    if (noLikes) lines.push('（Threads 這次沒有回傳讚數，無法篩選，下面是前幾則結果。）', '');
-    if (!list.length) lines.push('沒有找到符合條件的公開貼文。');
-    list.slice(0, TH_SEARCH_MAX).forEach((x, i) => lines.push((i + 1) + '. @' + (x.username || '有人') + (noLikes ? '' : '（' + Number(x.like_count || 0) + ' 讚）') + '：' + clip(String(x.text || '').replace(/\s+/g, ' ').trim(), 80), x.permalink ? '   ' + x.permalink : '', ''));
+    const lines = ['🔎 Threads 搜尋「' + q + '」（前 ' + TH_SEARCH_MAX + ' 則）', ''];
+    if (!data.length) lines.push('沒有找到公開貼文。');
+    data.slice(0, TH_SEARCH_MAX).forEach((x, i) => lines.push((i + 1) + '. @' + (x.username || '有人') + (noLikes ? '' : '（' + Number(x.like_count || 0) + ' 讚）') + '：' + clip(String(x.text || '').replace(/\s+/g, ' ').trim(), 80), x.permalink ? '   ' + x.permalink : '', ''));
     lines.push('只列出結果，不會自動回覆或發文。');
     return { text: lines.join('\n'), buttons: [[TH_SEARCH_BTN]] };
   } catch (err) {
