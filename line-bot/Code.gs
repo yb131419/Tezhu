@@ -1381,11 +1381,10 @@ function rpPhoto_(image) {
 }
 
 // 🌊 Threads 海巡（2026-11-14）：巡查最近幾則 Threads 貼文的新留言，照神對話的角度草擬回覆。
-// 2026-11-15 篩選：只看觀看數超過 TH_VIEW_MIN（2 萬）的貼文，列出它底下的新留言。
-// 觀看數只有自己的貼文能查（Threads 的洞察數據），別人的留言查不到觀看數，所以不能依留言的觀看數篩選。
+// 2026-11-15：不做觀看數門檻，最近 7 天每則貼文底下的新留言都巡。
 // 只草擬、不自動發到 Threads（對外的話要彥彬自己確認後貼上）。已草擬的留言記在 TH_SEEN，不重複草擬。
 const TH_PATROL_BTN = '🌊 Threads 海巡';
-const TH_PATROL_DAYS = 7, TH_PATROL_POSTS = 10, TH_PATROL_MAX = 8, TH_SEEN_MAX = 400, TH_VIEW_MIN = 20000;
+const TH_PATROL_DAYS = 7, TH_PATROL_POSTS = 10, TH_PATROL_MAX = 8, TH_SEEN_MAX = 400;
 function thPatrolAsk_(t) {
   const flat = String(t || '').replace(/\s+/g, '').replace(/^[^一-鿿A-Za-z0-9]+/, '');
   if (!/^(threads|th)?海巡(threads)?$/i.test(flat)) return null;
@@ -1394,16 +1393,6 @@ function thPatrolAsk_(t) {
 }
 // Threads 時間格式是 +0000（沒有冒號），補成標準格式再解析
 function thTime_(s) { return new Date(String(s || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime() || 0; }
-// 貼文的觀看數（洞察數據）：需要權杖有 threads_manage_insights 權限；查不到就回傳 null
-function thViews_(postId) {
-  try {
-    const d = thCall_('get', postId + '/insights', { metric: 'views' }).data || [];
-    const m = d.filter(x => x.name === 'views')[0];
-    if (!m) return null;
-    const v = (m.values && m.values[0] && m.values[0].value != null) ? m.values[0].value : (m.total_value && m.total_value.value);
-    return v == null ? null : Number(v);
-  } catch (err) { return { error: err.message }; }
-}
 function thPatrol_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法草擬回覆。', buttons: [[TH_PATROL_BTN, RP_BTN]] };
   if (busy_('TH_PATROL_BUSY', 4 * 60 * 1000)) return '🌊 上一輪海巡還在跑，跑完會回你，不用再按。';
@@ -1417,12 +1406,8 @@ function thPatrol_() {
     const seenSet = {}; seen.forEach(id => { seenSet[id] = true; });
     const me = String(prop_('TH_NAME') || '').toLowerCase();
     const fresh = [], skip = [];
-    let failed = 0, lastErr = '', noViews = 0, hotPosts = 0;
+    let failed = 0, lastErr = '';
     posts.forEach(p => {
-      const v = thViews_(p.id);
-      if (v && typeof v === 'object') { noViews++; lastErr = v.error; return; }   // 查不到觀看數：這則不巡，記下原因
-      if (v == null || v <= TH_VIEW_MIN) return;   // 沒超過 2 萬：這則不看，之後觀看數變多還會再看
-      hotPosts++;
       let rs = [];
       try { rs = thCall_('get', p.id + '/replies', { fields: 'id,text,username,timestamp', limit: 25 }).data || []; }
       catch (err) { failed++; lastErr = err.message; return; }
@@ -1430,7 +1415,7 @@ function thPatrol_() {
         if (seenSet[r.id]) return;
         seenSet[r.id] = true;
         if (!r.text || String(r.username || '').toLowerCase() === me) { skip.push(r.id); return; }   // 沒文字或是自己的回覆：不草擬，直接記下
-        fresh.push({ id: r.id, user: r.username || '', text: String(r.text).replace(/\s+/g, ' ').trim(), views: v });
+        fresh.push({ id: r.id, user: r.username || '', text: String(r.text).replace(/\s+/g, ' ').trim() });
       });
     });
     // 一次最多草擬 TH_PATROL_MAX 則；其餘的不記，下次海巡再看
@@ -1445,10 +1430,9 @@ function thPatrol_() {
     });
     setProp_('TH_SEEN', JSON.stringify(seen.concat(done).slice(-TH_SEEN_MAX)));
     const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
-    const lines = ['🌊 Threads 海巡（最近 ' + TH_PATROL_DAYS + ' 天，只看觀看數超過 ' + (TH_VIEW_MIN / 10000) + ' 萬的貼文）', ''];
-    if (noViews) lines.push('（' + noViews + ' 則貼文查不到觀看數：' + noTok_(lastErr) + '。要在 Threads 權杖加上 threads_manage_insights。）', '');
-    if (!drafts.length) lines.push(fresh.length ? '這次草擬失敗了，過一陣子再海巡。' : (noViews ? '' : (hotPosts ? '超過 ' + (TH_VIEW_MIN / 10000) + ' 萬的貼文，目前沒有新留言。' : '目前沒有觀看數超過 ' + (TH_VIEW_MIN / 10000) + ' 萬的貼文。')));
-    drafts.forEach((d, i) => lines.push((i + 1) + '. @' + (d.r.user || '有人') + '（貼文 ' + d.r.views + ' 次觀看）：' + clip(d.r.text, 80), '   回覆：' + d.reply, ''));
+    const lines = ['🌊 Threads 海巡（最近 ' + TH_PATROL_DAYS + ' 天，' + posts.length + ' 則貼文）', ''];
+    if (!drafts.length) lines.push(fresh.length ? '這次草擬失敗了，過一陣子再海巡。' : '目前沒有新留言。');
+    drafts.forEach((d, i) => lines.push((i + 1) + '. @' + (d.r.user || '有人') + '：' + clip(d.r.text, 80), '   回覆：' + d.reply, ''));
     if (fresh.length > batch.length) lines.push('還有 ' + (fresh.length - batch.length) + ' 則新留言，下次海巡再看。');
     if (failed) lines.push('（' + failed + ' 則貼文讀不到留言：' + noTok_(lastErr) + '。若是權限問題，要在 Threads 權杖加上 threads_read_replies。）');
     lines.push('', '草擬的回覆不會自動發到 Threads，要回覆請到 Threads 手動貼上。');
