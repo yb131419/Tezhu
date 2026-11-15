@@ -1470,9 +1470,19 @@ function thSearch_(kw) {
       noLikes = true;   // 平台沒有回傳讚數：沒辦法篩選，列前幾則並說明
     }
     const clip = (x, n) => x.length > n ? x.slice(0, n) + '…' : x;
-    const lines = ['🔎 Threads 搜尋「' + q + '」（前 ' + TH_SEARCH_MAX + ' 則）', ''];
-    if (!data.length) lines.push('沒有找到公開貼文。');
-    data.slice(0, TH_SEARCH_MAX).forEach((x, i) => lines.push((i + 1) + '. @' + (x.username || '有人') + (noLikes ? '' : '（' + Number(x.like_count || 0) + ' 讚）') + '：' + clip(String(x.text || '').replace(/\s+/g, ' ').trim(), 80), x.permalink ? '   ' + x.permalink : '', ''));
+    const sep = '──────────────';
+    const items = data.slice(0, TH_SEARCH_MAX);
+    const lines = ['🔎 Threads 搜尋「' + q + '」', '共 ' + items.length + ' 則' + (data.length > items.length ? '（前 ' + items.length + ' 則）' : ''), sep];
+    if (noLikes) lines.push('（Threads 這次沒有回傳讚數，下面依搜尋順序列出。）', sep);
+    if (!items.length) lines.push('沒有找到公開貼文。');
+    items.forEach((x, i) => {
+      const who = '@' + (x.username || '有人');
+      const likes = noLikes ? '' : '👍 ' + Number(x.like_count || 0).toLocaleString('en-US') + '　';
+      const body = clip(String(x.text || '').replace(/\s+/g, ' ').trim(), 80);
+      lines.push(String(i + 1) + '｜' + likes + who, '   ' + (body || '（無文字）'));
+      if (x.permalink) lines.push('   ' + x.permalink);
+      lines.push(sep);
+    });
     lines.push('只列出結果，不會自動回覆或發文。');
     return { text: lines.join('\n'), buttons: [[TH_SEARCH_BTN]] };
   } catch (err) {
