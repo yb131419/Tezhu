@@ -709,10 +709,146 @@ function chanReply_(t) {
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
+  const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
+  if (/^(更改全部標題|更改標題|標題更改|改全部標題)$/.test(tt)) return chanSafe_(titlePreview_);
+  if (/^全部套用標題$/.test(tt)) return chanSafe_(titleApply_);
+  if (/^取消更改標題$/.test(tt)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
+  if (/^還原標題$/.test(tt)) return chanSafe_(titleRestore_);
   return null;
 }
+/* ============ 批次更改 YouTube 影片標題：先出「原標題 → 新標題」卡片，按「全部套用」才會改；改前先備份原標題，可一鍵還原 ============ */
+const TITLE_BTN = '✏️ 更改全部標題', TITLE_APPLY = '✅ 全部套用標題', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
+const TITLE_SHEET = '標題更改紀錄';
+// 新標題（依發布超過一天的數據擬定：EP18、EP19 表現最好，原樣保留；直接問觀眾的問句、留存高的集數是主要參考）
+const TITLE_PLAN_ = [
+  ['VSzo0ZPetiU', 'EP20｜你最想把慈悲給誰？ #神對話 #菩薩道 #慈悲'],
+  ['LPNdqIIMHiM', 'EP19：最難平等看待誰？ #神對話 #平等心 #慈悲 #智慧 #修心'],
+  ['D5ZXjv7SQ1A', 'EP18：哪個念頭最自在？ #神對話 #無我 #放下 #自在 #智慧'],
+  ['3OtihBMOxSQ', 'EP17｜別人好，你怎麼想？ #神對話 #隨喜 #善念 #慈悲'],
+  ['1SMAOEdXnF8', 'EP16｜規矩守不住，要怎麼變通？ #神對話 #方便 #慈悲 #智慧'],
+  ['WyrrSYcLV3M', 'EP15｜菩提心，到底是一顆什麼心？ #神對話 #菩提心 #慈悲 #修心'],
+  ['wTMHG8dX574', 'EP14｜被綁住的心，要怎麼解開？ #神對話 #解脫 #覺察 #修心'],
+  ['RdrfGqT-lho', 'EP13｜懂了道理，為什麼還是過不去？ #神對話 #般若 #智慧 #修心'],
+  ['6TCStCM9Byo', 'EP12｜一念安定之後，你要往哪裡走？ #神對話 #六道輪迴 #修心 #慈悲'],
+  ['ERjFddrX_2M', 'EP11｜心安住在哪裡，你知道嗎？ #神對話 #禪定 #修行 #覺察'],
+  ['sQ1VNRuutGE', 'EP10｜一滴一滴，你能堅持多久？ #神對話 #精進 #修行 #覺察'],
+  ['GJJHD9enCWg', 'EP09｜風吹來，你的心還能不動嗎？ #神對話 #忍辱 #修行 #覺察'],
+  ['olr9xtTKs9w', 'EP08｜付出之後，你還在等回報嗎？ #神對話 #布施 #修行 #慈悲'],
+  ['HVubQ7jPCzw', 'EP07｜守戒，是在綁住自己嗎？ #神對話 #持戒 #修行 #慈悲'],
+  ['-fCpj5Cs7fU', 'EP06｜慈悲，就要一直忍讓嗎？ #神對話 #慈悲 #忍讓 #修心'],
+  ['x76o0MEKLKc', 'EP05｜放下，第一步要從哪裡開始？ #神對話 #放下 #修心 #覺察'],
+  ['g8AdLdwuEF4', 'EP04｜你還在輪迴裡打轉嗎？ #神對話 #輪迴 #選擇 #修心'],
+  ['NR81_n8Qw7U', 'EP03｜許願，真的會靈嗎？ #神對話 #許願 #願力 #修心'],
+  ['fmlQBwqg6zk', 'EP02｜業力，真的能改嗎？ #神對話 #業力 #因果 #修心'],
+  ['0BYMpfpwBtU', '神對話：一念之間｜第一集（EP01–EP04）引果、業力、願果、輪迴'],
+];
+// 取得影片目前的標題與設定（分批，每批最多 50 支）
+function titleFetch_(ids) {
+  const out = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    (chanGet_('videos', { part: 'snippet', id: ids.slice(i, i + 50).join(',') }).items || []).forEach(v => { out[v.id] = v.snippet; });
+  }
+  return out;
+}
+// 寫入一支影片的標題：先讀回完整的 snippet，只換標題，描述、標籤、分類等照原樣保留
+function titleUpdate_(id, title) {
+  const got = (chanGet_('videos', { part: 'snippet', id: id }).items || [])[0];
+  const s = got && got.snippet;
+  if (!s) throw new Error('找不到這支影片');
+  const snip = { title: title, categoryId: s.categoryId };
+  if (s.description != null) snip.description = s.description;
+  if (s.tags) snip.tags = s.tags;
+  if (s.defaultLanguage) snip.defaultLanguage = s.defaultLanguage;
+  if (s.defaultAudioLanguage) snip.defaultAudioLanguage = s.defaultAudioLanguage;
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', {
+    method: 'put', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ id: id, snippet: snip }),
+  });
+  const data = JSON.parse(res.getContentText() || '{}');
+  if (res.getResponseCode() !== 200) throw new Error((data.error && data.error.message) || ('HTTP ' + res.getResponseCode()));
+}
+function titleSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(TITLE_SHEET);
+  if (!sh) { sh = ss.insertSheet(TITLE_SHEET); sh.appendRow(['批次', '影片ID', '原標題', '新標題', '結果']); }
+  return sh;
+}
+// 預覽：只列出會改的影片，存成待確認；不改任何東西
+function titlePreview_() {
+  const snaps = titleFetch_(TITLE_PLAN_.map(x => x[0]));
+  const items = TITLE_PLAN_.filter(x => snaps[x[0]]).map(x => ({ id: x[0], from: snaps[x[0]].title, to: x[1] }));
+  const changes = items.filter(x => x.from !== x.to);
+  if (!changes.length) return { text: '✏️ 標題都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
+  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), items: changes }));
+  return { text: '✏️ 標題預覽：' + changes.length + ' 支要改（共 ' + items.length + ' 支）\n\n' + changes.map(x => '・' + x.from + '\n　→ ' + x.to).join('\n\n') + '\n\n按「' + TITLE_APPLY + '」才會真的改，原標題會先存進「' + TITLE_SHEET + '」分頁。',
+    flex: titleFlex_(items, changes.length), alt: '✏️ 標題預覽', buttons: [[TITLE_APPLY, TITLE_CANCEL]] };
+}
+// 預覽卡片：每支影片一格，上面是原標題、下面是新標題；不變的標示「不變」
+function titleFlex_(items, n) {
+  const rows = items.map(x => {
+    const same = x.from === x.to;
+    return { type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
+      { type: 'text', text: x.from, size: 'xxs', color: CHCARD_.SOFT, wrap: true },
+      { type: 'text', text: same ? '（不變）' : '→ ' + x.to, size: 'xs', weight: 'bold', color: same ? CHCARD_.SOFT : CHCARD_.INK, wrap: true, margin: 'xs' },
+    ] };
+  });
+  const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: rows }];
+  const buttons = [
+    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '✅ 全部套用', text: '全部套用標題' } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '先不改', text: TITLE_CANCEL } },
+  ];
+  return chanBubble_(chanHead_('小乖 · TITLES', '標題預覽', n + ' 支影片要改，按「全部套用」才會改'), content, buttons);
+}
+// 全部套用：先備份每支原標題，再一支一支改；每支的結果都寫回試算表
+function titleApply_() {
+  if (VOICE_IN_) return '標題更改只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
+  return withLock_(() => {
+    const pend = igState_('TITLE_PENDING');
+    setProp_('TITLE_PENDING', '');
+    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），再打「' + TITLE_BTN + '」重新產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
+    const cur = titleFetch_(pend.items.map(x => x.id));
+    const rows = pend.items.map(x => ({ id: x.id, from: cur[x.id] ? cur[x.id].title : x.from, to: x.to }));
+    const sh = titleSheet_();
+    const start = sh.getLastRow() + 1;
+    sh.getRange(start, 1, rows.length, 5).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成']));
+    setProp_('TITLE_LAST', batch);
+    let ok = 0; const bad = [];
+    rows.forEach((r, i) => {
+      let st;
+      try { titleUpdate_(r.id, r.to); st = '已改'; ok++; }
+      catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
+      sh.getRange(start + i, 5).setValue(st);
+    });
+    return { text: '✅ 標題改好了：' + ok + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原標題都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」。',
+      buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
+  });
+}
+// 還原：把最近一次批次的原標題寫回去
+function titleRestore_() {
+  if (VOICE_IN_) return '還原標題也只能按按鈕，不能用語音。';
+  const batch = prop_('TITLE_LAST');
+  if (!batch) return { text: '還沒有可以還原的標題更改。', buttons: [[TITLE_BTN, MENU_BTN]] };
+  const sh = titleSheet_();
+  const vals = sh.getDataRange().getValues();
+  let ok = 0; const bad = [];
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]) !== batch) continue;
+    try { titleUpdate_(String(vals[i][1]), String(vals[i][2])); sh.getRange(i + 1, 5).setValue('已還原'); ok++; }
+    catch (e) { bad.push(String(vals[i][2]).slice(0, 30) + '：' + String(e.message || e).slice(0, 60)); }
+  }
+  setProp_('TITLE_LAST', '');
+  return { text: '↩️ 已還原 ' + ok + ' 支的原標題' + (bad.length ? '\n\n沒還原成功的：\n' + bad.join('\n') : ''), buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+// 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題要用到這個權限）
+function 授權YouTube改標題() {
+  UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+  Logger.log('授權完成');
+}
+
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
-const CHAN_VERSION = 'analytics-diag-1（卡片顯示分析狀態＋頻道診斷）';
+const CHAN_VERSION = 'title-1（批次更改影片標題）';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1004,7 +1140,7 @@ function chanData_() {
   try {
     const d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
-    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN, MENU_BTN]] };
+    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
 function chanAdvice_() {
