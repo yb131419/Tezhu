@@ -710,16 +710,21 @@ function chanReply_(t) {
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
-  if (/^(更改全部標題|更改標題|標題更改|改全部標題)$/.test(tt)) return chanSafe_(titlePreview_);
-  if (/^全部套用標題$/.test(tt)) return chanSafe_(titleApply_);
-  if (/^取消更改標題$/.test(tt)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
+  if (/^(更改全部標題|更改標題|標題更改|改全部標題|更改全部說明|更改標題和說明|更改說明)$/.test(tt)) return chanSafe_(titlePreview_);
+  if (/^(全部套用|全部套用標題|全部套用說明)$/.test(tt)) return chanSafe_(titleApply_);
+  if (/^取消更改標題$/.test(tt)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
   if (/^還原標題$/.test(tt)) return chanSafe_(titleRestore_);
+  const sd = tt.match(/^說明(EP\d{2}|一念之間)$/i);
+  if (sd) return chanSafe_(() => titleShowDesc_(sd[1] === '一念之間' ? 'LONG' : sd[1].toUpperCase()));
   return null;
 }
-/* ============ 批次更改 YouTube 影片標題：先出「原標題 → 新標題」卡片，按「全部套用」才會改；改前先備份原標題，可一鍵還原 ============ */
-const TITLE_BTN = '✏️ 更改全部標題', TITLE_APPLY = '✅ 全部套用標題', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
+/* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「全部套用」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
+const TITLE_BTN = '✏️ 更改全部標題', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
 const TITLE_SHEET = '標題更改紀錄';
-// 新標題（依發布超過一天的數據擬定：直接問觀眾的問句、留存高的集數是主要參考；EP18 觀看最高，保留「哪個念頭最自在？」的問句核心）
+const TITLE_HEAD_ = ['批次', '影片ID', '原標題', '新標題', '結果', '原說明', '新說明'];
+const TITLE_LONG_ID_ = '0BYMpfpwBtU';   // 一念之間第一集（長影片，不是 EP）
+const TITLE_EP18_ID_ = 'D5ZXjv7SQ1A';   // EP18：觀看最高，預覽時提醒改動有風險
+// 新標題（主文字最多七個字，標點不計）：影片 ID 對應頻道上的影片
 const TITLE_PLAN_ = [
   ['VSzo0ZPetiU', 'EP20｜慈悲給誰？ #神對話 #菩薩道 #慈悲'],
   ['LPNdqIIMHiM', 'EP19｜最難平等看誰？ #神對話 #平等心 #慈悲 #智慧 #修心'],
@@ -742,42 +747,41 @@ const TITLE_PLAN_ = [
   ['fmlQBwqg6zk', 'EP02｜業力能改嗎？ #神對話 #業力 #因果 #修心'],
   ['0BYMpfpwBtU', '一念之間｜第一集｜一念怎麼開始？ #神對話 #一念之間 #業力 #輪迴'],
 ];
-const TITLE_KEEP_ = [];   // 目前沒有需要強制保留的影片
 // 清單沒有影片 ID 時，依標題的集數對應（頻道上找不到 ID 的集數，例如 EP01）
 const TITLE_EP_PLAN_ = {
   'EP01': 'EP01｜火氣來了停嗎？ #神對話 #引果 #覺察 #放下',
 };
-// 取得影片目前的標題與設定（分批，每批最多 50 支）
-function titleFetch_(ids) {
-  const out = {};
-  for (let i = 0; i < ids.length; i += 50) {
-    (chanGet_('videos', { part: 'snippet', id: ids.slice(i, i + 50).join(',') }).items || []).forEach(v => { out[v.id] = v.snippet; });
-  }
-  return out;
-}
-// 寫入一支影片的標題：先讀回完整的 snippet，只換標題，描述、標籤、分類等照原樣保留
-function titleUpdate_(id, title) {
-  const got = (chanGet_('videos', { part: 'snippet', id: id }).items || [])[0];
-  const s = got && got.snippet;
-  if (!s) throw new Error('找不到這支影片');
-  const snip = { title: title, categoryId: s.categoryId };
-  if (s.description != null) snip.description = s.description;
-  if (s.tags) snip.tags = s.tags;
-  if (s.defaultLanguage) snip.defaultLanguage = s.defaultLanguage;
-  if (s.defaultAudioLanguage) snip.defaultAudioLanguage = s.defaultAudioLanguage;
-  const res = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', {
-    method: 'put', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    payload: JSON.stringify({ id: id, snippet: snip }),
-  });
-  const data = JSON.parse(res.getContentText() || '{}');
-  if (res.getResponseCode() !== 200) throw new Error((data.error && data.error.message) || ('HTTP ' + res.getResponseCode()));
-}
-function titleSheet_() {
-  const ss = ss_();
-  let sh = ss.getSheetByName(TITLE_SHEET);
-  if (!sh) { sh = ss.insertSheet(TITLE_SHEET); sh.appendRow(['批次', '影片ID', '原標題', '新標題', '結果']); }
-  return sh;
+const TITLE_KEEP_ = [];   // 目前沒有需要強制保留標題的影片
+// 新影片說明：來自劇本（神對話系列／Ep01–Ep20 劇本的「影片說明」，一念之間來自「YouTube 說明 一念之間 第一集」）
+// 只有說明：EP21–EP23 尚未發布，不在清單內
+const DESC_PLAN_ = {
+  "EP01": "念頭一冒出來，就拉著人走，怎麼辦？\n神對話 EP01，佛祖告訴我們：引果，是當下突然冒出來的念頭與行為。念頭本身不是罪，不跟著它走，新的因果就停住了。\n\n本集重點：\n・念頭本身不是罪\n・先覺察，再選擇怎麼回應\n・能放下嗔念，就能停住新的因果\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易被哪一種念頭拉著走？留言告訴我。\n\n#神對話 #引果 #覺察 #放下 #修行",
+  "EP02": "以為前世做過的事，今生都要還嗎？\n神對話 EP02，佛祖告訴我們：業力像一條走慣了的路，但路從來不只一條。善念與善行一次次做下去，就能慢慢換掉舊的習氣。\n\n本集重點：\n・業力不是判決書\n・善念善行，慢慢蓋過舊習氣\n・每天做一件利他的小事\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最想換掉的一個習慣是什麼？留言告訴我。\n\n#神對話 #業力 #修行 #慈悲 #覺察",
+  "EP03": "許了願，為什麼有時候會落空？\n神對話 EP03，佛祖告訴我們：願果，是此生心念與行為結出的果。發願助人的慈悲心，才是那顆種子。\n\n本集重點：\n・許願不是許了就等\n・願要帶著慈悲，才能圓滿\n・每天做一件利他的小事，願就會慢慢長出枝葉\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n留言告訴我，你心裡的那個願，是為了自己，還是為了別人？\n\n#神對話 #願果 #慈悲 #許願 #修行",
+  "EP04": "心裡放不下的事，真的會一直跟著我們嗎？\n神對話 EP04，佛祖告訴我們：輪迴，是心在六道之間來回打轉。放下執念，心就輕了，才能跳出輪迴。\n\n本集重點：\n・放下，不是忘記\n・先看見，再慢慢鬆開\n・不再為同一件事，加上新的怨\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你心裡最難放下的一件事，是什麼？留言告訴我。\n\n#神對話 #輪迴 #放下 #慈悲 #修行",
+  "EP05": "放下了，念頭卻還是一直跑出來，該怎麼辦？\n神對話 EP05，佛祖告訴我們：覺察不是把念頭壓住，而是先認出它、看見它，再慢慢回到呼吸。\n\n本集重點：\n・念頭跑出來，不代表你失敗了\n・先認出它，它就不再那麼用力\n・不急著反應，先呼吸一次\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你在生活裡，最常覺察到的一種情緒是什麼？留言告訴我。\n\n#神對話 #覺察 #放下 #慈悲 #修行",
+  "EP06": "委屈了，是不是就該忍？\n神對話 EP06，佛祖告訴我們：慈悲不是忍讓，是看見對方也有他的苦。慈悲，先從自己開始。\n\n本集重點：\n・慈悲不是忍讓\n・原諒是心裡放下，慈悲是願對方也離苦\n・界線可以保留，慈悲也可以有\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，慈悲和忍讓最大的不同是什麼？留言告訴我。\n\n#神對話 #慈悲 #放下 #覺察 #修行",
+  "EP07": "守規矩，是不是就要把自己綁住？\n神對話 EP07，佛祖告訴我們：戒不是繩子，是提醒。提醒自己，哪一步會走向傷害。\n\n本集重點：\n・戒是提醒，不是綁住\n・守住戒，心才會安定\n・先守住不說傷人的話\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最難守住的一條界線是什麼？留言告訴我。\n\n#神對話 #持戒 #慈悲 #修行 #覺察",
+  "EP08": "給出去之後，心裡還會想著回報嗎？\n神對話 EP08，佛祖告訴我們：布施有三種，重點是不求回報。看見需要，就願意給。\n\n本集重點：\n・財布施、法布施、無畏布施\n・布施不求回報，心裡要空\n・從一句好話、一次傾聽開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易做到的布施是什麼？留言告訴我。\n\n#神對話 #布施 #慈悲 #修行 #覺察",
+  "EP09": "被人說了難聽的話，你是硬忍，還是跟著反擊？\n神對話 EP09，佛祖告訴我們：忍辱不是忍讓，是心不被風吹動。先看清楚，再決定要不要回應。\n\n本集重點：\n・忍辱不是硬忍，也不是吞下委屈\n・風來了，知道它是風，但不跟著飄走\n・該說的清楚地說，說的時候心要靜\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，被刺痛的時候，你最難做到的是什麼？留言告訴我。\n\n#神對話 #忍辱 #慈悲 #修行 #覺察",
+  "EP10": "你覺得自己做事常常半途而廢嗎？\n神對話 EP10，佛祖告訴我們：精進不是拚命，是跌倒後還願意再起來。\n\n本集重點：\n・精進不是硬撐，是不間斷地走在對的路上\n・累了先休息，再回來\n・先做一件小事，就是今天的精進\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難堅持的一件事是什麼？留言告訴我。\n\n#神對話 #精進 #慈悲 #修行 #覺察",
+  "EP11": "坐下來，念頭還是一直跑出來嗎？\n神對話 EP11，佛祖告訴我們：禪定不是讓心空無一物，而是讓心安住在一處。\n\n本集重點：\n・念頭來了不必急著趕走，看見它，再回來安住\n・心安住在哪裡，哪裡就清楚起來\n・一次次回來，就是禪定\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，靜下來的時候，你的心會安住在哪裡？留言告訴我。\n\n#神對話 #禪定 #慈悲 #修行 #覺察",
+  "EP12": "修了行，怎麼還會陷在輪迴裡？\n神對話 EP12，佛祖告訴我們：修行的根本在修心，不在表面的形式。\n\n本集重點：\n・口業不改，善行也會被抵消\n・靜下心來，念頭自然沉澱\n・事業若以利益眾生為心，就是志業\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最需要先修的是哪一件事？留言告訴我。\n\n#神對話 #六道輪迴 #口業 #志業 #修心 #慈悲",
+  "EP13": "志業之後，還要看清念頭嗎？\n神對話 EP13，佛祖告訴我們：般若是智慧，看清念頭從哪裡來、要往哪裡去。\n\n本集重點：\n・念頭來了，先看它只是一陣風\n・看清因果，不執著，智慧自然生起\n・看清，放下，就是般若\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難看清的是哪一種念頭？留言告訴我。\n\n#神對話 #般若 #智慧 #修心 #慈悲",
+  "EP14": "看清之後，就能解脫嗎？\n神對話 EP14，佛祖告訴我們：解脫不是逃離，而是心不再被念頭綁住。\n\n本集重點：\n・念頭來了，不必強迫它停\n・覺察每一天，習慣慢慢鬆開\n・放下執著，不跟著念頭走，就是解脫的起點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，什麼時候最難讓念頭停下來？留言告訴我。\n\n#神對話 #解脫 #覺察 #修心 #慈悲",
+  "EP15": "解脫之後，就結束了嗎？\n神對話 EP15，佛祖告訴我們：心自在之後，更要發願，讓一切眾生都離苦。\n\n本集重點：\n・菩提心是願一切眾生離苦\n・慈悲是情，菩提心是智\n・把自在分享出去，從身邊的人開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，修行之後最想分享的是什麼？留言告訴我。\n\n#神對話 #菩提心 #慈悲 #修心 #智慧",
+  "EP16": "幫助別人，要怎麼說才對？\n神對話 EP16，佛祖告訴我們：方便是依對方的根器，變通方法，不變的是慈悲。\n\n本集重點：\n・每個人的根器不同，方法也要不同\n・先聽他說，再慢慢說\n・方便不離慈悲，智慧引路\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，幫助別人時，最難的是什麼？留言告訴我。\n\n#神對話 #方便 #慈悲 #修心 #智慧",
+  "EP17": "看見別人好，為什麼心裡會不舒服？\n神對話 EP17，佛祖告訴我們：覺察嫉妒的念頭，為對方歡喜，就是隨喜。\n\n本集重點：\n・嫉妒的念頭來了，先覺察，不跟著走\n・為別人的好感到歡喜，善念會互相感染\n・隨喜之心，就是慈悲的回響\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最近看見別人好，心裡第一個念頭是什麼？留言告訴我。\n\n#神對話 #隨喜 #慈悲 #修心 #智慧",
+  "EP18": "心裡那個最重要的我，到底是誰？\n神對話 EP18，佛祖告訴我們：那個我是念頭堆出來的，念頭一換，它就不見了。\n\n本集重點：\n・委屈是真的，但不必說它是我的\n・放下這個我，才看見更多人的辛苦\n・沒有我，才看得見你\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，放下哪一個念頭，會讓你最自在？留言告訴我。\n\n#神對話 #無我 #慈悲 #修心 #智慧",
+  "EP19": "傷害我的人，也要平等看待嗎？\n神對話 EP19，佛祖告訴我們：平等心不是讓傷害繼續，而是不因怨恨而起惡念。\n\n本集重點：\n・喜歡與討厭，都是念頭在搖擺\n・每個人都想平安，想被善待\n・對每一個人先存一分善意，心就不被分別綁住\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難平等看待的是哪一種人？留言告訴我。\n\n#神對話 #平等心 #慈悲 #修心 #智慧",
+  "EP20": "學了這麼多，最後要怎麼走？\n神對話 EP20，佛祖告訴我們：菩薩道是把慈悲與智慧，落在每一天的生活裡。\n\n本集重點：\n・從一念開始，看清它，放下它，再用善意回應\n・每一念都是一步，一步步走，就走成了菩薩道\n・一人帶一人，善念會一代一代傳下去\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最想帶給身邊的人什麼？留言告訴我。\n\n#神對話 #菩薩道 #慈悲 #修心 #智慧",
+  "LONG": "念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#神對話 #一念之間 #引果 #業力 #輪迴",
+};
+// 影片屬於哪一集：一念之間是 LONG；其他依標題開頭的集數（EP01…EP20）
+function titleKey_(vid, title) {
+  if (vid === TITLE_LONG_ID_) return 'LONG';
+  const m = String(title || '').match(/^\s*(EP\d{2})\b/);
+  return m ? m[1] : null;
 }
 // 頻道上全部影片的 ID（直接查上傳清單，分頁取完，不只最近 20 支）
 function titleAllIds_() {
@@ -795,7 +799,46 @@ function titleAllIds_() {
   } while (token && ids.length < 500);
   return ids;
 }
-// 預覽：列出頻道上每支會改的影片，存成待確認；不改任何東西
+// 取得影片目前的 snippet（標題、說明、分類、標籤…），分批每批最多 50 支
+function titleFetch_(ids) {
+  const out = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    (chanGet_('videos', { part: 'snippet', id: ids.slice(i, i + 50).join(',') }).items || []).forEach(v => { out[v.id] = v.snippet; });
+  }
+  return out;
+}
+// 寫入一支影片：每次都先讀回最新的 snippet；title 或 desc 是 null 的那一項照現在的值保留，兩項不會互相覆蓋
+function titleWrite_(id, title, desc) {
+  const got = (chanGet_('videos', { part: 'snippet', id: id }).items || [])[0];
+  const s = got && got.snippet;
+  if (!s) throw new Error('找不到這支影片');
+  const snip = { title: title != null ? title : s.title, categoryId: s.categoryId };
+  const d = desc != null ? desc : s.description;
+  if (d != null) snip.description = d;
+  if (s.tags) snip.tags = s.tags;
+  if (s.defaultLanguage) snip.defaultLanguage = s.defaultLanguage;
+  if (s.defaultAudioLanguage) snip.defaultAudioLanguage = s.defaultAudioLanguage;
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', {
+    method: 'put', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ id: id, snippet: snip }),
+  });
+  const data = JSON.parse(res.getContentText() || '{}');
+  if (res.getResponseCode() !== 200) throw new Error((data.error && data.error.message) || ('HTTP ' + res.getResponseCode()));
+}
+function titleSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(TITLE_SHEET);
+  if (!sh) sh = ss.insertSheet(TITLE_SHEET);
+  if (sh.getLastRow() === 0 || sh.getLastColumn() < TITLE_HEAD_.length) sh.getRange(1, 1, 1, TITLE_HEAD_.length).setValues([TITLE_HEAD_]);
+  return sh;
+}
+// 說明的第一行，給卡片預覽用
+function titleFirstLine_(t) {
+  const line = String(t || '').split('\n').filter(x => x.trim())[0] || '';
+  return line.length > 30 ? line.slice(0, 30) + '…' : line;
+}
+// 預覽：列出頻道上每支「標題或說明會改」的影片，存成待確認；不改任何東西
 function titlePreview_() {
   const all = titleAllIds_();
   const snaps = titleFetch_(all);
@@ -803,81 +846,97 @@ function titlePreview_() {
   all.forEach(vid => {
     const s = snaps[vid];
     if (!s) return;
+    const key = titleKey_(vid, s.title);
+    let to = s.title;
     const planned = TITLE_PLAN_.find(x => x[0] === vid);
-    let to = planned ? planned[1] : null;
-    if (!to) {   // 清單沒有影片 ID 的，依標題開頭的集數（例如 EP01）對應
-      const m = String(s.title || '').match(/^\s*(EP\d{2})\b/);
-      if (m && TITLE_EP_PLAN_[m[1]]) to = TITLE_EP_PLAN_[m[1]];
-    }
-    if (!to) return;
+    if (planned) to = planned[1];
+    else if (key && TITLE_EP_PLAN_[key]) to = TITLE_EP_PLAN_[key];
     if (TITLE_KEEP_.indexOf(vid) >= 0) to = s.title;
-    items.push({ id: vid, from: s.title, to: to });
+    const toDesc = key && DESC_PLAN_[key] != null ? DESC_PLAN_[key] : (s.description || '');
+    const titleChg = to !== s.title, descChg = toDesc !== (s.description || '');
+    if (!titleChg && !descChg) return;
+    items.push({ id: vid, key: key || '', from: s.title, to: to, toDesc: toDesc, titleChg: titleChg, descChg: descChg });
   });
-  const changes = items.filter(x => x.from !== x.to);
-  if (!changes.length) return { text: '✏️ 標題都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
-  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), items: changes }));
-  const warn = changes.some(x => x.id === 'D5ZXjv7SQ1A') ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
-  return { text: '✏️ 標題預覽：' + changes.length + ' 支要改（共 ' + items.length + ' 支）\n\n' + changes.map(x => '・' + x.from + '\n　→ ' + x.to).join('\n\n') + warn + '\n\n按「' + TITLE_APPLY + '」才會真的改，原標題會先存進「' + TITLE_SHEET + '」分頁。',
-    flex: titleFlex_(items, changes.length), alt: '✏️ 標題預覽', buttons: [[TITLE_APPLY, TITLE_CANCEL]] };
+  if (!items.length) return { text: '✏️ 標題和說明都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
+  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), items: items }));
+  const tN = items.filter(x => x.titleChg).length, dN = items.filter(x => x.descChg).length;
+  const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
+  const lines = items.map(x => '・' + (x.titleChg ? x.from + '\n　→ ' + x.to : '（標題不變）' + x.from) + (x.descChg ? '\n　說明：更新，輸入「說明' + (x.key === 'LONG' ? '一念之間' : x.key) + '」看全文' : ''));
+  return { text: '✏️ 預覽：標題要改 ' + tN + ' 支、說明要改 ' + dN + ' 支\n\n' + lines.join('\n\n') + warn + '\n\n按「' + TITLE_APPLY + '」才會真的改，原標題與原說明會先存進「' + TITLE_SHEET + '」分頁。',
+    flex: titleFlex_(items), alt: '✏️ 標題與說明預覽', buttons: [[TITLE_APPLY, TITLE_CANCEL]] };
 }
-// 預覽卡片：每支影片一格，上面是原標題、下面是新標題；不變的標示「不變」
-function titleFlex_(items, n) {
+// 預覽卡片：每支影片一格，標題由舊到新，說明只顯示第一行，完整內容用「說明EP05」看
+function titleFlex_(items) {
   const rows = items.map(x => {
-    const same = x.from === x.to;
-    return { type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
+    const kids = [
       { type: 'text', text: x.from, size: 'xxs', color: CHCARD_.SOFT, wrap: true },
-      { type: 'text', text: same ? '（不變）' : '→ ' + x.to, size: 'xs', weight: 'bold', color: same ? CHCARD_.SOFT : CHCARD_.INK, wrap: true, margin: 'xs' },
-    ] };
+      { type: 'text', text: x.titleChg ? '→ ' + x.to : '（標題不變）', size: 'xs', weight: 'bold', color: x.titleChg ? CHCARD_.INK : CHCARD_.SOFT, wrap: true, margin: 'xs' },
+    ];
+    kids.push({ type: 'separator', margin: 'md', color: CHCARD_.LINE });
+    kids.push(x.descChg
+      ? { type: 'text', text: '說明：' + titleFirstLine_(x.toDesc), size: 'xxs', color: CHCARD_.GOLD, wrap: true, margin: 'md' }
+      : { type: 'text', text: '說明：不變', size: 'xxs', color: CHCARD_.SOFT, margin: 'md' });
+    if (x.descChg) kids.push({ type: 'text', text: '輸入「說明' + (x.key === 'LONG' ? '一念之間' : x.key) + '」看完整說明', size: 'xxs', color: CHCARD_.SOFT, margin: 'xs', wrap: true });
+    return { type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: kids };
   });
   const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: rows }];
   const buttons = [
-    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '✅ 全部套用', text: '全部套用標題' } },
+    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '✅ 全部套用', text: TITLE_APPLY } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '先不改', text: TITLE_CANCEL } },
   ];
-  return chanBubble_(chanHead_('小乖 · TITLES', '標題預覽', n + ' 支影片要改，按「全部套用」才會改'), content, buttons);
+  return chanBubble_(chanHead_('小乖 · TITLES', '標題與說明預覽', items.length + ' 支影片要更新，按「全部套用」才會改'), content, buttons);
 }
-// 全部套用：先備份每支原標題，再一支一支改；每支的結果都寫回試算表
+// 全部套用：先備份每支的原標題與原說明（用現在最新的值），再一支一支改；結果寫回試算表
 function titleApply_() {
-  if (VOICE_IN_) return '標題更改只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
+  if (VOICE_IN_) return '標題與說明只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
     if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），再打「' + TITLE_BTN + '」重新產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
     const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
     const cur = titleFetch_(pend.items.map(x => x.id));
-    const rows = pend.items.map(x => ({ id: x.id, from: cur[x.id] ? cur[x.id].title : x.from, to: x.to }));
+    const rows = pend.items.map(x => { const s = cur[x.id] || {}; return { id: x.id, from: s.title != null ? s.title : x.from, fromDesc: s.description || '', to: x.to, toDesc: x.toDesc, titleChg: x.titleChg, descChg: x.descChg }; });
     const sh = titleSheet_();
     const start = sh.getLastRow() + 1;
-    sh.getRange(start, 1, rows.length, 5).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成']));
+    sh.getRange(start, 1, rows.length, TITLE_HEAD_.length).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成', r.fromDesc, r.toDesc]));
     setProp_('TITLE_LAST', batch);
-    let ok = 0; const bad = [];
+    let okT = 0, okD = 0; const bad = [];
     rows.forEach((r, i) => {
       let st;
-      try { titleUpdate_(r.id, r.to); st = '已改'; ok++; }
-      catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
+      try {
+        titleWrite_(r.id, r.titleChg ? r.to : null, r.descChg ? r.toDesc : null);
+        st = '已改'; if (r.titleChg) okT++; if (r.descChg) okD++;
+      } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
       sh.getRange(start + i, 5).setValue(st);
     });
-    return { text: '✅ 標題改好了：' + ok + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原標題都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」。',
+    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原標題與原說明都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」。',
       buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
   });
 }
-// 還原：把最近一次批次的原標題寫回去
+// 還原：把最近一次批次的原標題與原說明寫回去（原說明是空的就不動說明）
 function titleRestore_() {
-  if (VOICE_IN_) return '還原標題也只能按按鈕，不能用語音。';
+  if (VOICE_IN_) return '還原也只能按按鈕，不能用語音。';
   const batch = prop_('TITLE_LAST');
-  if (!batch) return { text: '還沒有可以還原的標題更改。', buttons: [[TITLE_BTN, MENU_BTN]] };
+  if (!batch) return { text: '還沒有可以還原的更改。', buttons: [[TITLE_BTN, MENU_BTN]] };
   const sh = titleSheet_();
   const vals = sh.getDataRange().getValues();
   let ok = 0; const bad = [];
   for (let i = 1; i < vals.length; i++) {
     if (String(vals[i][0]) !== batch) continue;
-    try { titleUpdate_(String(vals[i][1]), String(vals[i][2])); sh.getRange(i + 1, 5).setValue('已還原'); ok++; }
+    const origDesc = String(vals[i][5] || '');
+    try { titleWrite_(String(vals[i][1]), String(vals[i][2]), origDesc ? origDesc : null); sh.getRange(i + 1, 5).setValue('已還原'); ok++; }
     catch (e) { bad.push(String(vals[i][2]).slice(0, 30) + '：' + String(e.message || e).slice(0, 60)); }
   }
   setProp_('TITLE_LAST', '');
-  return { text: '↩️ 已還原 ' + ok + ' 支的原標題' + (bad.length ? '\n\n沒還原成功的：\n' + bad.join('\n') : ''), buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '↩️ 已還原 ' + ok + ' 支' + (bad.length ? '\n\n沒還原成功的：\n' + bad.join('\n') : ''), buttons: [[CHAN_BTN, MENU_BTN]] };
 }
-// 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題要用到這個權限）
+// 看完整說明：輸入「說明EP05」或「說明一念之間」
+function titleShowDesc_(key) {
+  const d = DESC_PLAN_[key];
+  if (!d) return { text: '這一集還沒有新的影片說明。', buttons: [[TITLE_BTN, MENU_BTN]] };
+  return { text: '📝 ' + (key === 'LONG' ? '一念之間' : key) + ' 新的影片說明\n\n' + d, buttons: [[TITLE_BTN, MENU_BTN]] };
+}
+// 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
   UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
   Logger.log('授權完成');
