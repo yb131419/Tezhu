@@ -983,28 +983,40 @@ function 授權YouTube改標題() {
 }
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
-const CHAN_VERSION = 'title-1（批次更改影片標題）';
+// 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
+const CHAN_VERSION = 'title-4｜2026-11-16｜頻道管理卡片、三種更改（標題＋說明／只改標題／只改說明）、白話診斷';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
-  const tok = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
-  const L = ['🧪 頻道診斷', '程式版本：' + CHAN_VERSION, '目前查詢的頻道 ID：' + CHAN_ID_DEFAULT, ''];
+  let ok = false, views = null, hint = '', raw = '';
   try {
     const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
     const qs = 'ids=' + encodeURIComponent('channel==MINE') + '&startDate=2005-01-01&endDate=' + today + '&metrics=views';
-    const r = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, { muteHttpExceptions: true, headers: tok });
-    const body = (r.getContentText() || '').slice(0, 220).replace(/\s+/g, ' ');
-    L.push('分析介面（頻道總觀看）回應：HTTP ' + r.getResponseCode());
-    L.push('   ' + body);
-  } catch (e) { L.push('分析介面錯誤：' + e.message); }
-  return { text: L.join('\n'), flex: chanDiagFlex_(L), alt: '🧪 頻道診斷', buttons: [[CHAN_BTN, CHAN_ADV_BTN, MENU_BTN]] };
+    const r = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+    const code = r.getResponseCode();
+    const data = JSON.parse(r.getContentText() || '{}');
+    if (code === 200 && data.rows && data.rows.length) { ok = true; views = Number(data.rows[0][0]); }
+    else if (code === 200) hint = chanAnaHint_('ANALYTICS_EMPTY');
+    else { raw = String((data.error && data.error.message) || ('HTTP ' + code)).slice(0, 120); hint = chanAnaHint_(raw); }
+  } catch (e) { raw = String(e.message || e).slice(0, 120); hint = chanAnaHint_(raw); }
+  const head = ok ? '分析數據連線正常 ✅' : '分析數據還沒有出來';
+  const detail = ok ? '頻道總觀看：' + chanNum_(views) + ' 次\n想看各集的數據，按「📺 頻道數據」。' : hint;
+  const text = '🧪 頻道診斷\n' + head + '\n\n' + detail + (raw && !ok ? '\n\n（原始訊息：' + raw + '）' : '') + '\n\n程式版本：' + CHAN_VERSION;
+  return { text: text, flex: chanDiagFlex_(ok, head, detail, ok ? '' : raw), alt: '🧪 頻道診斷', buttons: [[CHAN_BTN, CHAN_ADV_BTN], [TITLE_BTN, MENU_BTN]] };
 }
-// 診斷結果的高質感卡片：一行一行的說明，沿用頻道卡片的配色
-function chanDiagFlex_(lines) {
-  const body = lines.filter(x => x !== '').map(x => ({ type: 'text', text: x, size: 'xs', color: CHCARD_.INK, wrap: true, margin: 'sm' }));
-  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } }];
-  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
+// 診斷卡片：白話結論；只有出錯時才顯示原始訊息（小字）；可以回到頻道管理
+function chanDiagFlex_(ok, head, detail, raw) {
+  const body = [
+    { type: 'text', text: head, size: 'md', weight: 'bold', color: ok ? '#3D7A4F' : '#A0522D', wrap: true },
+    { type: 'text', text: detail, size: 'sm', color: CHCARD_.INK, wrap: true, margin: 'md' },
+  ];
+  if (raw && !ok) body.push({ type: 'text', text: '原始訊息：' + raw, size: 'xxs', color: CHCARD_.SOFT, wrap: true, margin: 'lg' });
+  const buttons = [
+    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到頻道管理', text: TITLE_BTN } },
+  ];
+  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
