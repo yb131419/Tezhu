@@ -1,5 +1,14 @@
 {
   "timeZone": "Asia/Taipei",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/presentations",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/yt-analytics.readonly"
+  ],
   "runtimeVersion": "V8",
   "exceptionLogging": "STACKDRIVER",
   "webapp": {

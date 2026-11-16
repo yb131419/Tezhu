@@ -733,18 +733,54 @@ function chanFetch_() {
   const ids = recent.map(i => i.contentDetails.videoId).join(',');
   const vids = ids ? (chanGet_('videos', { part: 'snippet,statistics', id: ids }).items || []) : [];
   vids.sort((a, b) => (a.snippet.publishedAt < b.snippet.publishedAt ? 1 : -1));
+  // 分析數據（平均觀看時長、平均看了幾％）要使用者授權一次；失敗時不影響公開數字，只記下原因
+  let an = {}, anErr = '';
+  try { an = chanAnalytics_(vids.map(v => v.id)); } catch (e) { anErr = e.message; console.error('分析數據失敗：' + e); }
   return {
     title: ch.snippet.title,
     url: 'https://www.youtube.com/channel/' + id,
     subs: ch.statistics.hiddenSubscriberCount ? null : Number(ch.statistics.subscriberCount),
     views: Number(ch.statistics.viewCount || 0),
     videoCount: Number(ch.statistics.videoCount || 0),
+    anErr: anErr,
     videos: vids.map(v => ({
-      title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10), url: 'https://www.youtube.com/watch?v=' + v.id,
+      id: v.id, title: v.snippet.title, date: v.snippet.publishedAt.slice(0, 10), url: 'https://www.youtube.com/watch?v=' + v.id,
       at: chanAt_(v.snippet.publishedAt),
       views: Number(v.statistics.viewCount || 0), likes: Number(v.statistics.likeCount || 0), comments: Number(v.statistics.commentCount || 0),
+      avgSec: an[v.id] ? an[v.id].avgSec : null, avgPct: an[v.id] ? an[v.id].avgPct : null,
     })),
   };
+}
+// YouTube Analytics：各影片的平均觀看時長（秒）與平均看了幾％（完播率的近似值）。用指令碼的 Google 授權（不用金鑰）
+function chanAnalytics_(ids) {
+  const out = {};
+  if (!ids.length) return out;
+  const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  const qs = ['ids=channel==MINE', 'startDate=2005-01-01', 'endDate=' + today,
+    'metrics=views,averageViewDuration,averageViewPercentage', 'dimensions=video',
+    'filters=video==' + ids.join(','), 'maxResults=' + ids.length].join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  const data = JSON.parse(res.getContentText());
+  if (res.getResponseCode() !== 200) throw new Error('ANALYTICS ' + res.getResponseCode() + ' ' + ((data.error && data.error.message) || ''));
+  (data.rows || []).forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
+  return out;
+}
+// 每次查詢都把各集數據累積到使用者的試算表「頻道數據紀錄」分頁，方便之後比較神對話各集的表現
+const CHAN_LOG_SHEET = '頻道數據紀錄';
+function chanLog_(d) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(CHAN_LOG_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CHAN_LOG_SHEET);
+    sh.appendRow(['紀錄時間', '影片ID', '影片標題', '上架時間', '觀看數', '按讚', '留言', '平均觀看時長(秒)', '平均看了(%)', '訂閱數', '頻道總觀看']);
+    sh.setFrozenRows(1);
+  }
+  const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  const rows = d.videos.map(v => [now, v.id, v.title, v.at, v.views, v.likes, v.comments,
+    v.avgSec == null ? '' : Math.round(v.avgSec), v.avgPct == null ? '' : Math.round(v.avgPct * 10) / 10, d.subs == null ? '' : d.subs, d.views]);
+  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
 // 金鑰狀態：只回報金鑰有沒有設定、實際呼叫一次能不能用，失敗時說可能的原因；金鑰內容一律不顯示
 function chanKeyStatus_() {
@@ -789,8 +825,14 @@ function chanText_(d) {
   const lines = ['📺 ' + d.title, '', '訂閱：' + chanNum_(d.subs), '總觀看：' + chanNum_(d.views), '影片數：' + chanNum_(d.videoCount)];
   if (d.videos.length) {
     const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
-    lines.push('', '最近 ' + d.videos.length + ' 支影片平均觀看：' + chanNum_(avg), '', '最近影片：');
-    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.at + '　' + v.title + '（' + chanNum_(v.views) + ' 次）'));
+    lines.push('', '最近 ' + d.videos.length + ' 支影片平均觀看：' + chanNum_(avg));
+    if (!d.anErr) {
+      const pv = d.videos.filter(v => v.avgPct != null);
+      if (pv.length) lines.push('平均看了：' + Math.round(pv.reduce((s, v) => s + v.avgPct, 0) / pv.length) + '%');
+    }
+    lines.push('', '最近影片：');
+    d.videos.slice(0, 5).forEach(v => lines.push('・' + v.at + '　' + v.title + '（' + chanNum_(v.views) + ' 次' + (v.avgPct != null ? '，看了 ' + Math.round(v.avgPct) + '%' : '') + '）'));
+    if (d.anErr) lines.push('', '（分析數據沒有出來：' + d.anErr + '。到 Apps Script 重新授權一次即可。）');
   }
   return lines.join('\n');
 }
@@ -875,6 +917,7 @@ function chanAdviceFlex_(d, text) {
 function chanData_() {
   try {
     const d = chanFetch_();
+    try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
     return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
