@@ -994,7 +994,19 @@ function profitView(el,text){let card=null;
     pEl(card,'pnote',t);return;}
   chanAdd(el,'tline',t);});}
 // 交易的結果只顯示在這個網頁面板，不送進對話串（按鈕也都留在面板裡）
-function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q,title);(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
+// 頻道數據卡片的按鈕：兩欄一組、等寬，跟 LINE 的卡片排法一樣
+function chanGrid(bs){
+  bs.style.display='grid';bs.style.gridTemplateColumns='1fr 1fr';bs.style.gap='8px';
+  const mk=(label,full,primary,fn,href)=>{const b=document.createElement(href?'a':'button');if(!href)b.type='button';b.className='tbtn';b.textContent=label;b.style.margin='0';b.style.textAlign='center';if(full)b.style.gridColumn='1 / -1';if(primary){b.style.background='#A07C34';b.style.color='#fff';}if(href){b.href=href;b.target='_blank';b.rel='noopener';}else b.onclick=fn;return b;};
+  bs.appendChild(mk('💡 改善建議',false,true,()=>webAsk('💡 改善建議')));
+  bs.appendChild(mk('🧪 頻道診斷',false,false,()=>webAsk('🧪 頻道診斷')));
+  bs.appendChild(mk('✏️ 更改全部標題和說明',true,false,()=>webAsk('✏️ 更改全部標題和說明')));
+  bs.appendChild(mk('🏷️ 只改標題',false,false,()=>webAsk('🏷️ 只改標題')));
+  bs.appendChild(mk('📝 只改說明',false,false,()=>webAsk('📝 只改說明')));
+  bs.appendChild(mk('↩️ 還原標題',false,false,()=>webAsk('↩️ 還原標題')));
+  bs.appendChild(mk('🔗 開啟頻道',false,false,null,'https://www.youtube.com/channel/UCE4E-lnj5eEvFy2l-Ut-NHQ'));
+}
+function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q,title);if(/頻道數據/.test(q))chanGrid(bs);else{bs.style.display='';bs.style.gridTemplateColumns='';bs.style.gap='';(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
 // 快速下單（一個畫面）：選商品、按買進或賣出就直接要提案，提案的「確認下單」按鈕照舊才會送出，不另外經過選單
 const TKT={p:'',n:1};
 function openTicket(){$('trt').textContent='⚡ 快速下單';$('trbtn').innerHTML='';$('tres').style.display='flex';tktDraw('選商品與數量，再按買進或賣出，會先出提案，確認後才送出。');}
