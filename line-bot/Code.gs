@@ -1089,7 +1089,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'title-8｜2026-11-16｜套用改為逐支比對：內容沒變的照改，只跳過真的有變動的那支，說明比對忽略換行與行尾空白';
+const CHAN_VERSION = 'advice-loop-1｜2026-11-16｜改善建議每次抓最新數據、比對歷史與上次建議，結果存入「改善建議紀錄」';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1404,16 +1404,101 @@ function chanData_() {
     return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
+// 改善建議：每次按下都重新抓最新數據（含分析），和「頻道數據紀錄」的歷史比較，並參考上次的建議；結果存進「改善建議紀錄」分頁
+const CHAN_ADV_LOG = '改善建議紀錄';
+const CHAN_ADV_MIN_AGE_MS = 24 * 3600 * 1000;   // 上架未滿一天的影片不納入分析（使用者規則）
+function chanDateMs_(ymd) { const t = Date.parse(String(ymd || '') + 'T00:00:00+08:00'); return isNaN(t) ? 0 : t; }
+function chanMedian_(arr) {
+  const a = arr.filter(x => x != null && !isNaN(x)).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return Math.round((a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) * 10) / 10;
+}
+// 歷史：從「頻道數據紀錄」讀出每支影片的紀錄次數、最近一次，以及第一次有分析數據的那次
+function chanHistory_(ids) {
+  const out = {};
+  const sh = ss_().getSheetByName(CHAN_LOG_SHEET);
+  if (!sh || sh.getLastRow() < 2 || !ids.length) return out;
+  const want = {};
+  ids.forEach(id => { want[id] = true; });
+  sh.getRange(2, 1, sh.getLastRow() - 1, 9).getValues().forEach(r => {
+    const id = String(r[1]);
+    if (!want[id]) return;
+    const rec = { at: r[0] instanceof Date ? Utilities.formatDate(r[0], 'Asia/Taipei', 'yyyy-MM-dd HH:mm') : String(r[0]),
+      views: Number(r[4]) || 0, avgWatchSec: r[7] === '' ? null : Math.round(Number(r[7])), avgViewedPct: r[8] === '' ? null : Number(r[8]) };
+    const h = out[id] || (out[id] = { snapshots: 0, firstWithAnalytics: null, latest: null });
+    h.snapshots++;
+    h.latest = rec;
+    if (rec.avgViewedPct != null && !h.firstWithAnalytics) h.firstWithAnalytics = rec;
+  });
+  return out;
+}
+// 上次的改善建議（最近三次）：讓下一次能檢查上次的做法有沒有反映在數據上
+function chanAdvHistory_() {
+  const sh = ss_().getSheetByName(CHAN_ADV_LOG);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const n = Math.min(3, sh.getLastRow() - 1);
+  return sh.getRange(sh.getLastRow() - n + 1, 1, n, 2).getValues().map(r => ({
+    at: r[0] instanceof Date ? Utilities.formatDate(r[0], 'Asia/Taipei', 'yyyy-MM-dd HH:mm') : String(r[0]),
+    advice: String(r[1]).slice(0, 900) }));
+}
+function chanAdvLog_(text) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(CHAN_ADV_LOG);
+  if (!sh) {
+    sh = ss.insertSheet(CHAN_ADV_LOG);
+    sh.appendRow(['紀錄時間', '改善建議']);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(2, 600);
+  }
+  sh.appendRow([Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'), String(text)]);
+}
 function chanAdvice_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
-  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每支影片都有上架時間 at（台北時間，含星期與幾點），建議要一併分析上架時間與觀看數的關係，例如哪個星期或時段的影片表現較好、適合在什麼時候上架。每點用「1.」「2.」這樣的編號開頭，第一行先寫結論，之後換行寫依據（引用數據裡的影片、時間或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
+  const now = Date.now();
+  const isOld = v => now - chanDateMs_(v.date) >= CHAN_ADV_MIN_AGE_MS;
+  const young = d.videos.filter(v => !isOld(v)).map(v => v.title);
+  const noData = d.videos.filter(v => isOld(v) && v.avgPct == null).map(v => v.title);
+  const ready = d.videos.filter(v => isOld(v) && v.avgPct != null);
+  const medPct = chanMedian_(ready.map(v => v.avgPct));
+  const medViews = chanMedian_(ready.map(v => v.views));
+  const hist = chanHistory_(ready.map(v => v.id));
+  const flags = {
+    觀看高但留存普通: ready.filter(v => v.views >= medViews && v.avgPct < medPct).map(v => v.title),
+    留存高但觀看低: ready.filter(v => v.views < medViews && v.avgPct >= medPct).map(v => v.title),
+  };
+  const basis = '📊 依 ' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm') + ' 抓到的最新數據，分析 ' + ready.length + ' 支影片'
+    + '（上架未滿一天的 ' + young.length + ' 支不納入）' + (ready.length < 5 ? '。樣本還少，結論只供參考' : '');
+  const payload = {
+    asOf: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+    channel: d.title, subscribers: d.subs, channelTotalViews: d.views,
+    sampleSize: ready.length, excludedTooNew: young, noAnalyticsYet: noData,
+    medianAvgViewedPct: medPct, medianViews: medViews, flags: flags,
+    videos: ready.map(v => ({ title: v.title, publishedAt: v.at, views: v.views, likes: v.likes, comments: v.comments,
+      avgWatchSec: v.avgSec == null ? null : Math.round(v.avgSec), avgViewedPct: Math.round(v.avgPct * 10) / 10,
+      logHistory: hist[v.id] || null })),
+    previousAdvice: chanAdvHistory_(),
+  };
+  const sys = [
+    '你是 YouTube 頻道顧問，服務對象是彥彬（短影片「神對話」系列）。下面的 JSON 是頻道的最新數據，請只根據裡面的數字與事實分析，用繁體中文（台灣用語）回覆。',
+    '規則：',
+    '1. 只分析 videos。excludedTooNew 是上架未滿一天的影片，不納入；noAnalyticsYet 是分析數據還沒出來的影片，也不納入。sampleSize 少於 5 時要明說樣本太少，結論只是方向，不要下肯定的結論。',
+    '2. 第一行先寫一句結論，之後用「1.」「2.」…給 4 到 6 點具體建議，每點換行寫依據（引用影片標題與數字）。',
+    '3. avgViewedPct（平均看了幾％）要跟 medianAvgViewedPct 比；views 要跟 medianViews 比。flags 列出「觀看高但留存普通」與「留存高但觀看低」的影片，優先針對這些給建議（例如：觀看高但留存低，可能是標題或封面吸引點擊，但開場或中段沒有留住人）。',
+    '4. 若 logHistory 有記錄，比較 firstWithAnalytics 到 latest 的觀看與留存變化，說明哪些有進步或退步；歷史不足就直接說還無法比較。',
+    '5. 若 previousAdvice 有上次的建議，先檢查上次的做法有沒有反映在數據上（有進步就說，沒有就老實說），再提新的建議；不要重複上次一樣的話。',
+    '6. 建議要具體可執行（標題寫法、開場前幾秒、結尾循環、發布時段等）。不要編造 JSON 裡沒有的數據，不要保證成效。',
+  ].join('\n');
   let text;
-  try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
+  try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(payload) }], false, null, { maxTokens: 1800 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
+  try { chanAdvLog_(text); } catch (e) { console.error('寫入改善建議紀錄失敗：' + e); }
+  const out = basis + '\n\n' + text;
   // 頻道數據卡在上、改善建議卡在下，一次滑過兩張
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + out, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
 // 把貼上來的「頻道改善建議」四段（標題、內容、結尾引導、留言）當成軍師的題目：寫出升級後的短影片腳本，並給分步提升方案
