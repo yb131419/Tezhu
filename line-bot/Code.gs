@@ -719,22 +719,13 @@ function chanDiag_() {
   const tok = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
   const L = ['🧪 頻道診斷', '程式版本：' + CHAN_VERSION, '目前查詢的頻道 ID：' + CHAN_ID_DEFAULT, ''];
   try {
-    const r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true', { muteHttpExceptions: true, headers: tok });
-    const j = JSON.parse(r.getContentText() || '{}');
-    if (r.getResponseCode() === 200) {
-      const mine = (j.items || []).map(c => c.id + '（' + c.snippet.title + '）');
-      L.push('① 授權帳號看得到的頻道：' + (mine.length ? mine.join('、') : '沒有'));
-      L.push('   是否含目前查詢的頻道：' + ((j.items || []).some(c => c.id === CHAN_ID_DEFAULT) ? '是' : '否（授權的不是這個頻道的擁有者）'));
-    } else L.push('① 授權帳號的頻道查詢失敗：HTTP ' + r.getResponseCode() + ' ' + ((j.error && j.error.message) || '').slice(0, 150));
-  } catch (e) { L.push('① 授權帳號的頻道查詢錯誤：' + e.message); }
-  try {
     const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
     const qs = 'ids=' + encodeURIComponent('channel==MINE') + '&startDate=2005-01-01&endDate=' + today + '&metrics=views';
     const r = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, { muteHttpExceptions: true, headers: tok });
     const body = (r.getContentText() || '').slice(0, 220).replace(/\s+/g, ' ');
-    L.push('', '② 分析介面（頻道總觀看）回應：HTTP ' + r.getResponseCode());
+    L.push('分析介面（頻道總觀看）回應：HTTP ' + r.getResponseCode());
     L.push('   ' + body);
-  } catch (e) { L.push('', '② 分析介面錯誤：' + e.message); }
+  } catch (e) { L.push('分析介面錯誤：' + e.message); }
   return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
