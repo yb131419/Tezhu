@@ -1109,7 +1109,8 @@ function chanVideo_(v) {
     borderWidth: '1px', borderColor: CHCARD_.LINE, action: { type: 'uri', label: '看影片', uri: v.url }, contents: [
       { type: 'box', layout: 'vertical', flex: 1, contents: [
         { type: 'text', text: v.title || '（無標題）', size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true, maxLines: 2 },
-        { type: 'text', text: v.at + '・' + chanNum_(v.views) + ' 次觀看', size: 'xxs', color: CHCARD_.SOFT, margin: 'sm' },
+        { type: 'text', size: 'xxs', color: CHCARD_.SOFT, margin: 'sm', wrap: true, text: v.at + '・' + chanNum_(v.views) + ' 次觀看',
+          contents: [{ type: 'span', text: v.at + '・' }, { type: 'span', text: chanNum_(v.views), color: '#B8362B', weight: 'bold' }, { type: 'span', text: ' 次觀看' }] },
       ] },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: CHCARD_.GOLD, flex: 0, margin: 'md' },
     ] };
