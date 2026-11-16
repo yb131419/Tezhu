@@ -796,7 +796,7 @@ function chanFetch_() {
   vids.sort((a, b) => (a.snippet.publishedAt < b.snippet.publishedAt ? 1 : -1));
   // 分析數據（平均觀看時長、平均看了幾％）要使用者授權一次；失敗時不影響公開數字，只記下原因
   let an = {}, anErr = '';
-  try { an = chanAnalytics_(vids.map(v => v.id)); } catch (e) { anErr = e.message; console.error('分析數據失敗：' + e); }
+  try { an = chanAnalytics_(vids.map(v => v.id)); } catch (e) { anErr = chanAnaHint_(e.message); console.error('分析數據失敗：' + e); }
   return {
     title: ch.snippet.title,
     url: 'https://www.youtube.com/channel/' + id,
@@ -866,6 +866,16 @@ function chanKeyStatus_() {
     L.push('', '可能原因：' + chanKeyHint_(m));
   }
   return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+// 分析數據失敗的原因（給卡片與文字用）：把 Google 的錯誤翻成看得懂的話
+function chanAnaHint_(m) {
+  const s = String(m || '');
+  if (/ANALYTICS_EMPTY/.test(s)) return '分析介面回傳 0 列（請確認授權帳號與頻道一致，或稍後再試）';
+  if (/insufficient|scope/i.test(s)) return '授權範圍不足：到 Apps Script 重新授權一次（在編輯器執行任一函式並允許）';
+  if (/not been used|disabled|not been enabled|has not been/i.test(s)) return 'YouTube Analytics API 還沒在這個 Apps Script 連結的 Google Cloud 專案啟用';
+  if (/quota/i.test(s)) return '分析介面今天的配額用完了，隔天會重設';
+  if (/401|invalid credentials/i.test(s)) return '授權過期，請重新授權一次';
+  return '分析介面回傳錯誤：' + s.slice(0, 120);
 }
 function chanKeyHint_(m) {
   if (/quota/i.test(m)) return 'YouTube API 今天的配額用完了，隔天會重設。';
