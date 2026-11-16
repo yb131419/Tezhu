@@ -957,15 +957,23 @@ function titleRestore_() {
   if (!batch) return { text: '還沒有可以還原的更改。', buttons: [[TITLE_BTN, MENU_BTN]] };
   const sh = titleSheet_();
   const vals = sh.getDataRange().getValues();
+  const first = {};   // 每支影片最初的原標題與原說明：還原一律回到這裡，不會停在中間版本
+  for (let i = 1; i < vals.length; i++) {
+    const id = String(vals[i][1] || '');
+    if (!id) continue;
+    if (!first[id]) first[id] = { t: String(vals[i][2] || ''), d: String(vals[i][5] || '') };
+    else if (!first[id].d && vals[i][5]) first[id].d = String(vals[i][5]);
+  }
   let ok = 0; const bad = [];
   for (let i = 1; i < vals.length; i++) {
     if (String(vals[i][0]) !== batch) continue;
-    const origDesc = String(vals[i][5] || '');
-    try { titleWrite_(String(vals[i][1]), String(vals[i][2]), origDesc ? origDesc : null); sh.getRange(i + 1, 5).setValue('已還原'); ok++; }
-    catch (e) { bad.push(String(vals[i][2]).slice(0, 30) + '：' + String(e.message || e).slice(0, 60)); }
+    const id = String(vals[i][1]);
+    const o = first[id] || { t: String(vals[i][2]), d: String(vals[i][5] || '') };
+    try { titleWrite_(id, o.t, o.d ? o.d : null); sh.getRange(i + 1, 5).setValue('已還原'); ok++; }
+    catch (e) { bad.push(o.t.slice(0, 30) + '：' + String(e.message || e).slice(0, 60)); }
   }
   setProp_('TITLE_LAST', '');
-  return { text: '↩️ 已還原 ' + ok + ' 支' + (bad.length ? '\n\n沒還原成功的：\n' + bad.join('\n') : ''), buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '↩️ 已還原 ' + ok + ' 支，回到最初的樣子' + (bad.length ? '\n\n沒還原成功的：\n' + bad.join('\n') : ''), buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 // 看完整說明：輸入「說明EP05」或「說明一念之間」
 function titleShowDesc_(key) {
