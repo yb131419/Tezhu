@@ -11,6 +11,11 @@
         "userSymbol": "Drive",
         "version": "v3",
         "serviceId": "drive"
+      },
+      {
+        "userSymbol": "YouTubeAnalytics",
+        "version": "v2",
+        "serviceId": "youtubeAnalytics"
       }
     ]
   },
