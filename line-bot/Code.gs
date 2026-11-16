@@ -756,15 +756,19 @@ function chanAnalytics_(ids) {
   const out = {};
   if (!ids.length) return out;
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-  const qs = ['ids=channel==MINE', 'startDate=2005-01-01', 'endDate=' + today,
-    'metrics=views,averageViewDuration,averageViewPercentage', 'dimensions=video',
-    'filters=video==' + ids.join(','), 'maxResults=' + ids.length].join('&');
+  const params = { ids: 'channel==MINE', startDate: '2005-01-01', endDate: today,
+    metrics: 'views,averageViewDuration,averageViewPercentage', dimensions: 'video',
+    filters: 'video==' + ids.join(','), maxResults: String(ids.length) };
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
   const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
     muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
   });
-  const data = JSON.parse(res.getContentText());
-  if (res.getResponseCode() !== 200) throw new Error('ANALYTICS ' + res.getResponseCode() + ' ' + ((data.error && data.error.message) || ''));
-  (data.rows || []).forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
+  const code = res.getResponseCode();
+  const data = JSON.parse(res.getContentText() || '{}');
+  if (code !== 200) throw new Error('ANALYTICS ' + code + ' ' + ((data.error && data.error.message) || ''));
+  // 回傳 200 但沒有任何列：通常是授權的 Google 帳號不是頻道擁有者（品牌帳戶、切換帳號），或分析資料還沒產生
+  if (!data.rows || !data.rows.length) throw new Error('ANALYTICS_EMPTY 分析介面回傳 0 列（請確認授權的是頻道擁有者帳號，或稍後再試）');
+  data.rows.forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
   return out;
 }
 // 每次查詢都把各集數據累積到使用者的試算表「頻道數據紀錄」分頁，方便之後比較神對話各集的表現
