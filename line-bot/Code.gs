@@ -707,7 +707,41 @@ function chanReply_(t) {
   if (/^(查頻道數據|頻道數據|YT數據|YouTube數據|油管數據)$/i.test(flat)) return chanSafe_(chanData_);
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
+  if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
   return null;
+}
+// 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
+const CHAN_DAILY_FN = 'chanDailyJob';
+function chanDailyTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === CHAN_DAILY_FN); }
+function chanDailyCmd_(flat) {
+  const turnOn = /開$/.test(flat), turnOff = /關$/.test(flat);
+  if (turnOn) {
+    chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(0).inTimezone('Asia/Taipei').create();
+    setProp_('CHAN_DAILY', 'on');
+    return { text: '📺 每日頻道數據：開著\n時間：每天早上 9:00 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，並傳到小乖對話。', buttons: [[CHAN_BTN, MENU_BTN]] };
+  }
+  if (turnOff) {
+    chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
+    setProp_('CHAN_DAILY', 'off');
+    return { text: '📺 每日頻道數據：關掉了', buttons: MENU };
+  }
+  const running = chanDailyTriggers_().length > 0;
+  return { text: '📺 每日頻道數據：' + (running ? '開著（每天早上 9:00 左右）' : '關著') + '\n打「頻道每日 開」開啟，「頻道每日 關」關掉。', buttons: [[CHAN_BTN, MENU_BTN]] };
+}
+// 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
+function chanDailyJob() {
+  const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
+  let text;
+  try {
+    const d = chanFetch_();
+    try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
+    text = '☀️ 早安，今日頻道數據（自動更新）\n\n' + chanText_(d) + '\n\n（已寫進試算表「頻道數據紀錄」）';
+  } catch (e) {
+    text = '☀️ 今天的頻道數據沒有更新成功：' + chanErr_(e);
+  }
+  if (owner) push_(owner, text);
+  if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, text);
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
 function chanSafe_(fn) {
