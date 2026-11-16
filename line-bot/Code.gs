@@ -708,7 +708,34 @@ function chanReply_(t) {
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
+  if (/^(頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   return null;
+}
+// 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
+const CHAN_VERSION = 'analytics-diag-1（卡片顯示分析狀態＋頻道診斷）';
+function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
+// 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
+function chanDiag_() {
+  const tok = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  const L = ['🧪 頻道診斷', '程式版本：' + CHAN_VERSION, '目前查詢的頻道 ID：' + CHAN_ID_DEFAULT, ''];
+  try {
+    const r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true', { muteHttpExceptions: true, headers: tok });
+    const j = JSON.parse(r.getContentText() || '{}');
+    if (r.getResponseCode() === 200) {
+      const mine = (j.items || []).map(c => c.id + '（' + c.snippet.title + '）');
+      L.push('① 授權帳號看得到的頻道：' + (mine.length ? mine.join('、') : '沒有'));
+      L.push('   是否含目前查詢的頻道：' + ((j.items || []).some(c => c.id === CHAN_ID_DEFAULT) ? '是' : '否（授權的不是這個頻道的擁有者）'));
+    } else L.push('① 授權帳號的頻道查詢失敗：HTTP ' + r.getResponseCode() + ' ' + ((j.error && j.error.message) || '').slice(0, 150));
+  } catch (e) { L.push('① 授權帳號的頻道查詢錯誤：' + e.message); }
+  try {
+    const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    const qs = 'ids=' + encodeURIComponent('channel==MINE') + '&startDate=2005-01-01&endDate=' + today + '&metrics=views';
+    const r = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, { muteHttpExceptions: true, headers: tok });
+    const body = (r.getContentText() || '').slice(0, 220).replace(/\s+/g, ' ');
+    L.push('', '② 分析介面（頻道總觀看）回應：HTTP ' + r.getResponseCode());
+    L.push('   ' + body);
+  } catch (e) { L.push('', '② 分析介面錯誤：' + e.message); }
+  return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
@@ -915,6 +942,17 @@ function chanDataFlex_(d) {
   if (d.videos.length) {
     const avg = Math.round(d.videos.reduce((s, v) => s + v.views, 0) / d.videos.length);
     content[0].contents.push(chanStat_('最近 ' + d.videos.length + ' 支影片平均觀看', chanNum_(avg)));
+    // 分析數據：有資料就顯示平均看了幾％；沒有就把原因直接放在卡片上（之前只寫在純文字裡，卡片上看不到）
+    const pv = d.videos.filter(v => v.avgPct != null);
+    if (pv.length) {
+      const pct = Math.round(pv.reduce((s, v) => s + v.avgPct, 0) / pv.length);
+      content.push({ type: 'box', layout: 'horizontal', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', margin: 'sm', contents: [
+        chanStat_('平均看了', pct + '%'), chanStat_('平均觀看時長', chanSec_(pv.reduce((s, v) => s + v.avgSec, 0) / pv.length))] });
+    } else {
+      content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', margin: 'md', contents: [
+        { type: 'text', text: '分析數據（平均看了、觀看時長）還沒有出來', size: 'xs', weight: 'bold', color: CHCARD_.GOLD, wrap: true },
+        { type: 'text', text: d.anErr ? '原因：' + d.anErr : '原因：分析介面沒有回傳資料，請傳「頻道診斷」看詳細原因', size: 'xxs', color: CHCARD_.SOFT, wrap: true, margin: 'sm' }] });
+    }
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', margin: 'xl', contents: [{ type: 'text', text: '最近影片', size: 'xxs', weight: 'bold', color: CHCARD_.GOLD }] });
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: d.videos.slice(0, 5).map(chanVideo_) });
   }
