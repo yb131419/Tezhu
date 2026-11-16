@@ -43,7 +43,7 @@ const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名�
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
 const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
-const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議';   // YouTube 頻道：查數據、依數據給改善建議
+const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
@@ -708,7 +708,7 @@ function chanReply_(t) {
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
-  if (/^(頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
+  if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   return null;
 }
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
@@ -726,7 +726,14 @@ function chanDiag_() {
     L.push('分析介面（頻道總觀看）回應：HTTP ' + r.getResponseCode());
     L.push('   ' + body);
   } catch (e) { L.push('分析介面錯誤：' + e.message); }
-  return { text: L.join('\n'), buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: L.join('\n'), flex: chanDiagFlex_(L), alt: '🧪 頻道診斷', buttons: [[CHAN_BTN, CHAN_ADV_BTN, MENU_BTN]] };
+}
+// 診斷結果的高質感卡片：一行一行的說明，沿用頻道卡片的配色
+function chanDiagFlex_(lines) {
+  const body = lines.filter(x => x !== '').map(x => ({ type: 'text', text: x, size: 'xs', color: CHCARD_.INK, wrap: true, margin: 'sm' }));
+  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } }];
+  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
@@ -958,6 +965,7 @@ function chanDataFlex_(d) {
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: d.videos.slice(0, 5).map(chanVideo_) });
   }
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
   return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons);
 }
@@ -988,6 +996,7 @@ function chanAdviceFlex_(d, text) {
   const stats = { type: 'box', layout: 'horizontal', spacing: 'sm', contents: [chanStat_('訂閱', chanNum_(d.subs)), chanStat_('總觀看', chanNum_(d.views)), chanStat_('影片數', chanNum_(d.videoCount))] };
   const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingTop: '18px', spacing: 'lg', contents: [stats, box] }];
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
   return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons);
 }
@@ -995,7 +1004,7 @@ function chanData_() {
   try {
     const d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
-    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, MENU_BTN]] };
+    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
 function chanAdvice_() {
