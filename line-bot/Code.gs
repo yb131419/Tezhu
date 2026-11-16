@@ -881,18 +881,29 @@ function titleBuildItems_(mode) {
     if (mode === 'tags') { to = s.title; toDesc = s.description || ''; }      // 只改標記
     if (mode === 'tags' || mode === 'all') { if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]); }
     if (mode === 'title' || mode === 'desc' || mode === 'both') { /* 標記不動 */ }
-    const titleChg = to !== s.title, descChg = toDesc !== (s.description || ''), tagsChg = !titleSameTags_(toTags, s.tags);
+    // 說明比較前先統一換行與行尾空白，避免 YouTube 讀回時格式微調，就一直被當成「要改」
+    const titleChg = to !== s.title, descChg = titleNormDesc_(toDesc) !== titleNormDesc_(s.description || ''), tagsChg = !titleSameTags_(toTags, s.tags);
     if (!titleChg && !descChg && !tagsChg) return;
-    items.push({ id: vid, key: key || '', from: s.title, to: to, toDesc: toDesc, toTags: toTags, fromTags: s.tags || [], titleChg: titleChg, descChg: descChg, tagsChg: tagsChg });
+    const snap = { t: titleHash_(s.title || ''), d: titleHash_(titleNormDesc_(s.description || '')), g: titleHash_(JSON.stringify(s.tags || [])) };
+    items.push({ id: vid, key: key || '', from: s.title, to: to, toDesc: toDesc, toTags: toTags, fromTags: s.tags || [], titleChg: titleChg, descChg: descChg, tagsChg: tagsChg, snap: snap });
   });
   return items;
 }
-// 清單指紋：預覽時記下來，套用時重新算一次，內容不一樣就不改，要求重新預覽
-function titleSig_(items) {
-  const str = JSON.stringify(items.map(x => [x.id, x.to, x.toDesc, x.toTags, x.titleChg, x.descChg, x.tagsChg]));
+// 說明統一格式：換行改成 \n、去掉每行行尾空白與頭尾空白
+function titleNormDesc_(t) {
+  return String(t || '').replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/\s+$/, '')).join('\n').trim();
+}
+// 短指紋（djb2）：只用來比對「預覽時的內容」與「套用時的內容」是否一樣
+function titleHash_(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
-  return items.length + '-' + h;
+  return h.toString(36);
+}
+// 預覽時記下每支影片「原本」的指紋（標題、說明、標記分開記），套用時逐支比對
+function titleSnapMap_(items) {
+  const m = {};
+  items.forEach(x => { m[x.id] = x.snap; });
+  return m;
 }
 function titleLabel_(mode) {
   return mode === 'title' ? '只改標題' : mode === 'desc' ? '只改說明' : mode === 'tags' ? '只改標記' : mode === 'all' ? '標題、說明和標記' : '標題和說明';
@@ -903,7 +914,7 @@ function titlePreview_(mode) {
   const label = titleLabel_(mode);
   const items = titleBuildItems_(mode);
   if (!items.length) return { text: '✏️ ' + label + '都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
-  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, n: items.length, sig: titleSig_(items) }));
+  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, n: items.length, snaps: titleSnapMap_(items) }));
   const tN = items.filter(x => x.titleChg).length, dN = items.filter(x => x.descChg).length, gN = items.filter(x => x.tagsChg).length;
   const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
   const lines = items.map(x => {
@@ -946,9 +957,24 @@ function titleApply_() {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
     if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部標題和說明」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
-    const items = titleBuildItems_(pend.mode);
-    if (!items.length || titleSig_(items) !== pend.sig) {
-      return { text: '✏️ 這份預覽跟現在的內容不一樣了（可能剛有別的更改），所以這次沒有改任何東西。\n請重新產生預覽（「更改全部標題和說明」「只改標題」「只改說明」「只改標記」）再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend.snaps) return { text: '✏️ 預覽格式已更新，請重新打「更改全部標題和說明」產生預覽再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    // 逐支比對：只有「預覽時看到的內容」與「現在的內容」一樣的影片才會改；有變動的那支跳過並寫出差在哪，其他照改
+    const now = titleBuildItems_(pend.mode);
+    const items = [], skipped = [];
+    now.forEach(x => {
+      const was = pend.snaps[x.id];
+      const name = x.key ? x.key + '｜' + x.from : x.from;
+      if (!was) { skipped.push(name + '：預覽後才需要改，這次沒改，請重新預覽'); return; }
+      const diff = [];
+      if (was.t !== x.snap.t) diff.push('標題');
+      if (was.d !== x.snap.d) diff.push('說明');
+      if (was.g !== x.snap.g) diff.push('標記');
+      if (diff.length) { skipped.push(name + '：預覽後' + diff.join('、') + '又被改過，這支沒改，請重新預覽'); return; }
+      items.push(x);
+    });
+    if (!items.length) {
+      const msg = skipped.length ? '✏️ 沒有改任何東西。\n' + skipped.join('\n') + '\n\n請重新產生預覽再按確認。' : '✏️ 都已經是新的了，沒有要改的。';
+      return { text: msg, buttons: [[TITLE_BTN, MENU_BTN]] };
     }
     const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
     const sh = titleSheet_();
@@ -981,7 +1007,7 @@ function titleApply_() {
       } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
       sh.getRange(start + i, 5).setValue(st);
     });
-    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
+    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
       buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
   });
 }
@@ -1063,7 +1089,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'title-7｜2026-11-16｜新增標記（搜尋關鍵字）更改，預覽可一併套用';
+const CHAN_VERSION = 'title-8｜2026-11-16｜套用改為逐支比對：內容沒變的照改，只跳過真的有變動的那支，說明比對忽略換行與行尾空白';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
