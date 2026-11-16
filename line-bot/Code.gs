@@ -740,9 +740,13 @@ const TITLE_PLAN_ = [
   ['g8AdLdwuEF4', 'EP04｜你還在輪迴裡打轉嗎？ #神對話 #輪迴 #選擇 #修心'],
   ['NR81_n8Qw7U', 'EP03｜許願，真的會靈嗎？ #神對話 #許願 #願力 #修心'],
   ['fmlQBwqg6zk', 'EP02｜業力，真的能改嗎？ #神對話 #業力 #因果 #修心'],
-  ['0BYMpfpwBtU', '神對話：一念之間｜第一集（EP01–EP04）引果、業力、願果、輪迴'],
+  ['0BYMpfpwBtU', '一念之間｜第一集：引果、業力、願果、輪迴，一念怎麼開始？ #神對話 #一念之間 #業力 #輪迴'],
 ];
-const TITLE_KEEP_ = ['0BYMpfpwBtU'];   // 一念之間長影片不是 EP，維持原標題
+const TITLE_KEEP_ = [];   // 目前沒有需要強制保留的影片
+// 清單沒有影片 ID 時，依標題的集數對應（頻道上找不到 ID 的集數，例如 EP01）
+const TITLE_EP_PLAN_ = {
+  'EP01': 'EP01｜火氣一上來，你是跟著走，還是停下來？ #神對話 #引果 #覺察 #放下',
+};
 // 取得影片目前的標題與設定（分批，每批最多 50 支）
 function titleFetch_(ids) {
   const out = {};
@@ -775,13 +779,39 @@ function titleSheet_() {
   if (!sh) { sh = ss.insertSheet(TITLE_SHEET); sh.appendRow(['批次', '影片ID', '原標題', '新標題', '結果']); }
   return sh;
 }
-// 預覽：只列出會改的影片，存成待確認；不改任何東西
+// 頻道上全部影片的 ID（直接查上傳清單，分頁取完，不只最近 20 支）
+function titleAllIds_() {
+  const id = prop_('YOUTUBE_CHANNEL_ID') || CHAN_ID_DEFAULT;
+  const ch = (chanGet_('channels', { part: 'contentDetails', id: id }).items || [])[0];
+  if (!ch) throw new Error('NO_CHANNEL');
+  const pl = ch.contentDetails.relatedPlaylists.uploads;
+  const ids = []; let token = '';
+  do {
+    const p = { part: 'contentDetails', playlistId: pl, maxResults: 50 };
+    if (token) p.pageToken = token;
+    const r = chanGet_('playlistItems', p);
+    (r.items || []).forEach(i => ids.push(i.contentDetails.videoId));
+    token = r.nextPageToken || '';
+  } while (token && ids.length < 500);
+  return ids;
+}
+// 預覽：列出頻道上每支會改的影片，存成待確認；不改任何東西
 function titlePreview_() {
-  const snaps = titleFetch_(TITLE_PLAN_.map(x => x[0]));
-  // 一念之間長影片不是 EP：強制維持目前的標題，不論清單寫什麼都不改
-  const items = TITLE_PLAN_.filter(x => snaps[x[0]]).map(x => {
-    const from = snaps[x[0]].title;
-    return { id: x[0], from: from, to: TITLE_KEEP_.indexOf(x[0]) >= 0 ? from : x[1] };
+  const all = titleAllIds_();
+  const snaps = titleFetch_(all);
+  const items = [];
+  all.forEach(vid => {
+    const s = snaps[vid];
+    if (!s) return;
+    const planned = TITLE_PLAN_.find(x => x[0] === vid);
+    let to = planned ? planned[1] : null;
+    if (!to) {   // 清單沒有影片 ID 的，依標題開頭的集數（例如 EP01）對應
+      const m = String(s.title || '').match(/^\s*(EP\d{2})\b/);
+      if (m && TITLE_EP_PLAN_[m[1]]) to = TITLE_EP_PLAN_[m[1]];
+    }
+    if (!to) return;
+    if (TITLE_KEEP_.indexOf(vid) >= 0) to = s.title;
+    items.push({ id: vid, from: s.title, to: to });
   });
   const changes = items.filter(x => x.from !== x.to);
   if (!changes.length) return { text: '✏️ 標題都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
