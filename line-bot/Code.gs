@@ -742,6 +742,7 @@ const TITLE_PLAN_ = [
   ['fmlQBwqg6zk', 'EP02｜業力，真的能改嗎？ #神對話 #業力 #因果 #修心'],
   ['0BYMpfpwBtU', '神對話：一念之間｜第一集（EP01–EP04）引果、業力、願果、輪迴'],
 ];
+const TITLE_KEEP_ = ['LPNdqIIMHiM', 'D5ZXjv7SQ1A', '0BYMpfpwBtU'];   // EP19、EP18、一念之間長影片：保留原標題
 // 取得影片目前的標題與設定（分批，每批最多 50 支）
 function titleFetch_(ids) {
   const out = {};
@@ -777,7 +778,11 @@ function titleSheet_() {
 // 預覽：只列出會改的影片，存成待確認；不改任何東西
 function titlePreview_() {
   const snaps = titleFetch_(TITLE_PLAN_.map(x => x[0]));
-  const items = TITLE_PLAN_.filter(x => snaps[x[0]]).map(x => ({ id: x[0], from: snaps[x[0]].title, to: x[1] }));
+  // 表現最好的 EP18、EP19 與一念之間長影片：強制維持目前的標題，不論清單寫什麼都不改
+  const items = TITLE_PLAN_.filter(x => snaps[x[0]]).map(x => {
+    const from = snaps[x[0]].title;
+    return { id: x[0], from: from, to: TITLE_KEEP_.indexOf(x[0]) >= 0 ? from : x[1] };
+  });
   const changes = items.filter(x => x.from !== x.to);
   if (!changes.length) return { text: '✏️ 標題都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
   setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), items: changes }));
