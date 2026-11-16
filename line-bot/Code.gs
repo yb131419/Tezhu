@@ -719,11 +719,11 @@ function chanReply_(t) {
 /* ============ 批次更改 YouTube 影片標題：先出「原標題 → 新標題」卡片，按「全部套用」才會改；改前先備份原標題，可一鍵還原 ============ */
 const TITLE_BTN = '✏️ 更改全部標題', TITLE_APPLY = '✅ 全部套用標題', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
 const TITLE_SHEET = '標題更改紀錄';
-// 新標題（依發布超過一天的數據擬定：EP18、EP19 表現最好，原樣保留；直接問觀眾的問句、留存高的集數是主要參考）
+// 新標題（依發布超過一天的數據擬定：直接問觀眾的問句、留存高的集數是主要參考；EP18 觀看最高，保留「哪個念頭最自在？」的問句核心）
 const TITLE_PLAN_ = [
   ['VSzo0ZPetiU', 'EP20｜你最想把慈悲給誰？ #神對話 #菩薩道 #慈悲'],
-  ['LPNdqIIMHiM', 'EP19：最難平等看待誰？ #神對話 #平等心 #慈悲 #智慧 #修心'],
-  ['D5ZXjv7SQ1A', 'EP18：哪個念頭最自在？ #神對話 #無我 #放下 #自在 #智慧'],
+  ['LPNdqIIMHiM', 'EP19｜最難平等看待誰？你會想到誰？ #神對話 #平等心 #慈悲 #智慧 #修心'],
+  ['D5ZXjv7SQ1A', 'EP18｜哪個念頭最自在？你心裡是哪一個？ #神對話 #無我 #放下 #自在 #智慧'],
   ['3OtihBMOxSQ', 'EP17｜別人好，你怎麼想？ #神對話 #隨喜 #善念 #慈悲'],
   ['1SMAOEdXnF8', 'EP16｜規矩守不住，要怎麼變通？ #神對話 #方便 #慈悲 #智慧'],
   ['WyrrSYcLV3M', 'EP15｜菩提心，到底是一顆什麼心？ #神對話 #菩提心 #慈悲 #修心'],
@@ -742,7 +742,7 @@ const TITLE_PLAN_ = [
   ['fmlQBwqg6zk', 'EP02｜業力，真的能改嗎？ #神對話 #業力 #因果 #修心'],
   ['0BYMpfpwBtU', '神對話：一念之間｜第一集（EP01–EP04）引果、業力、願果、輪迴'],
 ];
-const TITLE_KEEP_ = ['LPNdqIIMHiM', 'D5ZXjv7SQ1A', '0BYMpfpwBtU'];   // EP19、EP18、一念之間長影片：保留原標題
+const TITLE_KEEP_ = ['0BYMpfpwBtU'];   // 一念之間長影片不是 EP，維持原標題
 // 取得影片目前的標題與設定（分批，每批最多 50 支）
 function titleFetch_(ids) {
   const out = {};
@@ -778,7 +778,7 @@ function titleSheet_() {
 // 預覽：只列出會改的影片，存成待確認；不改任何東西
 function titlePreview_() {
   const snaps = titleFetch_(TITLE_PLAN_.map(x => x[0]));
-  // 表現最好的 EP18、EP19 與一念之間長影片：強制維持目前的標題，不論清單寫什麼都不改
+  // 一念之間長影片不是 EP：強制維持目前的標題，不論清單寫什麼都不改
   const items = TITLE_PLAN_.filter(x => snaps[x[0]]).map(x => {
     const from = snaps[x[0]].title;
     return { id: x[0], from: from, to: TITLE_KEEP_.indexOf(x[0]) >= 0 ? from : x[1] };
@@ -786,7 +786,8 @@ function titlePreview_() {
   const changes = items.filter(x => x.from !== x.to);
   if (!changes.length) return { text: '✏️ 標題都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
   setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), items: changes }));
-  return { text: '✏️ 標題預覽：' + changes.length + ' 支要改（共 ' + items.length + ' 支）\n\n' + changes.map(x => '・' + x.from + '\n　→ ' + x.to).join('\n\n') + '\n\n按「' + TITLE_APPLY + '」才會真的改，原標題會先存進「' + TITLE_SHEET + '」分頁。',
+  const warn = changes.some(x => x.id === 'D5ZXjv7SQ1A') ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
+  return { text: '✏️ 標題預覽：' + changes.length + ' 支要改（共 ' + items.length + ' 支）\n\n' + changes.map(x => '・' + x.from + '\n　→ ' + x.to).join('\n\n') + warn + '\n\n按「' + TITLE_APPLY + '」才會真的改，原標題會先存進「' + TITLE_SHEET + '」分頁。',
     flex: titleFlex_(items, changes.length), alt: '✏️ 標題預覽', buttons: [[TITLE_APPLY, TITLE_CANCEL]] };
 }
 // 預覽卡片：每支影片一格，上面是原標題、下面是新標題；不變的標示「不變」
