@@ -842,10 +842,9 @@ function titleFirstLine_(t) {
   const line = String(t || '').split('\n').filter(x => x.trim())[0] || '';
   return line.length > 30 ? line.slice(0, 30) + '…' : line;
 }
-// 預覽：列出頻道上每支「標題或說明會改」的影片，存成待確認；不改任何東西
-function titlePreview_(mode) {
-  mode = mode || 'both';   // both＝標題＋說明；title＝只改標題；desc＝只改說明
-  const label = mode === 'title' ? '只改標題' : mode === 'desc' ? '只改說明' : '標題和說明';
+// 算出這次要改的影片（預覽與套用共用；套用時會重新算一次，跟預覽時一樣才改）
+function titleBuildItems_(mode) {
+  mode = mode || 'both';
   const all = titleAllIds_();
   const snaps = titleFetch_(all);
   const items = [];
@@ -865,8 +864,22 @@ function titlePreview_(mode) {
     if (!titleChg && !descChg) return;
     items.push({ id: vid, key: key || '', from: s.title, to: to, toDesc: toDesc, titleChg: titleChg, descChg: descChg });
   });
+  return items;
+}
+// 清單指紋：預覽時記下來，套用時重新算一次，內容不一樣就不改，要求重新預覽
+function titleSig_(items) {
+  const str = JSON.stringify(items.map(x => [x.id, x.to, x.toDesc, x.titleChg, x.descChg]));
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return items.length + '-' + h;
+}
+// 預覽：只列出會改的影片，存成待確認；不改任何東西
+function titlePreview_(mode) {
+  mode = mode || 'both';   // both＝標題＋說明；title＝只改標題；desc＝只改說明
+  const label = mode === 'title' ? '只改標題' : mode === 'desc' ? '只改說明' : '標題和說明';
+  const items = titleBuildItems_(mode);
   if (!items.length) return { text: '✏️ 標題和說明都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
-  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, items: items }));
+  setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, n: items.length, sig: titleSig_(items) }));
   const tN = items.filter(x => x.titleChg).length, dN = items.filter(x => x.descChg).length;
   const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
   const lines = items.map(x => '・' + (x.titleChg ? x.from + '\n　→ ' + x.to : '（標題不變）' + x.from) + (x.descChg ? '\n　說明：更新，輸入「說明' + (x.key === 'LONG' ? '一念之間' : x.key) + '」看全文' : ''));
@@ -894,17 +907,33 @@ function titleFlex_(items, label) {
   ];
   return chanBubble_(chanHead_('小乖 · TITLES', '預覽：' + label, items.length + ' 支影片要更新，按「全部套用」才會改'), content, buttons);
 }
-// 全部套用：先備份每支的原標題與原說明（用現在最新的值），再一支一支改；結果寫回試算表
+// 全部套用：內容跟預覽一樣才改；備份的「原標題／原說明」一律是這支影片最初的樣子，之後再改也不會被中間版本蓋掉
 function titleApply_() {
   if (VOICE_IN_) return '標題與說明只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
-    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），再打「' + TITLE_BTN + '」重新產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部標題和說明」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    const items = titleBuildItems_(pend.mode);
+    if (!items.length || titleSig_(items) !== pend.sig) {
+      return { text: '✏️ 這份預覽跟現在的內容不一樣了（可能剛有別的更改），所以這次沒有改任何東西。\n請重新打「更改全部標題和說明」（或「只改標題」「只改說明」）產生新的預覽，再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    }
     const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
-    const cur = titleFetch_(pend.items.map(x => x.id));
-    const rows = pend.items.map(x => { const s = cur[x.id] || {}; return { id: x.id, from: s.title != null ? s.title : x.from, fromDesc: s.description || '', to: x.to, toDesc: x.toDesc, titleChg: x.titleChg, descChg: x.descChg }; });
     const sh = titleSheet_();
+    const hist = sh.getDataRange().getValues();
+    const first = {};   // 每支影片最初的原標題與原說明（歷史紀錄裡最早的那一筆）
+    for (let i = 1; i < hist.length; i++) {
+      const id = String(hist[i][1] || '');
+      if (!id) continue;
+      if (!first[id]) first[id] = { t: String(hist[i][2] || ''), d: String(hist[i][5] || '') };
+      else if (!first[id].d && hist[i][5]) first[id].d = String(hist[i][5]);
+    }
+    const cur = titleFetch_(items.map(x => x.id));
+    const rows = items.map(x => {
+      const c = cur[x.id] || {};
+      const o = first[x.id] || { t: c.title != null ? c.title : x.from, d: c.description || '' };
+      return { id: x.id, from: o.t, fromDesc: o.d, to: x.to, toDesc: x.toDesc, titleChg: x.titleChg, descChg: x.descChg };
+    });
     const start = sh.getLastRow() + 1;
     sh.getRange(start, 1, rows.length, TITLE_HEAD_.length).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成', r.fromDesc, r.toDesc]));
     setProp_('TITLE_LAST', batch);
@@ -917,7 +946,7 @@ function titleApply_() {
       } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
       sh.getRange(start + i, 5).setValue(st);
     });
-    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原標題與原說明都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」。',
+    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + '\n\n原標題與原說明都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
       buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
   });
 }
@@ -948,7 +977,7 @@ function titleShowDesc_(key) {
 function channelHub_() {
   const pend = igState_('TITLE_PENDING');
   const live = !!pend && Date.now() - pend.at < 60 * 60 * 1000;
-  const note = live ? '有待確認的更改：' + pend.items.length + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
+  const note = live ? '有待確認的更改：' + pend.n + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
   const menu = [
     ['✏️ 更改全部標題和說明', '標題與說明一起改，先看預覽再確認'],
     ['🏷️ 只改標題', '只改影片標題，說明保持不變'],
@@ -984,7 +1013,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'title-4｜2026-11-16｜頻道管理卡片、三種更改（標題＋說明／只改標題／只改說明）、白話診斷';
+const CHAN_VERSION = 'title-5｜2026-11-16｜更改前比對預覽、備份保留最初原標題、頻道卡片按鈕整齊';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1248,9 +1277,15 @@ function chanDataFlex_(d) {
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', margin: 'xl', contents: [{ type: 'text', text: '最近影片', size: 'xxs', weight: 'bold', color: CHCARD_.GOLD }] });
     content.push({ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: d.videos.slice(0, 5).map(chanVideo_) });
   }
-  const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
+  // 按鈕區整齊排列：兩欄一組、等寬、每顆都有圖示
+  const pb = (label, text, primary) => ({ type: 'button', style: primary ? 'primary' : 'secondary', color: primary ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: label, text: text } });
+  const row = arr => ({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: arr });
+  const buttons = [
+    row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
+    pb('✏️ 更改全部標題和說明', '更改全部標題和說明', false),
+    row([pb('🏷️ 只改標題', '只改標題', false), pb('📝 只改說明', '只改說明', false)]),
+    row([{ type: 'button', style: 'secondary', height: 'sm', flex: 1, action: { type: 'uri', label: '🔗 開啟頻道', uri: d.url } }, pb('↩️ 還原標題', TITLE_RESTORE, false)]),
+  ];
   return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons);
 }
 // 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
