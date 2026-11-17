@@ -1096,7 +1096,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：每日更新與手動更新都會傳給使用者；劇本在這個 Claude 網址裡更新，網址不變
 const SHEN_SCRIPT_URL = 'https://claude.ai/artifact/UeVDt5a2GrA1v1XN7k7g36';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1147,7 +1147,7 @@ function chanPair_(head, content, buttons) {
   delete info.footer;   // 內容卡片不放按鈕
   const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
     body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片')] },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(b => Object.assign({}, b, { flex: undefined })) } };
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
   return { type: 'carousel', contents: [info, acts] };
 }
 function chanDailyCmd_(flat) {
@@ -1333,10 +1333,18 @@ function chanHead_(label, title, sub) {
       { type: 'text', text: sub, size: 'xs', color: '#7D6F5B', wrap: true, margin: 'md' },
     ] };
 }
+// 按鈕文字靠左：LINE 的按鈕文字一律置中，所以卡片上的按鈕改用可點的方塊，文字靠左排
+function chanBtnLeft_(b) {
+  if (!b || b.type !== 'button' || !b.action) return b;
+  const primary = b.style === 'primary';
+  return { type: 'box', layout: 'vertical', paddingAll: '13px', cornerRadius: '12px', borderWidth: '1px',
+    borderColor: primary ? '#C9A56A' : CHCARD_.LINE, backgroundColor: primary ? (b.color || '#A07C34') : '#FFFFFF', action: b.action,
+    contents: [{ type: 'text', text: b.action.label, size: 'sm', weight: 'bold', align: 'start', wrap: true, color: primary ? '#FFFFFF' : CHCARD_.INK }] };
+}
 function chanBubble_(head, content, buttons) {
   return { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
     body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content) },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons } };
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
 }
 function chanStat_(label, value) {
   return { type: 'box', layout: 'vertical', flex: 1, paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF',
