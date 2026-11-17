@@ -1098,6 +1098,8 @@ const SHEN_SCRIPT_CMD = '傳送神對話劇本';
 const CHAN_VERSION = 'shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
+// 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
+function chanVerShort_() { return CHAN_VERSION.split('｜').slice(0, 2).join('｜'); }
 function chanDiag_() {
   let ok = false, views = null, hint = '', raw = '';
   try {
@@ -1112,7 +1114,7 @@ function chanDiag_() {
   } catch (e) { raw = String(e.message || e).slice(0, 120); hint = chanAnaHint_(raw); }
   const head = ok ? '分析數據連線正常 ✅' : '分析數據還沒有出來';
   const detail = ok ? '頻道總觀看：' + chanNum_(views) + ' 次\n想看各集的數據，按「📺 頻道數據」。' : hint;
-  const text = '🧪 頻道診斷\n' + head + '\n\n' + detail + (raw && !ok ? '\n\n（原始訊息：' + raw + '）' : '') + '\n\n程式版本：' + CHAN_VERSION;
+  const text = '🧪 頻道診斷\n' + head + '\n\n' + detail + (raw && !ok ? '\n\n（原始訊息：' + raw + '）' : '') + '\n\n程式版本：' + chanVerShort_();
   return { text: text, flex: chanDiagFlex_(ok, head, detail, ok ? '' : raw), alt: '🧪 頻道診斷', buttons: [[CHAN_BTN, CHAN_ADV_BTN], [TITLE_BTN, MENU_BTN]] };
 }
 // 診斷卡片：白話結論；只有出錯時才顯示原始訊息（小字）；可以回到頻道管理
@@ -1127,7 +1129,7 @@ function chanDiagFlex_(ok, head, detail, raw) {
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到YT頻道', text: TITLE_BTN } },
   ];
-  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
+  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + chanVerShort_()), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
