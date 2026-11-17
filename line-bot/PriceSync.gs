@@ -72,21 +72,17 @@ function priceSyncRun() {
     if (log) log.getRange(log.getLastRow() + 1, 1, changes.length, 7).setValues(
       changes.map(c => [today, c.name, c.type, c.oPv, c.oPrice, c.nPv, c.nPrice]));
   }
-  if (!changes.length && !gone.length) {
-    console.log('價目表同步：' + today + ' 沒有變動。');
+  // 沒有價格變動就不推播（只有來源缺品項時也不推，避免每天重複打擾）
+  if (!changes.length) {
+    console.log('價目表同步：' + today + ' 沒有變動，不推播。');
     return;
   }
-  const lines = ['💰 價目表每日同步（' + today + '）'];
-  if (changes.length) {
-    lines.push('', '已更新 ' + changes.length + ' 項：');
-    changes.forEach(c => {
-      if (c.type === '新增') lines.push('・' + c.name + '（新增）PV ' + c.nPv + '／金額 ' + c.nPrice);
-      else lines.push('・' + c.name + '：PV ' + c.oPv + '→' + c.nPv + '，金額 ' + c.oPrice + '→' + c.nPrice);
-    });
-  } else {
-    lines.push('', '今天沒有價格變動。');
-  }
-  if (gone.length) lines.push('', '⚠️ 來源表已沒有、小乖仍保留的品項（未刪除，請確認）：' + gone.join('、'));
+  const lines = ['💰 價目表有更新（' + today + '）', '', '已更新 ' + changes.length + ' 項：'];
+  changes.forEach(c => {
+    if (c.type === '新增') lines.push('・' + c.name + '（新增）PV ' + c.nPv + '／金額 ' + c.nPrice);
+    else lines.push('・' + c.name + '：PV ' + c.oPv + '→' + c.nPv + '，金額 ' + c.oPrice + '→' + c.nPrice);
+  });
+  if (gone.length) lines.push('', '來源表已沒有、小乖仍保留的品項（未刪除，請確認）：' + gone.join('、'));
   lines.push('', '舊價格都記在「價目更新紀錄」分頁，可查回。');
   notifyOwner_(lines.join('\n'));
 }
