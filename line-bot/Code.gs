@@ -46,9 +46,9 @@ const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
-  { en: 'CHANNEL', title: '頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['↩️ 還原標題', '回到最初的樣子']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新'], ['↩️ 還原標題', '回到最初的樣子']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在頻道後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -709,6 +709,8 @@ function chanReply_(t) {
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
+  const dm = flat.match(/^⏰?每日更新(?:：?已(開啟|關閉))?$/);   // 按鈕「⏰ 每日更新：已開啟」按一下就關，「已關閉」按一下就開，單獨「每日更新」看狀態
+  if (dm) return chanSafe_(() => chanDailyCmd_(dm[1] === '開啟' ? '頻道每日關' : dm[1] === '關閉' ? '頻道每日開' : '頻道每日'));
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
   const cmd = tt.replace(/[、，,]/g, '');   // 「更改全部 標題、說明」也認得
@@ -717,7 +719,7 @@ function chanReply_(t) {
   if (/^(更改全部標記|只改標記|更改標記|標記更改)$/.test(cmd)) return chanSafe_(() => titlePreview_('tags'));
   if (/^(更改全部|全部更改|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));
   if (/^(更改全部說明|更改說明|說明更改|只改說明)$/.test(cmd)) return chanSafe_(() => titlePreview_('desc'));
-  if (/^(頻道|頻道管理)$/.test(cmd)) return chanSafe_(channelHub_);
+  if (/^(頻道|頻道管理|YT頻道)$/i.test(cmd)) return chanSafe_(channelHub_);
   if (/^(全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
   if (/^取消更改標題$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
   if (/^還原標題$/.test(cmd)) return chanSafe_(titleRestore_);
@@ -1060,6 +1062,7 @@ function channelHub_() {
     ['📺 頻道數據', '訂閱、觀看與各集表現'],
     ['💡 改善建議', '依數據給出改善方向'],
     ['🧪 頻道診斷', '檢查分析數據為什麼沒有出來'],
+    ['⏰ 每日更新', '每天早上 9 點自動更新數據並傳給你'],
     ['↩️ 還原標題', '把最近一次的改動寫回去'],
   ];
   const rows = menu.map(m => ({ type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
@@ -1076,10 +1079,10 @@ function channelHub_() {
     btn('📺 頻道數據', CHAN_BTN, false),
     btn('↩️ 還原標題', TITLE_RESTORE, false),
   ];
-  return { text: '📺 頻道管理\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
-    flex: chanBubble_(chanHead_('小乖 · CHANNEL', '頻道管理', '改標題、改說明、查數據，都先預覽再確認'), content, buttons),
-    alt: '📺 頻道管理',
-    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_RESTORE, MENU_BTN]] };
+  return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
+    flex: chanBubble_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, chanGrid_(buttons.concat([chanDailyBtn_()]))),
+    alt: '📺 YT頻道',
+    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), TITLE_RESTORE, MENU_BTN]] };
 }
 // 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
@@ -1089,7 +1092,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'advice-loop-1｜2026-11-16｜改善建議每次抓最新數據、比對歷史與上次建議，結果存入「改善建議紀錄」';
+const CHAN_VERSION = 'daily-toggle-1｜2026-11-17｜每日更新開關按鈕（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1119,28 +1122,42 @@ function chanDiagFlex_(ok, head, detail, raw) {
   const buttons = [
     { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到頻道管理', text: TITLE_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到YT頻道', text: TITLE_BTN } },
   ];
   return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
 // 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
 function chanDailyTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === CHAN_DAILY_FN); }
+const CHAN_DAILY_ON_TXT = '⏰ 每日更新：已開啟', CHAN_DAILY_OFF_TXT = '⏰ 每日更新：已關閉';
+function chanDailyOn_() { return chanDailyTriggers_().length > 0; }
+function chanDailyTxt_() { return chanDailyOn_() ? CHAN_DAILY_ON_TXT : CHAN_DAILY_OFF_TXT; }
+// 每日更新的開關按鈕：顯示目前狀態，按一下就切換（已開啟 → 關閉；已關閉 → 開啟）
+function chanDailyBtn_() {
+  const on = chanDailyOn_(), t = on ? CHAN_DAILY_ON_TXT : CHAN_DAILY_OFF_TXT;
+  return { type: 'button', style: on ? 'primary' : 'secondary', color: on ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: t, text: t } };
+}
+// 按鈕兩欄等寬排列（最後單一個就佔滿一整排）
+function chanGrid_(btns) {
+  const rows = [];
+  for (let i = 0; i < btns.length; i += 2) rows.push({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: btns.slice(i, i + 2).map(b => Object.assign({ flex: 1 }, b)) });
+  return rows;
+}
 function chanDailyCmd_(flat) {
   const turnOn = /開$/.test(flat), turnOff = /關$/.test(flat);
   if (turnOn) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
     ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(0).inTimezone('Asia/Taipei').create();
     setProp_('CHAN_DAILY', 'on');
-    return { text: '📺 每日頻道數據：開著\n時間：每天早上 9:00 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，並傳到小乖對話。', buttons: [[CHAN_BTN, MENU_BTN]] };
+    return { text: '📺 每日頻道數據：已開啟\n時間：每天早上 9:00 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，並傳到小乖對話。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
   if (turnOff) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
     setProp_('CHAN_DAILY', 'off');
-    return { text: '📺 每日頻道數據：關掉了', buttons: MENU };
+    return { text: '📺 每日頻道數據：已關閉', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
-  const running = chanDailyTriggers_().length > 0;
-  return { text: '📺 每日頻道數據：' + (running ? '開著（每天早上 9:00 左右）' : '關著') + '\n打「頻道每日 開」開啟，「頻道每日 關」關掉。', buttons: [[CHAN_BTN, MENU_BTN]] };
+  const running = chanDailyOn_();
+  return { text: '📺 每日頻道數據：' + (running ? '已開啟（每天早上 9:00 左右）' : '已關閉') + '\n按下面的按鈕就能切換。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
 }
 // 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
 function chanDailyJob() {
@@ -1364,7 +1381,7 @@ function chanDataFlex_(d) {
     row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
     pb_uri_(d.url),
   ];
-  return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons);
+  return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, chanGrid_(buttons.concat([chanDailyBtn_()])));
 }
 // 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
 function chanPoints_(text) {
@@ -1395,13 +1412,13 @@ function chanAdviceFlex_(d, text) {
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
-  return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons);
+  return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, chanGrid_(buttons.concat([chanDailyBtn_()])));
 }
 function chanData_() {
   try {
     const d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
-    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_BTN, MENU_BTN]] };
+    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), TITLE_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
 }
 // 改善建議：每次按下都重新抓最新數據（含分析），和「頻道數據紀錄」的歷史比較，並參考上次的建議；結果存進「改善建議紀錄」分頁
