@@ -1080,7 +1080,7 @@ function channelHub_() {
     btn('↩️ 還原標題', TITLE_RESTORE, false),
   ];
   return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
-    flex: chanBubble_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, chanGrid_(buttons.concat([chanDailyBtn_()]))),
+    flex: chanPair_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, buttons.concat([chanDailyBtn_()])),
     alt: '📺 YT頻道',
     buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), TITLE_RESTORE, MENU_BTN]] };
 }
@@ -1092,7 +1092,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1137,11 +1137,14 @@ function chanDailyBtn_() {
   const on = chanDailyOn_(), t = on ? CHAN_DAILY_ON_TXT : CHAN_DAILY_OFF_TXT;
   return { type: 'button', style: on ? 'primary' : 'secondary', color: on ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: t, text: t } };
 }
-// 按鈕兩欄等寬排列（最後單一個就佔滿一整排）
-function chanGrid_(btns) {
-  const rows = [];
-  for (let i = 0; i < btns.length; i += 2) rows.push({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: btns.slice(i, i + 2).map(b => Object.assign({ flex: 1 }, b)) });
-  return rows;
+// 內容與按鈕分成兩張卡片：兩欄的按鈕在 LINE 上文字太長會被縮成「...」，所以按鈕改成每顆整排、文字完整顯示
+function chanPair_(head, content, buttons) {
+  const info = chanBubble_(head, content, []);
+  delete info.footer;   // 內容卡片不放按鈕
+  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片')] },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(b => Object.assign({}, b, { flex: undefined })) } };
+  return { type: 'carousel', contents: [info, acts] };
 }
 function chanDailyCmd_(flat) {
   const turnOn = /開$/.test(flat), turnOff = /關$/.test(flat);
@@ -1381,7 +1384,7 @@ function chanDataFlex_(d) {
     row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
     pb_uri_(d.url),
   ];
-  return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, chanGrid_(buttons.concat([chanDailyBtn_()])));
+  return chanPair_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons.concat([chanDailyBtn_()]));
 }
 // 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
 function chanPoints_(text) {
@@ -1412,7 +1415,7 @@ function chanAdviceFlex_(d, text) {
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
-  return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, chanGrid_(buttons.concat([chanDailyBtn_()])));
+  return chanPair_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons.concat([chanDailyBtn_()]));
 }
 function chanData_() {
   try {
