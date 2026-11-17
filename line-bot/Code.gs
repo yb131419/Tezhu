@@ -711,6 +711,7 @@ function chanReply_(t) {
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
   const dm = flat.match(/^⏰?每日更新(?:：?已(開啟|關閉))?$/);   // 按鈕「⏰ 每日更新：已開啟」按一下就關，「已關閉」按一下就開，單獨「每日更新」看狀態
   if (dm) return chanSafe_(() => chanDailyCmd_(dm[1] === '開啟' ? '頻道每日關' : dm[1] === '關閉' ? '頻道每日開' : '頻道每日'));
+  if (/^(傳送神對話劇本|神對話劇本)$/.test(flat)) return { text: '📜 神對話劇本（最新版）\n' + SHEN_SCRIPT_URL, buttons: [[CHAN_BTN, MENU_BTN]] };
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
   const cmd = tt.replace(/[、，,]/g, '');   // 「更改全部 標題、說明」也認得
@@ -1092,7 +1093,10 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+// 神對話劇本（最新版）的網址：每日更新與手動更新都會傳給使用者；劇本在這個 Claude 網址裡更新，網址不變
+const SHEN_SCRIPT_URL = 'https://claude.ai/artifact/UeVDt5a2GrA1v1XN7k7g36';
+const SHEN_SCRIPT_CMD = '傳送神對話劇本';
+const CHAN_VERSION = 'script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 function chanDiag_() {
@@ -1173,6 +1177,7 @@ function chanDailyJob() {
   } catch (e) {
     text = '☀️ 今天的頻道數據沒有更新成功：' + chanErr_(e);
   }
+  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL;
   if (owner) push_(owner, text);
   if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, text);
 }
@@ -1375,7 +1380,7 @@ function chanDataFlex_(d) {
   }
   // 按鈕區整齊排列：兩欄一組、等寬、每顆都有圖示
   const pb = (label, text, primary) => ({ type: 'button', style: primary ? 'primary' : 'secondary', color: primary ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: label, text: text } });
-  const row = arr => ({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: arr });
+  const row = arr => arr;   // 一行一個：每組按鈕展開成單獨一行（LINE 上兩欄會縮成「...」）
   const pb_uri_ = uri => ({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🔗 開啟頻道', uri: uri } });
   const buttons = [
     row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
@@ -1384,7 +1389,8 @@ function chanDataFlex_(d) {
     row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
     pb_uri_(d.url),
   ];
-  return chanPair_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons.concat([chanDailyBtn_()]));
+  const pbShen = { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '📜 傳送神對話劇本', text: SHEN_SCRIPT_CMD } };
+  return chanPair_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons.flat().concat([chanDailyBtn_(), pbShen]));
 }
 // 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
 function chanPoints_(text) {
