@@ -1063,7 +1063,7 @@ function channelHub_() {
     ['📺 頻道數據', '訂閱、觀看與各集表現'],
     ['💡 改善建議', '依數據給出改善方向'],
     ['🧪 頻道診斷', '檢查分析數據為什麼沒有出來'],
-    ['⏰ 每日更新', '每天早上 9 點自動更新數據並傳給你'],
+    ['⏰ 每日更新', '每天早上 9:15 自動更新數據，9:30 併入神對話訊息傳給你'],
     ['↩️ 還原標題', '把最近一次的改動寫回去'],
   ];
   const rows = menu.map(m => ({ type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
@@ -1131,7 +1131,7 @@ function chanDiagFlex_(ok, head, detail, raw) {
   ];
   return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + chanVerShort_()), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
-// 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
+// 每日頻道數據：每天早上 9:15 自動更新、寫進試算表；9:30 與神對話每日迭代合併成一則，傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
 function chanDailyTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === CHAN_DAILY_FN); }
 const CHAN_DAILY_ON_TXT = '⏰ 每日更新：已開啟', CHAN_DAILY_OFF_TXT = '⏰ 每日更新：已關閉';
@@ -1155,9 +1155,9 @@ function chanDailyCmd_(flat) {
   const turnOn = /開$/.test(flat), turnOff = /關$/.test(flat);
   if (turnOn) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
-    ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(0).inTimezone('Asia/Taipei').create();
+    ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(15).inTimezone('Asia/Taipei').create();
     setProp_('CHAN_DAILY', 'on');
-    return { text: '📺 每日頻道數據：已開啟\n時間：每天早上 9:00 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，並傳到小乖對話。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
+    return { text: '📺 每日頻道數據：已開啟\n時間：每天早上 9:15 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，9:30 左右與神對話每日迭代合併，傳到小乖對話。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
   if (turnOff) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
@@ -1165,11 +1165,10 @@ function chanDailyCmd_(flat) {
     return { text: '📺 每日頻道數據：已關閉', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
   const running = chanDailyOn_();
-  return { text: '📺 每日頻道數據：' + (running ? '已開啟（每天早上 9:00 左右）' : '已關閉') + '\n按下面的按鈕就能切換。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
+  return { text: '📺 每日頻道數據：' + (running ? '已開啟（每天早上 9:15 左右）' : '已關閉') + '\n按下面的按鈕就能切換。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
 }
 // 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
 function chanDailyJob() {
-  const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   let text;
   try {
     const d = chanFetch_();
@@ -1179,8 +1178,8 @@ function chanDailyJob() {
     text = '☀️ 今天的頻道數據沒有更新成功：' + chanErr_(e);
   }
   text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL;
-  if (owner) push_(owner, text);
-  if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, text);
+  // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
+  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text }));
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
 function chanSafe_(fn) {
