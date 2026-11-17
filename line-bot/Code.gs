@@ -1095,7 +1095,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：每日更新與手動更新都會傳給使用者；劇本頁在小乖主頁（GitHub Pages，不需登入），每日排程會自動重新產生
 const SHEN_SCRIPT_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1394,7 +1394,7 @@ function chanDataFlex_(d) {
     row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
     pb('✏️ 更改全部標題和說明', '更改全部標題和說明', false),
     row([pb('🏷️ 只改標題', '只改標題', false), pb('📝 只改說明', '只改說明', false)]),
-    row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
+    row([pb('🔖 只改標記', '只改標記', false)]),
     pb_uri_(d.url),
   ];
   const pbShen = { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '📜 傳送神對話劇本', text: SHEN_SCRIPT_CMD } };
