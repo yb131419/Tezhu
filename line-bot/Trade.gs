@@ -28,7 +28,7 @@ const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
+  return /^看盤(黃金|原油|納指)$/.test(s) || /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -43,6 +43,8 @@ function tradeAsk_(t) {
     if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     // 語音只能打開卡片、查詢；買進、賣出、平倉、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
     if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/.test(s) || /^(確認|確認下單|確認平倉|平倉)/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
+    const lk = s.match(/^看盤(黃金|原油|納指)$/);
+    if (lk) return tradeLookText_(lk[1]);
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
@@ -753,7 +755,7 @@ function tradeSignal_(it) {
   const bar = kl.bar;
   if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
   // 進出場模式：預設 classic（原本 EMA9／EMA21 交叉，行為不變）；設為 ema5 才改用 EMA 6、12、21、32、200（見 tradeEma5Rule_）
-  const ema5 = prop_('TRADE_EMA_MODE') === 'ema5' && n >= 200;
+  const ema5 = (prop_('TRADE_EMA_MODE') || 'ema5') === 'ema5' && n >= 200;   // 2026-11-18 起預設用 EMA 規則
   const fast = ema5 ? tradeEma_(closes, 6) : tradeEma_(closes, 9);
   const slow = tradeEma_(closes, 21);
   const rule = ema5 ? tradeEma5Rule_(closes, closes[n - 1]) : null;   // ema5 模式的進場與出場
@@ -768,7 +770,22 @@ function tradeSignal_(it) {
     '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
 }
 
-// 進出場（EMA 6、12、21、32、200）：只有在 prop TRADE_EMA_MODE 為 ema5 時才會用到，預設不啟用
+// 看盤（唯讀）：現價、停損停利參考、費波那契、EMA 與進出場狀態；不產生提案、不下單（對話頁快速下單用）
+function tradeLookText_(name) {
+  const it = TRADE_ITEMS[name];
+  if (it.off) return it.off;
+  const price = tradeQuote_(it);
+  const dec = (v) => v.toFixed(it.prec);
+  let sig;
+  try { sig = tradeSignal_(it); } catch (err) { return '【' + tradeLabelOf_(name) + '】看盤取不到（' + (err && err.message || err) + '）'; }
+  return '【' + tradeLabelOf_(name) + '】\n' +
+    '現價：' + dec(price) + '\n' +
+    '買進停損：' + dec(price - it.sl * it.pip) + ' ／ 停利：' + dec(price + it.tp * it.pip) + '\n' +
+    '賣出停損：' + dec(price + it.sl * it.pip) + ' ／ 停利：' + dec(price - it.tp * it.pip) + '\n' +
+    sig.text + '\n（看盤只讀取，沒有產生提案，也不會下單）';
+}
+
+// 進出場（EMA 6、12、21、32、200）：prop TRADE_EMA_MODE 未設定或為 ema5 時使用（2026-11-18 起預設），設為 classic 才改回 EMA9／21
 // 進場：EMA6 向上穿過 EMA21 且收盤在 EMA200 之上做多；EMA6 向下穿過 EMA21 且收盤在 EMA200 之下做空
 // 出場參考：EMA6 與 EMA12 反向交叉（只顯示，不會自動平倉）
 function tradeEma5Rule_(closes, last) {
@@ -841,7 +858,7 @@ function tradeFib4h_(it) {
 // 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉時回傳空字串
 // 高低點預設用 4 小時線自動計算；若執行過 tradeFibSet(高, 低) 則改用手動數字
 function tradeFibText_(it, last) {
-  if (prop_('TRADE_FIB') !== 'on') return '';
+  if (prop_('TRADE_FIB') === 'off') return '';   // 2026-11-18 起預設開啟
   let hl = null, src = '';
   if (prop_('TRADE_FIB_SRC') === 'manual') {
     try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
