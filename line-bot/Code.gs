@@ -1168,9 +1168,9 @@ function chanDailyCmd_(flat) {
 }
 // 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
 function chanDailyJob() {
-  let text;
+  let text, d = null;
   try {
-    const d = chanFetch_();
+    d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
     text = '☀️ 早安，今日頻道數據（自動更新）\n\n' + chanText_(d) + '\n\n（已寫進試算表「頻道數據紀錄」）';
   } catch (e) {
@@ -1178,7 +1178,7 @@ function chanDailyJob() {
   }
   text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL;
   // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
-  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text }));
+  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text, st: d ? chanStats_(d) : null }));
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
 function chanSafe_(fn) {
