@@ -391,7 +391,43 @@ html[data-theme=dark] .rp-lb{color:#C9B894;}
 .rp-btn.pri{flex:1 1 100%;background:linear-gradient(160deg,#D9B66E,#B8893A);color:#1A150D;border-color:transparent;font-weight:700;}
 .rp-err .rp-cm{color:#E0613B;opacity:1;}
 @media (max-width:380px){.rp-btn{flex:1 1 100%;}}
-</style></head><body>
+</style><style id="menu-redesign">
+/* ===== ☰ 選單重新設計（預覽 2026-11-18）：黑曜石＋香檳金，分組卡片、圓形箭頭、列表式項目 ===== */
+#tmenu .box{display:block;height:auto;max-height:88vh;overflow-y:auto;overflow-x:hidden;padding:0 0 calc(18px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0;background:linear-gradient(180deg,#27221B 0%,#17140F 55%,#0F0D0A 100%);border:1px solid rgba(220,195,148,.24);box-shadow:0 -40px 90px -30px #000,inset 0 1px 0 rgba(241,223,180,.18);-webkit-overflow-scrolling:touch}
+#tmenu .box::before{content:"";display:block;width:44px;height:4px;border-radius:4px;background:rgba(220,195,148,.38);margin:10px auto 0}
+#tmenu .sh{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;margin:0;padding:12px 20px 14px;background:#1B1712;border-bottom:1px solid rgba(220,195,148,.16)}
+#tmenu .sh b{font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:6px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent}
+#tmenu .sh .sx{width:40px;height:40px;border-radius:50%;border:1px solid rgba(220,195,148,.35);background:transparent;color:#DCC394;font-size:22px;line-height:1}
+#tmenu .mgrp{margin:12px 14px 0;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));border:1px solid rgba(220,195,148,.16);box-shadow:inset 0 1px 0 rgba(241,223,180,.06);overflow:hidden}
+#tmenu .mgrp:first-of-type{margin-top:16px}
+#tmenu .mgh{display:flex;align-items:center;justify-content:space-between;padding:15px 16px 15px 18px;margin:0;font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:1.5px;color:#F1DFB4;border-bottom:1px solid transparent;list-style:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+#tmenu .mgrp[open] .mgh{border-bottom-color:rgba(220,195,148,.16)}
+#tmenu .mgh i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid rgba(220,195,148,.35);color:#C9A56A;font-style:normal;font-size:12px;transition:transform .25s}
+#tmenu .mgrp[open] .mgh i{transform:rotate(180deg)}
+#tmenu .tbtn{display:flex;flex-direction:column;justify-content:center;position:relative;width:100%;min-height:0;height:auto;margin:0;padding:15px 52px 15px 18px;border:0;border-top:1px solid rgba(220,195,148,.10);border-radius:0;background:transparent;box-shadow:none;color:#F3EEE5;font-family:-apple-system,"PingFang TC",sans-serif;font-size:17px;font-weight:600;line-height:1.35;letter-spacing:.4px;text-align:left;transition:background .2s}
+#tmenu .tbtn:first-of-type{border-top:0}
+#tmenu .tbtn::after{content:"›";position:absolute;right:20px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;border:1px solid rgba(220,195,148,.3);display:grid;place-items:center;color:#C9A56A;font-size:18px;line-height:1;padding-bottom:2px;box-sizing:border-box}
+#tmenu .tbtn small{display:block;margin-top:5px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;font-weight:400;line-height:1.55;letter-spacing:.2px;color:rgba(243,238,229,.56)}
+#tmenu .tbtn:active{background:rgba(201,165,106,.13)}
+#tmenu .mgrp>p{margin:0;padding:14px 18px 16px;border-top:1px solid rgba(220,195,148,.10);color:rgba(243,238,229,.6)!important}
+@media (max-width:360px){#tmenu .tbtn{font-size:16px;padding:14px 46px 14px 14px}#tmenu .mgh{font-size:18px}}
+/* 淺色系列 */
+html[data-theme=light] #tmenu .box{background:linear-gradient(180deg,#FFFDF8 0%,#F5EEDF 100%);border-color:rgba(120,92,48,.2);box-shadow:0 -30px 70px -30px rgba(90,64,28,.35),inset 0 1px 0 #fff}
+html[data-theme=light] #tmenu .box::before{background:rgba(138,106,55,.35)}
+html[data-theme=light] #tmenu .sh{background:#FBF7EE;border-bottom-color:rgba(120,92,48,.16)}
+html[data-theme=light] #tmenu .sh b{background:linear-gradient(135deg,#7A5A2A 0%,#B08A4E 50%,#7A5A2A 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+html[data-theme=light] #tmenu .sh .sx{border-color:rgba(138,106,55,.4);color:#8A6A37}
+html[data-theme=light] #tmenu .mgrp{background:#FFFDF8;border-color:rgba(120,92,48,.16);box-shadow:0 10px 24px -20px rgba(90,64,28,.5)}
+html[data-theme=light] #tmenu .mgh{color:#6E5020}
+html[data-theme=light] #tmenu .mgh i{color:#8A6A37;border-color:rgba(138,106,55,.4)}
+html[data-theme=light] #tmenu .mgrp[open] .mgh{border-bottom-color:rgba(120,92,48,.14)}
+html[data-theme=light] #tmenu .tbtn{color:#2A2118;background:transparent;border-top-color:rgba(120,92,48,.12)}
+html[data-theme=light] #tmenu .tbtn::after{color:#8A6A37;border-color:rgba(138,106,55,.4)}
+html[data-theme=light] #tmenu .tbtn small{color:rgba(42,33,24,.6)}
+html[data-theme=light] #tmenu .tbtn:active{background:rgba(201,165,106,.16)}
+html[data-theme=light] #tmenu .mgrp>p{border-top-color:rgba(120,92,48,.12);color:rgba(42,33,24,.6)!important}
+</style>
+</head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
