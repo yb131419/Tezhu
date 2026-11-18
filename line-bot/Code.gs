@@ -266,7 +266,7 @@ function talkUrl_() {
   if (TALK_URL_ !== null) return TALK_URL_;
   let url = '';
   try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { console.error(e); }
-  TALK_URL_ = TALK_PAGE + (url ? '&u=' + encodeURIComponent(url) : '');
+  TALK_URL_ = TALK_PAGE + (url ? '?u=' + encodeURIComponent(url) : '');
   return TALK_URL_;
 }
 
@@ -329,7 +329,7 @@ function talk(key, q, image, voice, audio64, audioType, spoken) {
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
 let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
-const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Assistant.html?open=chat';
+const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
