@@ -2451,12 +2451,16 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ syncNow
   <div class="xtr-box" role="dialog" aria-modal="true" aria-labelledby="xtrT">
     <div class="xtr-sh"><b id="xtrT">📈 交易</b><button type="button" class="xtr-x" onclick="xtrClose()" aria-label="關閉">×</button></div>
     <div id="xtrMenu">
+      <div class="xtr-sec" style="margin-top:6px">🇺🇸 美股（IG）</div>
       <button type="button" class="xtr-btn" onclick="xtrTicket()">⚡ 下單<small>選商品、數量與買賣，同一畫面看提案，確認後才送出</small></button>
       <button type="button" class="xtr-btn" onclick="xtrRun('📊 查看持倉','📊 查看持倉')">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button>
       <button type="button" class="xtr-btn" onclick="xtrRun('📊 查看持倉','💰 獲利查詢')">💰 獲利查詢<small>持倉的開倉成本、未實現損益，結果只在這裡顯示</small></button>
       <button type="button" class="xtr-btn" onclick="xtrRun('📉 平倉','📉 平倉')">📉 平倉<small>先看平倉提案，確認後才平倉</small></button>
       <button type="button" class="xtr-btn" onclick="xtrRun('📜 下單紀錄','📜 下單紀錄')">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button>
       <button type="button" class="xtr-btn" onclick="xtrRun('🔔 交易提醒','🔔 交易提醒')">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button>
+      <div class="xtr-sec" style="margin-top:22px">🇹🇼 台股（富邦）</div>
+      <button type="button" class="xtr-btn" onclick="xtrTW('行情與持倉')">📊 行情與持倉<small>台股查看，富邦 API 尚未接上，目前只顯示接上前的說明</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrTW('連線狀態')">🔌 連線狀態<small>看富邦 API 接上到哪一步，以及還需要你做什麼</small></button>
     </div>
     <div id="xtrView" hidden>
       <button type="button" class="xtr-back" onclick="xtrBack()">‹ 返回交易選單</button>
@@ -2501,6 +2505,21 @@ function xtrRun(q,title){
   }).catch(e=>{body.textContent='連線有問題，請再試一次（'+e.message+'）';});
 }
 function xtrActs(p,list){p.textContent='';list.forEach((l,i)=>xtrBtn(p,l,()=>xtrRun(l,l),i===0?'xtr-abtn main':'xtr-abtn'));}
+/* 台股（富邦證券）：目前只做查看說明，尚未連線；不提供下單按鈕，也不呼叫任何富邦服務 */
+function xtrTW(title){
+  const body=xtrShowView('🇹🇼 台股・'+title);
+  xtrEl(body,'xtr-warn soft','富邦證券 API 尚未接上。目前還看不到台股即時行情與持倉，也不能下單。');
+  xtrEl(body,'xtr-sec','接上前還需要完成的步驟');
+  const steps=[
+    '1. 向富邦證券申請新一代 API，取得憑證（.pfx）與憑證密碼。',
+    '2. 富邦的 SDK 需要 Python 等環境，要在一台可以長時間開著的電腦或伺服器上執行，Apps Script 無法直接呼叫。',
+    '3. 在那台電腦上架一個只讀的行情與持倉服務，並限定可連線的 IP。',
+    '4. 小乖的 Apps Script 再透過同步密碼呼叫這個服務，取回行情與持倉。',
+    '5. 下單功能要等安全機制確認後才做；屆時仍只能按按鈕、先出提案，確認後才送出。'
+  ];
+  steps.forEach(t=>xtrEl(body,'xtr-card xtr-t',t));
+  xtrEl(body,'xtr-note','帳號、密碼與憑證只放在伺服器或 Apps Script 的指令碼屬性，不會寫進程式碼或 GitHub。');
+}
 /* 交易結果：以「・」開頭的行是一筆持倉，做成獨立卡片；空行結束一張卡片；停損停利碰到的損益不顯示 */
 function xtrTrade(el,text){let card=null;
   String(text||'').split('\n').forEach(l=>{const t=l.trim();
