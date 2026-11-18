@@ -23,6 +23,7 @@ const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
 const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無法取得趨勢，請稍後再試';
+const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回檔比例（與網路貼文截圖相同，0.191 非標準的 0.236）
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
@@ -758,8 +759,35 @@ function tradeSignal_(it) {
   const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
+  const fib = tradeFibText_(it, closes[n - 1]);   // 預設關閉，關閉時回傳空字串，文字與判斷都跟原本一樣
   return { signal: cross, bar: bar, dir: dir, text: 'EMA 趨勢：' + trend + (cross ? '（這根剛交叉）' : '') +
-    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') };
+    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
+}
+
+/* ---------- 費波那契回檔參考（預設關閉，只顯示參考，不影響交叉訊號、提醒或下單） ---------- */
+
+// 開啟：在編輯器執行 tradeFibOn()。需先用 tradeFibSet(高點, 低點) 設定波段高低點
+function tradeFibOn() { setProp_('TRADE_FIB', 'on'); console.log('費波那契參考已開啟（只顯示參考，不影響下單）'); }
+
+// 關閉：在編輯器執行 tradeFibOff()。關閉後完全不顯示費波那契文字
+function tradeFibOff() { setProp_('TRADE_FIB', 'off'); console.log('費波那契參考已關閉'); }
+
+// 設定波段高點與低點（數字），例如 tradeFibSet(42073, 37971.5)。存在指令碼屬性 TRADE_FIB_HL
+function tradeFibSet(hi, lo) {
+  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點');
+  setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
+  console.log('費波那契高低點已設定：高 ' + Number(hi) + '，低 ' + Number(lo));
+}
+
+// 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉或沒設定時回傳空字串
+function tradeFibText_(it, last) {
+  if (prop_('TRADE_FIB') !== 'on') return '';
+  let hl = null;
+  try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
+  if (!hl || !(hl.hi > hl.lo)) return '費波那契參考：尚未設定高低點（請在編輯器執行 tradeFibSet）';
+  const range = hl.hi - hl.lo;
+  const lines = TRADE_FIB_RATIOS.map(r => '・' + r.toFixed(3) + '：' + (hl.hi - range * r).toFixed(it.prec));
+  return '費波那契回檔參考（只是參考，不保證獲利）：\n' + lines.join('\n') + '\n現價：' + Number(last).toFixed(it.prec);
 }
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
