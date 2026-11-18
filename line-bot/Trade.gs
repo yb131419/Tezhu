@@ -752,17 +752,40 @@ function tradeSignal_(it) {
   const n = closes.length;
   const bar = kl.bar;
   if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
-  const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
-  const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
+  // 進出場模式：預設 classic（原本 EMA9／EMA21 交叉，行為不變）；設為 ema5 才改用 EMA 6、12、21、32、200（見 tradeEma5Rule_）
+  const ema5 = prop_('TRADE_EMA_MODE') === 'ema5' && n >= 200;
+  const fast = ema5 ? tradeEma_(closes, 6) : tradeEma_(closes, 9);
+  const slow = tradeEma_(closes, 21);
+  const rule = ema5 ? tradeEma5Rule_(closes, closes[n - 1]) : null;   // ema5 模式的進場與出場
+  const cross = rule ? rule.signal : fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
   const trend = fast[n - 1] > slow[n - 1] ? '多頭' : '空頭';
-  const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
+  const dir = rule ? rule.dir : fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
   const fib = tradeFibText_(it, closes[n - 1]);   // 預設關閉，關閉時回傳空字串，文字與判斷都跟原本一樣
-  return { signal: cross, bar: bar, dir: dir, text: 'EMA 趨勢：' + trend + (cross ? '（這根剛交叉）' : '') +
+  return { signal: cross, bar: bar, dir: dir, text: (rule ? rule.text + '\n' : '') + 'EMA 趨勢：' + trend + (cross && !rule ? '（這根剛交叉）' : '') +
     '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
 }
+
+// 進出場（EMA 6、12、21、32、200）：只有在 prop TRADE_EMA_MODE 為 ema5 時才會用到，預設不啟用
+// 進場：EMA6 向上穿過 EMA21 且收盤在 EMA200 之上做多；EMA6 向下穿過 EMA21 且收盤在 EMA200 之下做空
+// 出場參考：EMA6 與 EMA12 反向交叉（只顯示，不會自動平倉）
+function tradeEma5Rule_(closes, last) {
+  const n = closes.length;
+  const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e200 = tradeEma_(closes, 200);
+  const up = e6[n - 2] <= e21[n - 2] && e6[n - 1] > e21[n - 1];
+  const down = e6[n - 2] >= e21[n - 2] && e6[n - 1] < e21[n - 1];
+  const signal = up && last > e200[n - 1] ? 'buy' : down && last < e200[n - 1] ? 'sell' : '';
+  const exitSig = e6[n - 2] >= e12[n - 2] && e6[n - 1] < e12[n - 1] ? '（出場參考：EMA6 下穿 EMA12）'
+    : e6[n - 2] <= e12[n - 2] && e6[n - 1] > e12[n - 1] ? '（出場參考：EMA6 上穿 EMA12）' : '';
+  return { signal: signal, dir: e6[n - 1] > e21[n - 1] ? 'buy' : 'sell',
+    text: 'EMA 6／12／21／32／200 模式：' + (signal ? (signal === 'buy' ? '做多進場點' : '做空進場點') : '無進場訊號') + exitSig };
+}
+
+// 切換進出場模式（在編輯器執行）。預設 classic 不變；ema5 會改變提醒與下單建議的訊號，需先確認
+function tradeEma5On() { setProp_('TRADE_EMA_MODE', 'ema5'); console.log('進出場已改用 EMA 6、12、21、32、200'); }
+function tradeEma5Off() { setProp_('TRADE_EMA_MODE', 'classic'); console.log('進出場已改回 EMA 9／21 交叉（預設）'); }
 
 /* ---------- 費波那契回檔參考（預設關閉，只顯示參考，不影響交叉訊號、提醒或下單） ---------- */
 
