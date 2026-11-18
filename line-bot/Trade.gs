@@ -795,20 +795,22 @@ function tradeFibOn() { setProp_('TRADE_FIB', 'on'); console.log('費波那契�
 // 關閉：在編輯器執行 tradeFibOff()。關閉後完全不顯示費波那契文字
 function tradeFibOff() { setProp_('TRADE_FIB', 'off'); console.log('費波那契參考已關閉'); }
 
-// 設定波段高點與低點（數字），例如 tradeFibSet(42073, 37971.5)。存在指令碼屬性 TRADE_FIB_HL
-// 注意：編輯器的「執行」按鈕不會帶參數，所以不帶參數時改用下面兩個常數（改這裡再存檔即可）
-const TRADE_FIB_HI_DEFAULT = 42073;    // 波段高點（從截圖反推，約略值）
-const TRADE_FIB_LO_DEFAULT = 37971.5;  // 波段低點（從截圖反推，約略值）
+// 預設一律用 4 小時線自動算出的目前高低點（參考 IG 最近 30 根已收盤 4 小時 K 線的高低點，例如納斯達克100）。
+// 手動值只在明確帶入兩個數字時才會用：tradeFibSet(高, 低)。在編輯器的「執行」按鈕不會帶參數，所以那裡執行 tradeFibSet 或 tradeFibAuto 都是清除手動值、改回自動。
 function tradeFibSet(hi, lo) {
-  if (hi === undefined && lo === undefined) { hi = TRADE_FIB_HI_DEFAULT; lo = TRADE_FIB_LO_DEFAULT; }
-  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（目前高 ' + hi + '、低 ' + lo + '）');
+  if (hi === undefined && lo === undefined) { tradeFibAuto(); return; }   // 不帶參數 = 清除手動值，改回自動
+  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（收到的高 ' + hi + '、低 ' + lo + '）');
   setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
-  setProp_('TRADE_FIB_SRC', 'manual');   // 手動設定優先；想回到 4 小時線自動計算，執行 tradeFibAuto()
+  setProp_('TRADE_FIB_SRC', 'manual');
   console.log('費波那契高低點已手動設定：高 ' + Number(hi) + '，低 ' + Number(lo));
 }
 
-// 改回用 4 小時線自動計算高低點（預設）。在編輯器執行即可
-function tradeFibAuto() { setProp_('TRADE_FIB_SRC', 'auto'); console.log('費波那契高低點改用 4 小時線自動計算'); }
+// 清除手動值，改回用 4 小時線自動計算（預設）。在編輯器執行即可
+function tradeFibAuto() {
+  PropertiesService.getScriptProperties().deleteProperty('TRADE_FIB_HL');
+  setProp_('TRADE_FIB_SRC', 'auto');
+  console.log('費波那契高低點改用 4 小時線自動計算（已清除手動值）');
+}
 
 // 取最近 TRADE_FIB_BARS_4H 根已收盤 4 小時 K 線的最高價與最低價（中間價），每小時最多向 IG 要一次
 const TRADE_FIB_BARS_4H = 30;   // 約 5 天的 4 小時線
