@@ -1061,6 +1061,26 @@ html[data-theme=light] #view-chat #tmenu .tbtn small{color:rgba(42,33,24,.6)}
 html[data-theme=light] #view-chat #tmenu .tbtn:active{background:rgba(201,165,106,.16)}
 html[data-theme=light] #view-chat #tmenu .mgrp>p{border-top-color:rgba(120,92,48,.12);color:rgba(42,33,24,.6)!important}
 </style>
+<style id="chat-skin">
+#view-chat.active{--bg:#F5F0E3;--card:#FFFDF8;--ink:#1E1A14;--soft:#5C5343;--accent:#A8782E;--me:#2A241C;--gold:#A8782E;--line:rgba(30,25,18,.11);}
+html[data-theme=dark] #view-chat.active{--bg:#0F0D0B;--card:#1A1713;--ink:#F3EEE5;--soft:rgba(243,238,229,.72);--accent:#C9A56A;--me:#2A241C;--gold:#C9A56A;--line:rgba(220,195,148,.18);}
+#view-chat.active{background:var(--bg);}
+#view-chat .ch-top{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 14px;background:transparent;border-bottom:1px solid var(--line);}
+#view-chat .ch-back,#view-chat #ham{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0;display:grid;place-items:center;box-shadow:var(--shadow);}
+#view-chat .ch-back{font-size:26px;line-height:1;}
+#view-chat #ham{margin-left:auto;}
+#view-chat #ham svg{width:20px;height:20px;}
+#view-chat .ch-title{flex:1;min-width:0;}
+#view-chat .ch-eb{display:block;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:700;}
+#view-chat .ch-title b{display:block;font-family:var(--serif);font-size:26px;color:var(--ink);letter-spacing:.12em;line-height:1.2;}
+#view-chat #chips{padding:12px 16px 10px;}
+#view-chat #chips button{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 14px;box-shadow:var(--shadow);}
+#view-chat .m.xg{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px 24px 24px 8px;}
+#view-chat .m.me:not(.hello){background:linear-gradient(160deg,#3A3226,#2A241C);color:#F3EEE5;border-radius:24px 24px 8px 24px;}
+#view-chat #bar{background:var(--card);border-top:1px solid var(--line);backdrop-filter:none;-webkit-backdrop-filter:none;}
+#view-chat #q{background:var(--bg);color:var(--ink);border:1px solid var(--line);}
+#view-chat #cam{border:1px solid var(--line);background:var(--card);color:var(--ink);}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1232,7 +1252,7 @@ html[data-theme=light] #view-chat #tmenu .mgrp>p{border-top-color:rgba(120,92,48
   <!-- 對話 -->
   <section id="view-chat" class="view">
 <!-- 對話（併入自原本的 Talk.html）：Apps Script 對話引擎、語音、行程與交易 -->
-<header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
+<header class="ch-top"><button type="button" class="ch-back" onclick="openView('home')" aria-label="回主頁">‹</button><div class="ch-title"><span class="ch-eb">私人助理 · ASSISTANT</span><b>小乖</b></div><button id="ham" type="button" title="選單" aria-label="選單"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
 <div id="hint"></div><button id="endc" type="button">⏹ 結束對話</button>
@@ -2513,8 +2533,8 @@ $('vscp').onclick=async()=>{const t=TURL+'?key='+encodeURIComponent(KEY)+'&ask='
  try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
  $('vscp').textContent=ok?'✓ 已複製，照下面步驟做':'複製失敗，請到設定確認網址';};
-function paintThm(){const l=document.documentElement.dataset.theme==='light';$('thm').textContent=l?'☾ 換成黑色系列':'☀︎ 換成白色系列';document.querySelector('meta[name=theme-color]').content=l?'#F3EEE5':'#100E0B';}
-$('thm').onclick=()=>{const l=document.documentElement.dataset.theme!=='light';if(l)document.documentElement.dataset.theme='light';else delete document.documentElement.dataset.theme;try{localStorage.setItem('xg_theme',l?'light':'dark');}catch(e){}paintThm();};
+function paintThm(){const d=document.documentElement.dataset.theme==='dark';$('thm').textContent=d?'☀︎ 換成白色系列':'☾ 換成黑色系列';}
+$('thm').onclick=()=>{toggleTheme();paintThm();};
 paintThm();
 async function vsCopy(btn,t,label){let ok=false;try{await navigator.clipboard.writeText(t);ok=true;}catch(e){}
  if(!ok){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{ok=document.execCommand('copy');}catch(e){}a.remove();}
