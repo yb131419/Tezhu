@@ -227,6 +227,11 @@ function setup() {
   Logger.log('安裝完成！你的同步密碼是：' + prop_('SYNC_KEY'));
 }
 
+// 一次性小工具（2026-11-18）：在編輯器選這個函式按「執行」，SYNC_KEY 的值會印在「執行記錄」裡。只讀取，不改任何屬性。
+function showSyncKey() {
+  Logger.log('SYNC_KEY 目前是：' + prop_('SYNC_KEY'));
+}
+
 /* ============ 接上 Telegram：部署完成後在編輯器選 setupTelegram 執行 ============ */
 function setupTelegram() {
   if (!prop_('TELEGRAM_BOT_TOKEN')) throw new Error('請先在指令碼屬性填入 TELEGRAM_BOT_TOKEN。');
