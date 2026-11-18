@@ -22,7 +22,8 @@ let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
-const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無法取得趨勢，請稍後再試';
+const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），這個商品還沒有可用的快取，約 1 小時後會自動再試';
+function tradeIsQuota_(err) { return String(err && err.message || err).indexOf('額度已用完') >= 0; }
 const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回檔比例（與網路貼文截圖相同，0.191 非標準的 0.236）
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
@@ -687,8 +688,23 @@ function tradeCandles_(it) {
   const key = 'K15_' + it.epic + '_' + Math.floor(Date.now() / 900000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
-  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
   const stored = tradeKlineState_(it);
+  if (cache.get('K15_QUOTA')) return tradeStaleK_(stored);
+  try {
+    return tradeCandlesFresh_(it, cache, key, stored);
+  } catch (err) {
+    if (tradeIsQuota_(err)) return tradeStaleK_(stored);   // 額度用完：改用上次成功的快取
+    throw err;
+  }
+}
+
+// 額度用完時：有上次成功的 K 線就用它（標示 stale，訊號不發送提醒）；沒有才丟錯
+function tradeStaleK_(stored) {
+  if (stored) return { closes: stored.closes, bar: stored.last, stale: true };
+  throw new Error(TRADE_QUOTA_MSG);
+}
+
+function tradeCandlesFresh_(it, cache, key, stored) {
   let state = null;
   if (stored) {
     const fresh = tradePrices_(it, 3);
@@ -750,6 +766,7 @@ function tradeSignal_(it) {
   tradeEpicCheck_(it);
   // 已收盤的 K 線（同一根 K 線期間只向 IG 要一次，見 tradeCandles_）；bar 是最後一根已收盤 K 線的時間，用來避免重複提醒
   const kl = tradeCandles_(it);
+  const note = kl.stale ? '（IG 歷史資料額度用完，EMA 用上次更新的快取，僅供參考，不發送提醒）\n' : '';
   const closes = kl.closes;
   const n = closes.length;
   const bar = kl.bar;
@@ -766,7 +783,7 @@ function tradeSignal_(it) {
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
   const fib = tradeFibText_(it, closes[n - 1]);   // 預設關閉，關閉時回傳空字串，文字與判斷都跟原本一樣
-  return { signal: cross, bar: bar, dir: dir, text: (rule ? rule.text + '\n' : '') + 'EMA 趨勢：' + trend + (cross && !rule ? '（這根剛交叉）' : '') +
+  return { signal: kl.stale ? '' : cross, bar: bar, dir: dir, text: note + (rule ? rule.text + '\n' : '') + 'EMA 趨勢：' + trend + (cross && !rule ? '（這根剛交叉）' : '') +
     '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
 }
 
@@ -836,13 +853,15 @@ function tradeFib4h_(it) {
   const key = 'H4_' + it.epic + '_' + Math.floor(Date.now() / 3600000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
-  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
+  const h4Key = 'H4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
+  const saved = () => { const v = JSON.parse(prop_(h4Key) || 'null'); if (v && v.hi > v.lo) return Object.assign({}, v, { stale: true }); throw new Error(TRADE_QUOTA_MSG); };
+  if (cache.get('K15_QUOTA')) return saved();
   let data;
   try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_FIB_BARS_4H + 1), 2); }
   catch (err) {
     if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
       cache.put('K15_QUOTA', '1', 3600);
-      throw new Error(TRADE_QUOTA_MSG);
+      return saved();
     }
     throw err;
   }
@@ -852,6 +871,7 @@ function tradeFib4h_(it) {
   const mid = o => (Number(o.bid) + Number(o.ask)) / 2;
   const out = { hi: Math.max(...closed.map(c => mid(c.highPrice))), lo: Math.min(...closed.map(c => mid(c.lowPrice))), bars: closed.length };
   cache.put(key, JSON.stringify(out), 3600);
+  setProp_(h4Key, JSON.stringify({ hi: out.hi, lo: out.lo, bars: out.bars }));
   return out;
 }
 
@@ -867,7 +887,7 @@ function tradeFibText_(it, last) {
   } else {
     try { hl = tradeFib4h_(it); } catch (err) { return '費波那契參考：4 小時線取不到（' + ((err && err.message) || err) + '）'; }
     if (!(hl.hi > hl.lo)) return '費波那契參考：4 小時線高低點不正確';
-    src = '4 小時線近 ' + hl.bars + ' 根已收盤 K 線的高低點';
+    src = '4 小時線近 ' + hl.bars + ' 根已收盤 K 線的高低點' + (hl.stale ? '（IG 額度用完，用上次快取）' : '');
   }
   const range = hl.hi - hl.lo;
   const lines = TRADE_FIB_RATIOS.map(r => '・' + r.toFixed(3) + '：' + (hl.hi - range * r).toFixed(it.prec));
