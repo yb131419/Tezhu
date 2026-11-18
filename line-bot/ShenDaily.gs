@@ -1,6 +1,6 @@
 /* ============ 每日合併推送：神對話每日迭代 + 頻道數據，傳到小乖對話（LINE 與 Telegram） ============
    9:15：頻道數據更新（chanDailyJob 寫進試算表，並把要傳的文字暫存在 CHAN_DAILY_MSG，不直接傳）。
-   排程 9:15：把當天的神對話摘要寫進試算表「神對話每日摘要」分頁（A 日期、B 摘要、C 劇本網址、D 推送時間，D 空白代表還沒傳）。
+   排程 9:15：把當天的神對話摘要寫進試算表「神對話每日摘要」分頁（A 日期、B 摘要、C 劇本網址（推送時一律改用 SHEN_SCRIPT_URL，不讀 C 欄），D 推送時間，D 空白代表還沒傳）。
    9:30 左右：shenDailyPush 把今天的頻道數據與還沒傳的摘要合併成「一則」訊息傳出，傳完在 D 欄寫上時間，避免重複。 */
 const SHEN_DAILY_SHEET = '神對話每日摘要';
 
@@ -28,7 +28,7 @@ function shenDailyPush() {
   if (sh && sh.getLastRow() >= 2) {
     sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach((r, i) => {
       const body = String(r[1] || '').trim();
-      if (body && !String(r[3] || '').trim()) pending.push({ row: i + 2, date: r[0], body: body, url: String(r[2] || '').trim() });
+      if (body && !String(r[3] || '').trim()) pending.push({ row: i + 2, date: r[0], body: body, url: SHEN_SCRIPT_URL });
     });
   }
   if (!chanText && !pending.length) return;
