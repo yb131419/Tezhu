@@ -76,5 +76,15 @@ document.addEventListener('click', function(e){{
 </body>
 </html>
 '''
-open(sys.argv[2] if len(sys.argv)>2 else 'ShenScripts.html', 'w', encoding='utf-8').write(html)
+out_path = sys.argv[2] if len(sys.argv)>2 else 'ShenScripts.html'
+open(out_path, 'w', encoding='utf-8').write(html)
 print('sections items:', count, 'bytes:', len(html.encode()))
+
+# 同一次執行同時產生 shen-latest.json，給小乖對話頁（Talk.html）顯示最新集數與更新日期
+import json, datetime, os
+vert = out[[i for i, s in enumerate(out) if s.startswith('<h2 class="sec">直式')][0]:]
+latest = next((re.search(r'<summary>(.*?)</summary>', s).group(1).replace('.md', '') for s in vert if s.startswith('<details')), '')
+updated = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y/%m/%d')
+json_path = os.path.join(os.path.dirname(os.path.abspath(out_path)), 'shen-latest.json')
+open(json_path, 'w', encoding='utf-8').write(json.dumps({'latest': latest, 'updated': updated, 'count': count}, ensure_ascii=False) + '\n')
+print('latest:', latest, 'updated:', updated)
