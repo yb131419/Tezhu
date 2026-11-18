@@ -22,8 +22,21 @@ let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
-const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），這個商品還沒有可用的快取，約 1 小時後會自動再試';
-function tradeIsQuota_(err) { return String(err && err.message || err).indexOf('額度已用完') >= 0; }
+function tradeIsQuota_(err) {
+  const m = String(err && err.message || err);
+  return m.indexOf('額度已用完') >= 0 || m.indexOf('exceeded-account-historical-data-allowance') >= 0;
+}
+// 額度用完的提示：算出還要等幾分鐘（額度鎖定 1 小時，從記錄時間起算）
+function tradeQuotaMsg_() {
+  const at = Number(prop_('QUOTA_AT') || 0);
+  const mins = at ? Math.max(1, Math.ceil((3600000 - (Date.now() - at)) / 60000)) : 60;
+  return 'IG 歷史資料額度已用完，暫時沒有可用的快取，約 ' + mins + ' 分鐘後會自動再試';
+}
+// 記下額度用完的時間，並鎖定 1 小時不再呼叫 IG
+function tradeMarkQuota_() {
+  CacheService.getScriptCache().put('K15_QUOTA', '1', 3600);
+  setProp_('QUOTA_AT', String(Date.now()));
+}
 const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回檔比例（與網路貼文截圖相同，0.191 非標準的 0.236）
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
@@ -701,7 +714,7 @@ function tradeCandles_(it) {
 // 額度用完時：有上次成功的 K 線就用它（標示 stale，訊號不發送提醒）；沒有才丟錯
 function tradeStaleK_(stored) {
   if (stored) return { closes: stored.closes, bar: stored.last, stale: true };
-  throw new Error(TRADE_QUOTA_MSG);
+  throw new Error(tradeQuotaMsg_());
 }
 
 function tradeCandlesFresh_(it, cache, key, stored) {
@@ -732,8 +745,8 @@ function tradePrices_(it, n) {
   try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/' + n, 2); }
   catch (err) {
     if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
-      CacheService.getScriptCache().put('K15_QUOTA', '1', 3600);
-      throw new Error(TRADE_QUOTA_MSG);
+      tradeMarkQuota_();
+      throw new Error(tradeQuotaMsg_());
     }
     throw err;
   }
@@ -809,23 +822,36 @@ function tradeClosesH4_(it) {
   const key = 'K4H_' + it.epic + '_' + Math.floor(Date.now() / 14400000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
+  const saveKey = 'K4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
+  const saved = () => {
+    let v = null;
+    try { v = JSON.parse(prop_(saveKey) || 'null'); } catch (e) { v = null; }
+    if (v && v.closes && v.closes.length) return { closes: v.closes, stale: true, at: v.at };
+    throw new Error(tradeQuotaMsg_());   // 從來沒有成功抓到過，只能等額度恢復
+  };
+  if (cache.get('K15_QUOTA')) return saved();
   let data;
   try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_BARS + 1), 2); }
   catch (err) {
-    if (tradeIsQuota_(err)) throw new Error(TRADE_QUOTA_MSG);
+    if (tradeIsQuota_(err)) { tradeMarkQuota_(); return saved(); }
     throw err;
   }
   if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
   const closes = data.prices.slice(0, -1).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2).slice(-TRADE_BARS);
-  cache.put(key, JSON.stringify(closes), 3600);
-  return closes;
+  const at = Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm');
+  const out = { closes: closes, stale: false, at: at };
+  cache.put(key, JSON.stringify(out), 3600);
+  setProp_(saveKey, JSON.stringify({ closes: closes, at: at }));
+  return out;
 }
 
 // 看盤用的 EMA 與燈號（4 小時）：燈號是「這根剛成立」的條件，成立才亮
 function tradeH4Look_(it) {
   tradeEpicCheck_(it);
-  const closes = tradeClosesH4_(it);
+  const r = tradeClosesH4_(it);
+  const closes = r.closes;
   const n = closes.length;
+  const note = r.stale ? '（IG 歷史資料額度用完，以下為 ' + r.at + ' 的快取，只供參考，不亮燈號）\n' : '';
   if (n < 200) return { text: 'EMA：4 小時 K 線不足（只拿到 ' + n + ' 根已收盤 K 線）\n燈號：{}' };
   const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e32 = tradeEma_(closes, 32), e200 = tradeEma_(closes, 200);
   const last = closes[n - 1];
@@ -835,14 +861,14 @@ function tradeH4Look_(it) {
   const exDn = e6[n - 2] >= e12[n - 2] && e6[n - 1] < e12[n - 1];
   const exUp = e6[n - 2] <= e12[n - 2] && e6[n - 1] > e12[n - 1];
   const lamps = { up: up, above: above, down: down, below: below, exDn: exDn, exUp: exUp };
-  const sig = up && above ? '做多進場點' : down && below ? '做空進場點' : '';
-  const exitSig = exDn ? '（出場參考：EMA6 下穿 EMA12）' : exUp ? '（出場參考：EMA6 上穿 EMA12）' : '';
+  const sig = r.stale ? '' : up && above ? '做多進場點' : down && below ? '做空進場點' : '';
+  const exitSig = r.stale ? '' : exDn ? '（出場參考：EMA6 下穿 EMA12）' : exUp ? '（出場參考：EMA6 上穿 EMA12）' : '';
   const p = it.prec;
-  return { text: 'EMA（4 小時已收盤 K 線）：\n' +
+  return { text: note + 'EMA（4 小時已收盤 K 線）：\n' +
     'EMA6：' + e6[n - 1].toFixed(p) + '\nEMA12：' + e12[n - 1].toFixed(p) + '\nEMA21：' + e21[n - 1].toFixed(p) +
     '\nEMA32：' + e32[n - 1].toFixed(p) + '\nEMA200：' + e200[n - 1].toFixed(p) + '\n' +
     'EMA 6／12／21／32／200 模式：' + (sig || '無進場訊號') + exitSig + '\n' +
-    '燈號：' + JSON.stringify(lamps) };
+    '燈號：' + JSON.stringify(r.stale ? {} : lamps) };
 }
 
 // 進出場（EMA 6、12、21、32、200）：prop TRADE_EMA_MODE 未設定或為 ema5 時使用（2026-11-18 起預設），設為 classic 才改回 EMA9／21
@@ -897,13 +923,13 @@ function tradeFib4h_(it) {
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const h4Key = 'H4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
-  const saved = () => { const v = JSON.parse(prop_(h4Key) || 'null'); if (v && v.hi > v.lo) return Object.assign({}, v, { stale: true }); throw new Error(TRADE_QUOTA_MSG); };
+  const saved = () => { const v = JSON.parse(prop_(h4Key) || 'null'); if (v && v.hi > v.lo) return Object.assign({}, v, { stale: true }); throw new Error(tradeQuotaMsg_()); };
   if (cache.get('K15_QUOTA')) return saved();
   let data;
   try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_FIB_BARS_4H + 1), 2); }
   catch (err) {
     if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
-      cache.put('K15_QUOTA', '1', 3600);
+      tradeMarkQuota_();
       return saved();
     }
     throw err;
