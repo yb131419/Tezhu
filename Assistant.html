@@ -592,10 +592,10 @@
 </style>
 
 <style id="talk-chat-css">
-#view-chat{--bg:#fff7f0;--card:#fff;--ink:#3b2a20;--soft:#8a7566;--accent:#ff8a3d;--me:#ffe3cf}
-@media (prefers-color-scheme:dark){#view-chat{--bg:#1d1714;--card:#2a221d;--ink:#f6ece4;--soft:#b8a597;--accent:#ff9d5c;--me:#4a3326}}
+#view-chat.active{--bg:#fff7f0;--card:#fff;--ink:#3b2a20;--soft:#8a7566;--accent:#ff8a3d;--me:#ffe3cf}
+@media (prefers-color-scheme:dark){#view-chat.active{--bg:#1d1714;--card:#2a221d;--ink:#f6ece4;--soft:#b8a597;--accent:#ff9d5c;--me:#4a3326}}
 #view-chat *{box-sizing:border-box}
-#view-chat{margin:0;font:17px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+#view-chat.active{margin:0;font:17px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
 #view-chat header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}
 #view-chat header b{font-size:20px}
 #view-chat header small{color:var(--soft);margin-left:auto}
@@ -644,10 +644,10 @@ body.conv #view-chat #endc{display:block}
 #view-chat .qbox[hidden]{display:none}
 #view-chat .chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
 #view-chat .chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
-#view-chat, #view-chat{--bg:#100E0B;--card:#1B1814;--ink:#F3EEE5;--soft:rgba(243,238,229,.55);--accent:#C9A56A;--me:#2A241C;
+#view-chat.active, #view-chat.active{--bg:#100E0B;--card:#1B1814;--ink:#F3EEE5;--soft:rgba(243,238,229,.55);--accent:#C9A56A;--me:#2A241C;
  --gold:#DCC394;--line:rgba(220,195,148,.2);--champ:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);
  --serif:"Noto Serif TC","Songti TC",serif;--num:"Cormorant Garamond","Noto Serif TC",Georgia,serif}
-#view-chat{background:radial-gradient(ellipse 120% 50% at 50% -10%,rgba(201,165,106,.16),transparent 60%),var(--bg);height:100dvh;letter-spacing:.2px}
+#view-chat.active{background:radial-gradient(ellipse 120% 50% at 50% -10%,rgba(201,165,106,.16),transparent 60%),var(--bg);height:100dvh;letter-spacing:.2px}
 #view-chat header{padding:14px 16px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:6px}
 #view-chat header b{font-family:var(--serif);font-size:22px;letter-spacing:3px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
 #view-chat header b i{font-style:normal;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;border:1px solid rgba(220,195,148,.6);color:var(--gold);-webkit-text-fill-color:var(--gold);background:#0B0A08}
@@ -1630,11 +1630,11 @@ function renderHeader(){
   document.getElementById("titleInput").value=state.title;
   document.getElementById("miniTitle").textContent=state.title;
   document.title="私人助理"+state.title;
-  const on=aiOn();
+  const on=syncOn();
   document.getElementById("keyDot").classList.toggle("on",on);
   document.getElementById("keyStatus").textContent = on
-    ? `AI 已連接 · ${MODELS[state.model]} · ${state.title}隨時待命`
-    : "尚未連接 AI — 請到設定填入 AI 代理網址與通行碼";
+    ? `已連接小乖雲端 · ${state.title}隨時待命`
+    : "尚未連接 — 請到設定填入小乖網址與同步密碼";
 }
 document.getElementById("titleInput").addEventListener("change",e=>{
   state.title=(e.target.value||"").trim()||"小乖"; save(); renderHeader(); renderHome();
