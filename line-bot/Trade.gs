@@ -787,19 +787,62 @@ function tradeSignal_(it) {
     '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
 }
 
-// 看盤（唯讀）：現價、停損停利參考、費波那契、EMA 與進出場狀態；不產生提案、不下單（對話頁快速下單用）
+// 看盤（唯讀）：現價、停損停利參考、EMA 與進出場燈號；不產生提案、不下單（對話頁快速下單用）
+// 2026-11-18：EMA 與燈號改用 4 小時已收盤 K 線，和圖表同一組資料；現價是即時報價（買賣中間價）
 function tradeLookText_(name) {
   const it = TRADE_ITEMS[name];
   if (it.off) return it.off;
   const price = tradeQuote_(it);
   const dec = (v) => v.toFixed(it.prec);
-  let sig;
-  try { sig = tradeSignal_(it); } catch (err) { return '【' + tradeLabelOf_(name) + '】看盤取不到（' + (err && err.message || err) + '）'; }
+  let h4;
+  try { h4 = tradeH4Look_(it); } catch (err) { return '【' + tradeLabelOf_(name) + '】看盤取不到（' + (err && err.message || err) + '）'; }
   return '【' + tradeLabelOf_(name) + '】\n' +
     '現價：' + dec(price) + '\n' +
     '買進停損：' + dec(price - it.sl * it.pip) + ' ／ 停利：' + dec(price + it.tp * it.pip) + '\n' +
     '賣出停損：' + dec(price + it.sl * it.pip) + ' ／ 停利：' + dec(price - it.tp * it.pip) + '\n' +
-    sig.text + '\n（看盤只讀取，沒有產生提案，也不會下單）';
+    h4.text + '\n（看盤只讀取，沒有產生提案，也不會下單）';
+}
+
+// 4 小時已收盤 K 線的收盤中間價（舊到新），快取到下一根 4 小時 K 線；只給看盤用
+function tradeClosesH4_(it) {
+  const cache = CacheService.getScriptCache();
+  const key = 'K4H_' + it.epic + '_' + Math.floor(Date.now() / 14400000);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_BARS + 1), 2); }
+  catch (err) {
+    if (tradeIsQuota_(err)) throw new Error(TRADE_QUOTA_MSG);
+    throw err;
+  }
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
+  const closes = data.prices.slice(0, -1).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2).slice(-TRADE_BARS);
+  cache.put(key, JSON.stringify(closes), 3600);
+  return closes;
+}
+
+// 看盤用的 EMA 與燈號（4 小時）：燈號是「這根剛成立」的條件，成立才亮
+function tradeH4Look_(it) {
+  tradeEpicCheck_(it);
+  const closes = tradeClosesH4_(it);
+  const n = closes.length;
+  if (n < 200) return { text: 'EMA：4 小時 K 線不足（只拿到 ' + n + ' 根已收盤 K 線）\n燈號：{}' };
+  const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e32 = tradeEma_(closes, 32), e200 = tradeEma_(closes, 200);
+  const last = closes[n - 1];
+  const up = e6[n - 2] <= e21[n - 2] && e6[n - 1] > e21[n - 1];
+  const down = e6[n - 2] >= e21[n - 2] && e6[n - 1] < e21[n - 1];
+  const above = last > e200[n - 1], below = last < e200[n - 1];
+  const exDn = e6[n - 2] >= e12[n - 2] && e6[n - 1] < e12[n - 1];
+  const exUp = e6[n - 2] <= e12[n - 2] && e6[n - 1] > e12[n - 1];
+  const lamps = { up: up, above: above, down: down, below: below, exDn: exDn, exUp: exUp };
+  const sig = up && above ? '做多進場點' : down && below ? '做空進場點' : '';
+  const exitSig = exDn ? '（出場參考：EMA6 下穿 EMA12）' : exUp ? '（出場參考：EMA6 上穿 EMA12）' : '';
+  const p = it.prec;
+  return { text: 'EMA（4 小時已收盤 K 線）：\n' +
+    'EMA6：' + e6[n - 1].toFixed(p) + '\nEMA12：' + e12[n - 1].toFixed(p) + '\nEMA21：' + e21[n - 1].toFixed(p) +
+    '\nEMA32：' + e32[n - 1].toFixed(p) + '\nEMA200：' + e200[n - 1].toFixed(p) + '\n' +
+    'EMA 6／12／21／32／200 模式：' + (sig || '無進場訊號') + exitSig + '\n' +
+    '燈號：' + JSON.stringify(lamps) };
 }
 
 // 進出場（EMA 6、12、21、32、200）：prop TRADE_EMA_MODE 未設定或為 ema5 時使用（2026-11-18 起預設），設為 classic 才改回 EMA9／21
