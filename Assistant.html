@@ -253,6 +253,8 @@
   /* 聊天視窗：全螢幕版面 */
   body.chat-mode .topbar{display:none;}
   body.chat-mode .app{max-width:760px;padding-bottom:0;}
+  /* 對話頁鋪滿可見畫面：用 fixed 貼齊上下，輸入列一定貼齊底部導覽列（LINE／Safari 不留空白） */
+  body.chat-mode #view-chat.active{position:fixed;top:0;right:0;bottom:0;left:0;height:auto;min-height:0;max-height:none;margin:0 auto;max-width:760px;width:100%;overflow:hidden;}
   #view-chat.active{display:flex;flex-direction:column;height:100vh;height:100dvh;padding:0;}
   #view-chat.active>*{animation:none;}
   .chat-head{display:flex;align-items:center;gap:12px;padding:12px 14px;flex:0 0 auto;
