@@ -129,7 +129,7 @@ function tradePickItem_() {
 
 function tradePickSide_(name) {
   let dir = '';
-  try { dir = tradeSignal_(TRADE_ITEMS[name]).dir || ''; } catch (err) { dir = ''; }
+  dir = tradeDirOf_(TRADE_ITEMS[name]).dir || '';
   const label = tradeLabelOf_(name);
   const buy = ['🟢 買進' + label], sell = ['🔴 賣出' + label];
   const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
@@ -156,15 +156,14 @@ function tradePropose_(name, side, sizeText, notice) {
   if (minDeal && size < minDeal) return '這個商品最小下單數量是 ' + minDeal + '，沒有產生提案。';
   const price = tradeQuote_(it);
   // 趨勢只是提案的參考資訊：K 線取不到（例如額度用完）不影響提案本身
-  let sig;
-  try { sig = tradeSignal_(it); } catch (err) { sig = { signal: '', text: 'EMA：趨勢資料取不到（' + (err && err.message || err) + '）' }; }
+  const sig = tradeDirOf_(it);   // 同一套 4 小時 EMA 方向（見 tradeDirOf_）
   const dir = side === 'buy' ? 1 : -1;
   const p = {
     id: tradeToken_(), name: name, side: side, size: size, price: price,
     sl: tradeRound_(price - dir * it.sl * it.pip, it.prec),
     tp: tradeRound_(price + dir * it.tp * it.pip, it.prec),
     expires: Date.now() + TRADE_TTL_MS, at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), sig: sig.text,
-    against: !!sig.signal && sig.signal !== side,
+    against: !!sig.dir && sig.dir !== side,
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
   const body = (notice ? notice + '\n\n' : '') + tradeProposalText_(p) + '\n\n5 分鐘內按確認才會送出。';
@@ -800,6 +799,20 @@ function tradeSignal_(it) {
     '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
 }
 
+// 共用方向判斷（智能下單、提案的參考都用這個，和 ⚡ 下單面板同一套 4 小時 EMA）：
+// 方向 = EMA6 在 EMA21 之上為多單、之下為空單；額度用完只剩過期資料時不給方向，只顯示等待提示
+function tradeDirOf_(it) {
+  try {
+    const h = tradeH4Look_(it);
+    if (h.stale) return { dir: '', text: 'EMA：IG 歷史資料額度用完，暫時沒有最新資料，請稍後再看', err: 'IG 歷史資料額度用完，請稍後再試' };
+    if (!h.dir) return { dir: '', text: h.text, err: 'K 線不足' };
+    return { dir: h.dir, text: h.text, err: '' };
+  } catch (err) {
+    const m = String((err && err.message) || err);
+    return { dir: '', text: 'EMA：' + m, err: m.slice(0, 120) };
+  }
+}
+
 // 看盤（唯讀）：現價、停損停利參考、EMA 與進出場燈號；不產生提案、不下單（對話頁快速下單用）
 // 2026-11-18：EMA 與燈號改用 4 小時已收盤 K 線，和圖表同一組資料；現價是即時報價（買賣中間價）
 function tradeLookText_(name) {
@@ -852,7 +865,7 @@ function tradeH4Look_(it) {
   const closes = r.closes;
   const n = closes.length;
   const note = r.stale ? '（IG 歷史資料額度用完，以下為 ' + r.at + ' 的快取，只供參考，不亮燈號）\n' : '';
-  if (n < 200) return { text: 'EMA：4 小時 K 線不足（只拿到 ' + n + ' 根已收盤 K 線）\n燈號：{}' };
+  if (n < 200) return { text: 'EMA：4 小時 K 線不足（只拿到 ' + n + ' 根已收盤 K 線）\n燈號：{}', dir: '', stale: !!r.stale };
   const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e32 = tradeEma_(closes, 32), e200 = tradeEma_(closes, 200);
   const last = closes[n - 1];
   const up = e6[n - 2] <= e21[n - 2] && e6[n - 1] > e21[n - 1];
@@ -868,7 +881,7 @@ function tradeH4Look_(it) {
     'EMA6：' + e6[n - 1].toFixed(p) + '\nEMA12：' + e12[n - 1].toFixed(p) + '\nEMA21：' + e21[n - 1].toFixed(p) +
     '\nEMA32：' + e32[n - 1].toFixed(p) + '\nEMA200：' + e200[n - 1].toFixed(p) + '\n' +
     'EMA 6／12／21／32／200 模式：' + (sig || '無進場訊號') + exitSig + '\n' +
-    '燈號：' + JSON.stringify(r.stale ? {} : lamps) };
+    '燈號：' + JSON.stringify(r.stale ? {} : lamps), dir: r.stale ? '' : (e6[n - 1] > e21[n - 1] ? 'buy' : 'sell'), stale: !!r.stale };
 }
 
 // 進出場（EMA 6、12、21、32、200）：prop TRADE_EMA_MODE 未設定或為 ema5 時使用（2026-11-18 起預設），設為 classic 才改回 EMA9／21
@@ -1056,12 +1069,8 @@ function tradeTgCallback_(cq) {
 // 智能下單頁面最上面的方向參考：依 EMA 趨勢，只是參考，方向仍由使用者自己選，不會自動下單
 function tradeAdviceRows_() {
   return Object.keys(TRADE_ITEMS).map(name => {
-    try {
-      const s = tradeSignal_(TRADE_ITEMS[name]);
-      return { name: name, dir: s.dir || '', err: s.dir ? '' : s.text };
-    } catch (err) {
-      return { name: name, dir: '', err: String((err && err.message) || err).slice(0, 120) };
-    }
+    const d = tradeDirOf_(TRADE_ITEMS[name]);
+    return { name: name, dir: d.dir, err: d.err };
   });
 }
 
