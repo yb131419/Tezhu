@@ -1203,7 +1203,6 @@ document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
  if(b.dataset.chat!==undefined){closeT();send(b.dataset.chat);return;}
  if(b.dataset.remind!==undefined){openRemind();return;}
  if(b.dataset.shen!==undefined){closeT();window.open('https://yb131419.github.io/Tezhu/ShenScripts.html','_blank');return;}
- if(b.dataset.shen!==undefined){closeT();window.open('https://yb131419.github.io/Tezhu/ShenScripts.html','_blank');return;}
  if(b.dataset.ticket!==undefined){openTicket();return;}
  webAsk(b.dataset.t,b.dataset.title);});
 $('sadd').onclick=()=>sOpenForm(null);
