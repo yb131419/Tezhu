@@ -2499,7 +2499,7 @@ function xtrSend(side){if(!XT.p)return;const out=document.getElementById('xtrOut
 
 <script>
 /* 對話引擎（併入自原本的 Talk.html）*/
-const TOPEN=/[?&]open=chat(?:&|$)/.test(location.search)||/^#(sched|menu)$/.test(location.hash);
+const TOPEN=/[?&](open=chat|u=)/.test(location.search)||/^#(sched|menu)$/.test(location.hash);
 let KEY='',TURL='';const $=id=>document.getElementById(id);
 // 設定記在這支手機（localStorage），網址列不會出現密碼；小乖主頁（Assistant.html）設過同步的話直接沿用
 try{const c=JSON.parse(localStorage.getItem('xg_talk')||'{}');KEY=c.key||'';TURL=c.url||'';
@@ -3164,7 +3164,7 @@ $('slist').onclick=e=>{const b=e.target.closest('[data-id]');if(!b)return;
  const ev=sEvents.find(x=>x.id===b.dataset.id);if(ev)sOpenForm(ev);};
 $('sched').onclick=e=>{if(e.target.id==='sched')closeSched();};
 $('sform').onclick=e=>{if(e.target.id==='sform')sCloseForm();};
-if(TOPEN)openView('chat');
+if(TOPEN){openView('chat');history.replaceState(null,'',location.pathname+(/^#(sched|menu)$/.test(location.hash)?location.hash:''));}
 if(location.hash==='#sched')openSched();
 try{fetch('shen-latest.json',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.latest)$('shenSub').textContent='最新：'+d.latest+'（'+d.updated+' 更新）';}).catch(()=>{});}catch(e){}
 if(location.hash==='#menu')openT();
