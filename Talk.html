@@ -391,7 +391,87 @@ html[data-theme=dark] .rp-lb{color:#C9B894;}
 .rp-btn.pri{flex:1 1 100%;background:linear-gradient(160deg,#D9B66E,#B8893A);color:#1A150D;border-color:transparent;font-weight:700;}
 .rp-err .rp-cm{color:#E0613B;opacity:1;}
 @media (max-width:380px){.rp-btn{flex:1 1 100%;}}
-</style></head><body>
+/* 快速下單（2026-11-18 依預覽樣式）：三段商品切換、精品卡片、費波那契階梯、EMA 進出場、買賣按鈕 */
+#tres .qseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px;border-radius:999px;border:1px solid var(--line);margin:0 0 14px}
+#tres .qseg button{height:42px;border:0;border-radius:999px;background:transparent;color:var(--gold);font:600 15px var(--serif);letter-spacing:2px}
+#tres .qseg button.on{background:var(--champ);color:#1A150D;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 22px -12px rgba(201,165,106,.7)}
+#tres .qnote{font-size:13px;color:var(--soft);text-align:center;line-height:1.7;margin:10px 0}
+#tres .qcard{margin-bottom:12px;padding:16px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.02);box-shadow:inset 0 1px 0 rgba(241,223,180,.08)}
+#tres .qhero{text-align:center;padding:14px 16px}
+#tres .qlb{font-size:13px;color:var(--soft);letter-spacing:2px}
+#tres .qpx{font:600 42px/1.1 var(--num);letter-spacing:1px;margin-top:4px;color:var(--ink);font-variant-numeric:tabular-nums}
+#tres .qsec{font-family:var(--serif);font-size:15px;letter-spacing:2px;color:var(--gold);margin-bottom:10px}
+#tres .qsub,#tres .qhl{font-size:12px;color:var(--soft);margin-top:6px}
+#tres .qlad{display:grid;gap:6px}
+#tres .qlv{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;height:34px;padding:0 12px;border-radius:12px;border:1px solid var(--line);font-variant-numeric:tabular-nums}
+#tres .qr{font:600 13px var(--num);color:var(--soft);letter-spacing:1px}
+#tres .qv{font:600 16px var(--num);color:var(--ink)}
+#tres .qd{font-size:12px;color:var(--soft)}
+#tres .qlv.near{border-color:rgba(220,195,148,.6);background:linear-gradient(90deg,rgba(241,223,180,.14),rgba(241,223,180,.02))}
+#tres .qlv.near .qr{color:var(--gold)}
+#tres .qpxl{display:flex;align-items:center;gap:10px;margin:2px 0}
+#tres .qpxt{font:700 13px var(--num);letter-spacing:1px;color:#1A150D;background:var(--champ);border-radius:999px;padding:3px 12px;flex:0 0 auto}
+#tres .qpxl:before{content:"";flex:1;height:2px;background:var(--champ);border-radius:2px}
+#tres .qpxl:after{content:"";flex:1;height:2px;background:var(--champ);border-radius:2px;opacity:.35}
+#tres .qemas{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#tres .qem{border:1px solid var(--line);border-radius:14px;padding:8px 2px;text-align:center}
+#tres .qp{font:600 11px var(--num);color:var(--soft);letter-spacing:.3px}
+#tres .qev{font:600 13px var(--num);margin-top:2px;font-variant-numeric:tabular-nums}
+#tres .qem.up .qev{color:var(--gold)}
+#tres .qem.dn .qev{color:var(--soft)}
+#tres .qrule{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:12px 14px;margin-top:8px;border-radius:16px;border:1px solid var(--line)}
+#tres .qk{font-family:var(--serif);font-size:13px;letter-spacing:1px;color:var(--gold);white-space:nowrap;padding-top:1px}
+#tres .qt{font-size:13px;line-height:1.6;color:var(--ink)}
+#tres .qst{display:inline-block;margin-top:4px;font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--line);color:var(--soft)}
+#tres .qst.on{color:#1A150D;background:var(--champ);border-color:transparent;font-weight:700}
+#tres .qqty{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;gap:8px;margin-bottom:12px}
+#tres .qqty button{height:50px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--gold);font-size:24px}
+#tres .qn{text-align:center;font:600 20px var(--num);color:var(--ink)}
+#tres .qpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+#tres .qpair button{width:100%;justify-self:stretch;display:block;margin:0}
+#tres .qpair button{height:auto;min-height:60px;border-radius:18px;font:700 17px var(--serif);letter-spacing:2px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:8px 6px}
+#tres .qpair .buy{background:var(--champ);color:#1A150D;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 16px 30px -14px rgba(201,165,106,.7)}
+#tres .qpair .sell{color:var(--gold)}
+#tres .qwarn{margin:0 0 12px;padding:12px 16px;border-radius:16px;border:1px solid rgba(220,195,148,.4);background:rgba(220,195,148,.06);font-size:13px;line-height:1.7;color:var(--ink);text-align:center}
+#tres .qwarn.qwarn-soft{border-color:var(--line);color:var(--soft);font-size:12px;margin-top:-4px}
+#tres .qsl{display:block;font:400 11px var(--num);letter-spacing:.3px;opacity:.8;margin-top:2px}
+</style><style id="menu-redesign">
+/* ===== ☰ 選單重新設計（預覽 2026-11-18）：黑曜石＋香檳金，分組卡片、圓形箭頭、列表式項目 ===== */
+#tmenu .box{display:block;height:auto;max-height:88vh;overflow-y:auto;overflow-x:hidden;padding:0 0 calc(18px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0;background:linear-gradient(180deg,#27221B 0%,#17140F 55%,#0F0D0A 100%);border:1px solid rgba(220,195,148,.24);box-shadow:0 -40px 90px -30px #000,inset 0 1px 0 rgba(241,223,180,.18);-webkit-overflow-scrolling:touch}
+#tmenu .box::before{content:"";display:block;width:44px;height:4px;border-radius:4px;background:rgba(220,195,148,.38);margin:10px auto 0}
+#tmenu .sh{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;margin:0;padding:12px 20px 14px;background:#1B1712;border-bottom:1px solid rgba(220,195,148,.16)}
+#tmenu .sh b{font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:6px;background:var(--champ);-webkit-background-clip:text;background-clip:text;color:transparent}
+#tmenu .sh .sx{width:40px;height:40px;border-radius:50%;border:1px solid rgba(220,195,148,.35);background:transparent;color:#DCC394;font-size:22px;line-height:1}
+#tmenu .mgrp{margin:12px 14px 0;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));border:1px solid rgba(220,195,148,.16);box-shadow:inset 0 1px 0 rgba(241,223,180,.06);overflow:hidden}
+#tmenu .mgrp:first-of-type{margin-top:16px}
+#tmenu .mgh{display:flex;align-items:center;justify-content:space-between;padding:15px 16px 15px 18px;margin:0;font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:1.5px;color:#F1DFB4;border-bottom:1px solid transparent;list-style:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+#tmenu .mgrp[open] .mgh{border-bottom-color:rgba(220,195,148,.16)}
+#tmenu .mgh i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid rgba(220,195,148,.35);color:#C9A56A;font-style:normal;font-size:12px;transition:transform .25s}
+#tmenu .mgrp[open] .mgh i{transform:rotate(180deg)}
+#tmenu .tbtn{display:flex;flex-direction:column;justify-content:center;position:relative;width:100%;min-height:0;height:auto;margin:0;padding:15px 52px 15px 18px;border:0;border-top:1px solid rgba(220,195,148,.10);border-radius:0;background:transparent;box-shadow:none;color:#F3EEE5;font-family:-apple-system,"PingFang TC",sans-serif;font-size:17px;font-weight:600;line-height:1.35;letter-spacing:.4px;text-align:left;transition:background .2s}
+#tmenu .tbtn:first-of-type{border-top:0}
+#tmenu .tbtn::after{content:"›";position:absolute;right:20px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;border:1px solid rgba(220,195,148,.3);display:grid;place-items:center;color:#C9A56A;font-size:18px;line-height:1;padding-bottom:2px;box-sizing:border-box}
+#tmenu .tbtn small{display:block;margin-top:5px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;font-weight:400;line-height:1.55;letter-spacing:.2px;color:rgba(243,238,229,.56)}
+#tmenu .tbtn:active{background:rgba(201,165,106,.13)}
+#tmenu .mgrp>p{margin:0;padding:14px 18px 16px;border-top:1px solid rgba(220,195,148,.10);color:rgba(243,238,229,.6)!important}
+@media (max-width:360px){#tmenu .tbtn{font-size:16px;padding:14px 46px 14px 14px}#tmenu .mgh{font-size:18px}}
+/* 淺色系列 */
+html[data-theme=light] #tmenu .box{background:linear-gradient(180deg,#FFFDF8 0%,#F5EEDF 100%);border-color:rgba(120,92,48,.2);box-shadow:0 -30px 70px -30px rgba(90,64,28,.35),inset 0 1px 0 #fff}
+html[data-theme=light] #tmenu .box::before{background:rgba(138,106,55,.35)}
+html[data-theme=light] #tmenu .sh{background:#FBF7EE;border-bottom-color:rgba(120,92,48,.16)}
+html[data-theme=light] #tmenu .sh b{background:linear-gradient(135deg,#7A5A2A 0%,#B08A4E 50%,#7A5A2A 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+html[data-theme=light] #tmenu .sh .sx{border-color:rgba(138,106,55,.4);color:#8A6A37}
+html[data-theme=light] #tmenu .mgrp{background:#FFFDF8;border-color:rgba(120,92,48,.16);box-shadow:0 10px 24px -20px rgba(90,64,28,.5)}
+html[data-theme=light] #tmenu .mgh{color:#6E5020}
+html[data-theme=light] #tmenu .mgh i{color:#8A6A37;border-color:rgba(138,106,55,.4)}
+html[data-theme=light] #tmenu .mgrp[open] .mgh{border-bottom-color:rgba(120,92,48,.14)}
+html[data-theme=light] #tmenu .tbtn{color:#2A2118;background:transparent;border-top-color:rgba(120,92,48,.12)}
+html[data-theme=light] #tmenu .tbtn::after{color:#8A6A37;border-color:rgba(138,106,55,.4)}
+html[data-theme=light] #tmenu .tbtn small{color:rgba(42,33,24,.6)}
+html[data-theme=light] #tmenu .tbtn:active{background:rgba(201,165,106,.16)}
+html[data-theme=light] #tmenu .mgrp>p{border-top-color:rgba(120,92,48,.12);color:rgba(42,33,24,.6)!important}
+</style>
+</head><body>
 <header><b><img class="av" src="xiaoguai.jpg" alt="特助小乖"><span>彥彬｜特助小乖</span></b><button id="ham" type="button" title="選單" aria-label="選單" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div id="chips"></div>
 <div id="log"><div class="m xg hello">嗨，我是小乖！按金色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
@@ -459,7 +539,7 @@ html[data-theme=dark] .rp-lb{color:#C9B894;}
 <p>💡 不想另外做捷徑也可以：說「嘿 小乖」，再說「寫文案」或「寫一篇火山草本的文案」，智囊軍師就會寫好，文案和圖卡傳到 Telegram（沒說主題就由軍師判定）。</p>
 <p>⚠️ 語音口令不要用「嘿 小乖」開頭：手機一聽到「嘿 小乖」就先跑「小乖」那個捷徑，後面的「試算」「寫文案」就被吃掉了。也可以直接說「嘿 Siri，小乖寫文案」，不用另外設口令。</p>
 <button class="x" id="vsx" type="button">關閉</button></div></div>
-<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-ticket="1">⚡ 下單<small>選商品、數量與買賣，同一畫面看提案，確認後才送出</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📊 查看持倉" data-title="💰 獲利查詢">💰 獲利查詢<small>持倉的開倉成本、未實現損益，與停損停利碰到的損益，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button><button type="button" class="tbtn" data-remind="1">🔔 適合交易提醒<small>看提醒狀態，點確認只做記錄，不會送出下單</small></button></details><details class="mgrp"><summary class="mgh">📜 神對話<i>▾</i></summary><button type="button" class="tbtn" data-shen="1" id="shenBtn">📜 神對話劇本<small id="shenSub">最新劇本，點一下在網頁開啟</small></button></details><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">📺 YT頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button><button type="button" class="tbtn" data-t="🧪 頻道診斷">🧪 頻道診斷<small>檢查分析數據為什麼沒有出來，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="⏰ 每日更新">⏰ 每日更新<small>每天早上自動更新，按一下看狀態與切換</small></button><button type="button" class="tbtn" data-t="📺 頻道管理">📺 頻道管理<small>改標題、改說明、查數據與還原，都先預覽再確認</small></button><button type="button" class="tbtn" data-t="✏️ 更改全部標題和說明">✏️ 更改全部標題和說明<small>標題與說明一起改，先看預覽，按確認才會改</small></button><button type="button" class="tbtn" data-t="🏷️ 只改標題">🏷️ 只改標題<small>只改影片標題，說明保持不變</small></button><button type="button" class="tbtn" data-t="📝 只改說明">📝 只改說明<small>只改影片說明，標題保持不變</small></button><button type="button" class="tbtn" data-t="🔖 只改標記">🔖 只改標記<small>只改影片標記（搜尋關鍵字），標題與說明保持不變</small></button><button type="button" class="tbtn" data-t="↩️ 還原標題">↩️ 還原標題<small>把最近一次的改動寫回去</small></button></details><details class="mgrp"><summary class="mgh">🎙️ 語音<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 說「今天行程」<small>說「今天行程」或「明天有什麼行程」，也能點這裡在網頁看</small></button><button type="button" class="tbtn" data-web="add">➕ 說「幫我記…」<small>說「幫我記明天下午三點開會」，小乖會記進行程（點這裡改用表單）</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 說「查看持倉」<small>語音只會打開卡片與查詢，買賣仍要在卡片按鈕上按</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 說「查詢案例 ○○」<small>點一下帶入輸入列，接著打關鍵字送出，也能直接講</small></button><p style="margin:12px 4px 4px;font-size:15px;line-height:1.7;color:var(--soft)">說「打開 LINE／Telegram／YouTube／IG／FB」直接開 App；說「導航到 ○○」開地圖；說「打電話給 ○○」撥號。</p></details><details class="mgrp"><summary class="mgh">📨 回覆<i>▾</i></summary><button type="button" class="tbtn" data-chat="📨 回覆留言">📨 回覆留言<small>貼上別人的留言，照神對話的角度寫一段溫和的回覆，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-rp-img="1">📷 上傳截圖回覆<small>選一張留言的截圖，小乖讀出留言後照同樣的角度寫回覆</small></button><button type="button" class="tbtn" data-chat="🔎 Threads 搜尋">🔎 Threads 搜尋<small>搜別人的公開貼文，列出前 10 則（需 Meta 審核通過）</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="🧘 修行">🧘 修行<small>選主題，寫一篇修行文案，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="✍️ 貼文案改寫">✍️ 貼文案改寫<small>貼上一段文案，選主題照模板改寫成貼文與圖卡</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📕 7張＋PDF">📕 7張＋PDF<small>選主題，做成 7 張輪播圖卡與 PDF（約 1～2 分鐘）</small></button><button type="button" class="tbtn" data-t="👤 設定主角">👤 設定主角<small>短劇主角，一步步設定</small></button><button type="button" class="tbtn" data-t="👤 設定第二主角">👤 設定第二主角<small>短劇第二位主角（一男一女）</small></button><button type="button" class="tbtn" data-t="⚙️ 圖卡設定">⚙️ 圖卡設定<small>圖卡署名與文案標題</small></button><button type="button" class="tbtn" data-t="🕗 自動發文開關">🕗 自動發文<small>每天晚上自動發智囊軍師圖卡，按一下開啟或關閉</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button><button type="button" class="tbtn" data-t="🔎 見證庫">🔎 見證庫<small>網頁找見證，一鍵分享</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
+<div id="tmenu"><div class="box"><div class="sh"><b>☰ 選單</b><div class="sr"><button id="tmx" type="button" class="sx" aria-label="關閉">×</button></div></div><details class="mgrp"><summary class="mgh">🐾 小乖<i>▾</i></summary><button type="button" class="tbtn" data-t="❓ 說明">❓ 說明<small>小乖能做什麼、怎麼用，結果只在網頁顯示</small></button></details><details class="mgrp"><summary class="mgh">📜 神對話<i>▾</i></summary><button type="button" class="tbtn" data-shen="1" id="shenBtn">📜 神對話劇本<small id="shenSub">最新劇本，點一下在網頁開啟</small></button></details><details class="mgrp"><summary class="mgh">📅 行程<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 查看行程<small>接下來與過去的行程，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-web="add">➕ 新增行程<small>填名稱、日期與時間</small></button><button type="button" class="tbtn" data-web="paste">📋 貼上行程<small>一次貼多行，先預覽勾選再儲存</small></button></details><details class="mgrp"><summary class="mgh">📈 交易<i>▾</i></summary><button type="button" class="tbtn" data-ticket="1">⚡ 下單<small>選商品、數量與買賣，同一畫面看提案，確認後才送出</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button><button type="button" class="tbtn" data-t="📊 查看持倉" data-title="💰 獲利查詢">💰 獲利查詢<small>持倉的開倉成本、未實現損益，與停損停利碰到的損益，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📉 平倉">📉 平倉<small>先看平倉提案，確認後才平倉</small></button><button type="button" class="tbtn" data-t="📜 下單紀錄">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button><button type="button" class="tbtn" data-t="🔔 交易提醒">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button><button type="button" class="tbtn" data-remind="1">🔔 適合交易提醒<small>看提醒狀態，點確認只做記錄，不會送出下單</small></button></details><details class="mgrp"><summary class="mgh">📺 YT頻道<i>▾</i></summary><button type="button" class="tbtn" data-t="📺 頻道數據">📺 頻道數據<small>訂閱、觀看與最近影片，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="💡 改善建議">💡 改善建議<small>依頻道數據給出改善方向</small></button><button type="button" class="tbtn" data-t="🧪 頻道診斷">🧪 頻道診斷<small>檢查分析數據為什麼沒有出來，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="⏰ 每日更新">⏰ 每日更新<small>每天早上自動更新，按一下看狀態與切換</small></button><button type="button" class="tbtn" data-t="📺 頻道管理">📺 頻道管理<small>改標題、改說明、查數據與還原，都先預覽再確認</small></button><button type="button" class="tbtn" data-t="✏️ 更改全部標題和說明">✏️ 更改全部標題和說明<small>標題與說明一起改，先看預覽，按確認才會改</small></button><button type="button" class="tbtn" data-t="🏷️ 只改標題">🏷️ 只改標題<small>只改影片標題，說明保持不變</small></button><button type="button" class="tbtn" data-t="📝 只改說明">📝 只改說明<small>只改影片說明，標題保持不變</small></button><button type="button" class="tbtn" data-t="🔖 只改標記">🔖 只改標記<small>只改影片標記（搜尋關鍵字），標題與說明保持不變</small></button><button type="button" class="tbtn" data-t="↩️ 還原標題">↩️ 還原標題<small>把最近一次的改動寫回去</small></button></details><details class="mgrp"><summary class="mgh">🎙️ 語音<i>▾</i></summary><button type="button" class="tbtn" data-web="sched">📅 說「今天行程」<small>說「今天行程」或「明天有什麼行程」，也能點這裡在網頁看</small></button><button type="button" class="tbtn" data-web="add">➕ 說「幫我記…」<small>說「幫我記明天下午三點開會」，小乖會記進行程（點這裡改用表單）</small></button><button type="button" class="tbtn" data-t="📊 查看持倉">📊 說「查看持倉」<small>語音只會打開卡片與查詢，買賣仍要在卡片按鈕上按</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 說「查詢案例 ○○」<small>點一下帶入輸入列，接著打關鍵字送出，也能直接講</small></button><p style="margin:12px 4px 4px;font-size:15px;line-height:1.7;color:var(--soft)">說「打開 LINE／Telegram／YouTube／IG／FB」直接開 App；說「導航到 ○○」開地圖；說「打電話給 ○○」撥號。</p></details><details class="mgrp"><summary class="mgh">📜 劇本<i>▾</i></summary><button type="button" class="tbtn" data-f="新增神對話劇本：主題是 ">🎬 新增劇本<small>點一下帶入輸入列，接著打上這一集的主題送出，小乖照神對話的寫法草擬</small></button><button type="button" class="tbtn" data-web="shen">📜 劇本全集<small>看全部神對話劇本（點檔名展開、一鍵複製）</small></button></details><details class="mgrp"><summary class="mgh">📨 回覆<i>▾</i></summary><button type="button" class="tbtn" data-chat="📨 回覆留言">📨 回覆留言<small>貼上別人的留言，照神對話的角度寫一段溫和的回覆，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-rp-img="1">📷 上傳截圖回覆<small>選一張留言的截圖，小乖讀出留言後照同樣的角度寫回覆</small></button><button type="button" class="tbtn" data-chat="🔎 Threads 搜尋">🔎 Threads 搜尋<small>搜別人的公開貼文，列出前 10 則（需 Meta 審核通過）</small></button></details><details class="mgrp"><summary class="mgh">🪶 軍師<i>▾</i></summary><button type="button" class="tbtn" data-f="智囊軍師 ">🪶 智囊軍師<small>點一下帶入輸入列，接著打問題送出</small></button><button type="button" class="tbtn" data-t="🧘 修行">🧘 修行<small>選主題，寫一篇修行文案，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="✍️ 貼文案改寫">✍️ 貼文案改寫<small>貼上一段文案，選主題照模板改寫成貼文與圖卡</small></button><button type="button" class="tbtn" data-t="💬 自動留言">💬 自動留言<small>按一下開啟或關閉，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="📕 7張＋PDF">📕 7張＋PDF<small>選主題，做成 7 張輪播圖卡與 PDF（約 1～2 分鐘）</small></button><button type="button" class="tbtn" data-t="👤 設定主角">👤 設定主角<small>短劇主角，一步步設定</small></button><button type="button" class="tbtn" data-t="👤 設定第二主角">👤 設定第二主角<small>短劇第二位主角（一男一女）</small></button><button type="button" class="tbtn" data-t="⚙️ 圖卡設定">⚙️ 圖卡設定<small>圖卡署名與文案標題</small></button><button type="button" class="tbtn" data-t="🕗 自動發文開關">🕗 自動發文<small>每天晚上自動發智囊軍師圖卡，按一下開啟或關閉</small></button></details><details class="mgrp"><summary class="mgh">💬 見證<i>▾</i></summary><button type="button" class="tbtn" data-t="💬 見證案例">💬 見證案例<small>看見證與分類，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-t="🗂️ 案例分類">🗂️ 案例分類<small>全部分類一覽</small></button><button type="button" class="tbtn" data-f="查詢案例 ">🔍 查詢案例<small>點一下帶入輸入列，接著打關鍵字送出</small></button><button type="button" class="tbtn" data-t="🔎 見證庫">🔎 見證庫<small>網頁找見證，一鍵分享</small></button></details><details class="mgrp"><summary class="mgh">📋 試算<i>▾</i></summary><button type="button" class="tbtn" data-cam="1">📋 傳明細表照片<small>選照片後，小乖會算出金額與 PV（結果在對話串）</small></button></details><details class="mgrp"><summary class="mgh">🔍 搜尋<i>▾</i></summary><button type="button" class="tbtn" data-t="📁 本機找">📁 本機找<small>存過的資料，結果只在網頁顯示</small></button><button type="button" class="tbtn" data-f="上網找 ">🌐 上網找<small>點一下帶入輸入列，接著打要找的內容送出</small></button></details><details class="mgrp"><summary class="mgh">⚙ 設定<i>▾</i></summary><button type="button" class="tbtn" data-web="set">🔗 連線與同步<small>小乖網址、同步密碼</small></button><button type="button" class="tbtn" data-web="set">🔊 聲音<small>念出來、真人語音、連續對話</small></button><button type="button" class="tbtn" data-web="theme">☀︎ 外觀<small>白色／黑色系列切換</small></button></details></div></div>
 <div id="tres"><div class="box"><div class="sh"><b id="trt">📈 小乖</b><div class="sr"><button id="trx" type="button" class="sx" aria-label="關閉">×</button></div></div><div id="trbtn"></div><div id="trb"></div></div></div>
 <div id="sched"><div class="box">
  <div class="sh"><b>📅 行程</b><div class="sr"><button id="sSel" type="button" class="stxt">選取</button><button id="schedx" type="button" class="sx" aria-label="關閉">×</button></div></div>
@@ -1008,18 +1088,72 @@ function chanGrid(bs){
   bs.appendChild(mk('🔗 開啟頻道',true,false,null,'https://www.youtube.com/channel/UCE4E-lnj5eEvFy2l-Ut-NHQ'));
 }
 function webAsk(q,title){const bx=$('trb'),bs=$('trbtn');$('trt').textContent=title||q;bx.textContent='小乖想一下…';bs.innerHTML='';$('tres').style.display='flex';P({action:'talk',key:KEY,ask:q,image:'',voice:false,audio:'',audioType:''},120000).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}bx.textContent='';chanRender(bx,r.show||r.say,q,title);if(/頻道數據/.test(q))chanGrid(bs);else{bs.style.display='';bs.style.gridTemplateColumns='';bs.style.gap='';(r.buttons||[]).forEach(l=>{const b=document.createElement('button');b.type='button';b.className='tbtn';b.textContent=l;b.onclick=()=>webAsk(l);bs.appendChild(b);});}}).catch(e=>{const slow=e.name==='AbortError'||/Load failed|aborted/i.test(e.message);bx.textContent=slow?'小乖這次想太久了（頻道改善建議要查 YouTube 再請 AI 寫，通常要半分鐘以上），請再按一次。':'連線有問題，請再試一次（'+e.message+'）';});}
-// 快速下單（一個畫面）：選商品、按買進或賣出就直接要提案，提案的「確認下單」按鈕照舊才會送出，不另外經過選單
-const TKT={p:'',n:1};
-function openTicket(){$('trt').textContent='⚡ 快速下單';$('trbtn').innerHTML='';$('tres').style.display='flex';tktDraw('選商品與數量，再按買進或賣出，會先出提案，確認後才送出。');}
-function tktDraw(msg){const bx=$('trb');bx.innerHTML='';
- const row=c=>{const d=document.createElement('div');d.className=c;bx.appendChild(d);return d;};
- const r1=row('tkr');['黃金','原油','納指'].forEach(n=>{const b=document.createElement('button');b.type='button';b.className='tkc'+(TKT.p===n?' on':'');b.textContent=n;b.onclick=()=>{TKT.p=n;tktDraw(msg);};r1.appendChild(b);});
- const r2=row('tkr');const nb=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=f;return b;};
- const num=document.createElement('div');num.className='tkn';
- num.appendChild(nb('−',()=>{if(TKT.n>1){TKT.n--;tktDraw(msg);}}));const v=document.createElement('span');v.textContent=TKT.n+' 單位';num.appendChild(v);num.appendChild(nb('＋',()=>{if(TKT.n<5){TKT.n++;tktDraw(msg);}}));r2.appendChild(num);
- const r3=row('tkr');[['buy','📈 買進'],['sell','📉 賣出']].forEach(a=>{const b=document.createElement('button');b.type='button';b.className='tkb '+a[0];b.textContent=a[1];b.disabled=!TKT.p;b.onclick=()=>tktSend(a[0]);r3.appendChild(b);});
- const note=document.createElement('div');note.className='tline';note.textContent=TKT.p?TKT.p+'，數量 '+TKT.n+'：'+(msg||''):(msg||'');bx.appendChild(note);
- const out=row('tktout');out.id='tktout';}
+// 快速下單（2026-11-18 依預覽重做）：選商品後先讀看盤（唯讀：現價、費波那契、EMA 進出場），再按買進或賣出出提案；提案的確認按鈕照舊，買賣只能按按鈕
+const TKT={p:'',n:1,look:null};
+function openTicket(){$('trt').textContent='⚡ 快速下單';$('trbtn').innerHTML='';$('tres').style.display='flex';TKT.look=null;tktDraw();if(TKT.p)tktLoad();}
+function tktParse(text){const o={raw:String(text||''),price:'',hi:'',lo:'',fib:[],ema:[],buySl:'',sellSl:'',entry:'',exit:''};
+ o.raw.split('\n').map(s=>s.trim()).forEach(t=>{let m;
+  if(!o.price&&(m=t.match(/^現價：(\S+)/)))o.price=m[1];
+  else if((m=t.match(/^・(\d\.\d+)：(\S+)$/)))o.fib.push([m[1],m[2]]);
+  else if((m=t.match(/高 (\d+(?:\.\d+)?)、低 (\d+(?:\.\d+)?)/)))o.hi=m[1],o.lo=m[2];
+  else if((m=t.match(/^EMA(\d+)：(\S+)$/)))o.ema.push([m[1],m[2]]);
+  else if((m=t.match(/^買進停損：(.+)$/)))o.buySl=m[1];
+  else if((m=t.match(/^賣出停損：(.+)$/)))o.sellSl=m[1];
+  else if(/IG 歷史資料額度用完/.test(t))o.stale=t;
+  else if(/模式：/.test(t)){o.entry=t.replace(/^.*模式：/,'').replace(/（出場參考.*$/,'');const x=t.match(/出場參考：([^）]+)/);if(x)o.exit=x[1];}});
+ return o;}
+function tktEl(p,cls,text){const d=document.createElement('div');if(cls)d.className=cls;if(text!==undefined)d.textContent=text;p.appendChild(d);return d;}
+function tktDraw(){const bx=$('trb');bx.innerHTML='';$('trbtn').innerHTML='';
+ const seg=tktEl(bx,'qseg');
+ ['黃金','原油','納指'].forEach(n=>{const b=document.createElement('button');b.type='button';b.textContent=n;if(TKT.p===n)b.className='on';b.onclick=()=>{TKT.p=n;TKT.look=null;tktDraw();tktLoad();};seg.appendChild(b);});
+ const body=tktEl(bx,'qbody');
+ if(!TKT.p)tktEl(body,'qnote','請先選商品，會顯示現價、費波那契與 EMA 進出場。');
+ else if(TKT.look)tktCards(body,TKT.look);
+ else tktEl(body,'qnote','小乖讀取看盤中…');
+ tktEl(bx,'',undefined).id='tktout';}
+function tktLoad(){const p=TKT.p;if(!p)return;
+ P({action:'talk',key:KEY,ask:'看盤'+p,image:'',voice:false,audio:'',audioType:''}).then(r=>{
+  if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}
+  if(TKT.p!==p)return;
+  TKT.look=tktParse(r.show||r.say);tktDraw();
+ }).catch(e=>{if(TKT.p!==p)return;const body=document.querySelector('#trb .qbody');if(body){body.innerHTML='';tktEl(body,'qnote','連線有問題，請再試一次（'+e.message+'）');}});}
+function tktCards(body,o){body.innerHTML='';
+ if(!o.price){tktEl(body,'qwarn',o.raw||'看盤資料取不到');return;}
+ if(o.stale)tktEl(body,'qwarn qwarn-soft',o.stale);
+ const px=Number(o.price);
+ // 現價
+ let c=tktEl(body,'qcard qhero');tktEl(c,'qlb',TKT.p+' 現價');tktEl(c,'qpx',o.price);
+ // 費波那契階梯（高到低），現價插在正確位置，最近的一檔標示
+ c=tktEl(body,'qcard');tktEl(c,'qsec','費波那契回檔');tktEl(c,'qsub','自動抓 4 小時線近 30 根已收盤 K 線的高低點');
+ let near=-1,best=Infinity;o.fib.forEach((f,i)=>{const d=Math.abs(Number(f[1])-px);if(d<best){best=d;near=i;}});
+ const lad=tktEl(c,'qlad');let pxDone=false;
+ o.fib.forEach((f,i)=>{
+  if(!pxDone&&Number(f[1])<px){tktEl(tktEl(lad,'qpxl'),'qpxt','現價');pxDone=true;}
+  const r=tktEl(lad,'qlv'+(i===near?' near':''));tktEl(r,'qr',f[0]);tktEl(r,'qv',f[1]);tktEl(r,'qd',i===near?'最近':(Number(f[1])>px?'上方':'下方'));});
+ if(!pxDone)tktEl(tktEl(lad,'qpxl'),'qpxt','現價');
+ if(o.hi)tktEl(c,'qhl','高點 '+o.hi+'　低點 '+o.lo);
+ // EMA 與進出場
+ c=tktEl(body,'qcard');tktEl(c,'qsec','EMA 進場與出場');
+ const eg=tktEl(c,'qemas');o.ema.forEach(e=>{const d=tktEl(eg,'qem '+(Number(e[1])<px?'up':'dn'));tktEl(d,'qp','EMA'+e[0]);tktEl(d,'qev',e[1]);});
+ const entryOn=/進場點/.test(o.entry);
+ const r1=tktEl(c,'qrule');tktEl(r1,'qk','進場點');
+ const t1=tktEl(r1,'qt');tktEl(t1,'','做多：EMA6 上穿 EMA21，且現價在 EMA200 之上；做空相反');
+ tktEl(t1,'qst'+(entryOn?' on':''),entryOn?o.entry:'目前無新進場訊號');
+ const r2=tktEl(c,'qrule');tktEl(r2,'qk','出場點');
+ const t2=tktEl(r2,'qt');tktEl(t2,'','出場參考：EMA6 下穿 EMA12（做空則上穿）');
+ tktEl(t2,'qst'+(o.exit?' on':''),o.exit?'已出現：'+o.exit:'尚未出現');
+ // 下單（數量、按鈕；提案的確認仍在提案卡片上按）
+ c=tktEl(body,'qcard');tktEl(c,'qsec','下單');
+ const q=tktEl(c,'qqty');
+ const bt=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=f;return b;};
+ q.appendChild(bt('−',()=>{if(TKT.n>1){TKT.n--;tktDraw();}}));
+ tktEl(q,'qn',TKT.n+' 單位');
+ q.appendChild(bt('＋',()=>{if(TKT.n<5){TKT.n++;tktDraw();}}));
+ const pair=tktEl(c,'qpair');
+ const buy=bt('買進',()=>tktSend('buy'));buy.className='buy';const bs=tktEl(buy,'qsl',o.buySl?'停損 '+o.buySl.replace(/ ／.*/,'')+' ／ 停利 '+o.buySl.replace(/.*停利：/,''):'');pair.appendChild(buy);
+ const sell=bt('賣出',()=>tktSend('sell'));sell.className='sell';tktEl(sell,'qsl',o.sellSl?'停損 '+o.sellSl.replace(/ ／.*/,'')+' ／ 停利 '+o.sellSl.replace(/.*停利：/,''):'');pair.appendChild(sell);
+ tktEl(c,'qnote','買進與賣出只能按按鈕，按下後先出提案，確認後才送出。費波那契與 EMA 只是參考，不保證獲利。');
+}
 function tktSend(side){if(!TKT.p)return;const out=$('tktout');out.innerHTML='';out.textContent='小乖送出提案中…';
  P({action:'talk',key:KEY,ask:(side==='buy'?'買進':'賣出')+TKT.p+' '+TKT.n,image:'',voice:false,audio:'',audioType:''}).then(r=>{if(/同步密碼不對/.test(r.say)){closeWeb();login('同步密碼不對，請重新輸入');return;}
   out.innerHTML='';tradeView(out,r.show||r.say);(r.buttons||[]).forEach((l,i)=>{const b=document.createElement('button');b.type='button';b.className='tbtn'+(i===0?' main':'');b.textContent=l;b.onclick=()=>webAsk(l);out.appendChild(b);});})
@@ -1062,11 +1196,13 @@ document.querySelectorAll('#tmenu .tbtn').forEach(b=>b.onclick=()=>{
  if(w==='paste'){openSched();sOpenPaste();return;}
  if(w==='set'){setOpen();return;}
  if(w==='theme'){$('thm').click();return;}
+ if(w==='shen'){window.open('ShenScripts.html','_blank');return;}
  if(b.dataset.f!==undefined){$('q').value=b.dataset.f;kb('接著打上內容，按「傳送」');return;}
  if(b.dataset.cam!==undefined){$('q').value='試算';pickPhoto(false);return;}
  if(b.dataset.rpImg!==undefined){closeT();rpOpen();send('📷 上傳截圖');pickPhoto(false);return;}
  if(b.dataset.chat!==undefined){closeT();send(b.dataset.chat);return;}
  if(b.dataset.remind!==undefined){openRemind();return;}
+ if(b.dataset.shen!==undefined){closeT();window.open('https://yb131419.github.io/Tezhu/ShenScripts.html','_blank');return;}
  if(b.dataset.shen!==undefined){closeT();window.open('https://yb131419.github.io/Tezhu/ShenScripts.html','_blank');return;}
  if(b.dataset.ticket!==undefined){openTicket();return;}
  webAsk(b.dataset.t,b.dataset.title);});

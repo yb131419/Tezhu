@@ -22,12 +22,14 @@ let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
-const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無法取得趨勢，請稍後再試';
+const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），這個商品還沒有可用的快取，約 1 小時後會自動再試';
+function tradeIsQuota_(err) { return String(err && err.message || err).indexOf('額度已用完') >= 0; }
+const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回檔比例（與網路貼文截圖相同，0.191 非標準的 0.236）
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
+  return /^看盤(黃金|原油|納指)$/.test(s) || /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -42,6 +44,8 @@ function tradeAsk_(t) {
     if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     // 語音只能打開卡片、查詢；買進、賣出、平倉、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
     if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/.test(s) || /^(確認|確認下單|確認平倉|平倉)/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
+    const lk = s.match(/^看盤(黃金|原油|納指)$/);
+    if (lk) return tradeLookText_(lk[1]);
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
@@ -684,8 +688,23 @@ function tradeCandles_(it) {
   const key = 'K15_' + it.epic + '_' + Math.floor(Date.now() / 900000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
-  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
   const stored = tradeKlineState_(it);
+  if (cache.get('K15_QUOTA')) return tradeStaleK_(stored);
+  try {
+    return tradeCandlesFresh_(it, cache, key, stored);
+  } catch (err) {
+    if (tradeIsQuota_(err)) return tradeStaleK_(stored);   // 額度用完：改用上次成功的快取
+    throw err;
+  }
+}
+
+// 額度用完時：有上次成功的 K 線就用它（標示 stale，訊號不發送提醒）；沒有才丟錯
+function tradeStaleK_(stored) {
+  if (stored) return { closes: stored.closes, bar: stored.last, stale: true };
+  throw new Error(TRADE_QUOTA_MSG);
+}
+
+function tradeCandlesFresh_(it, cache, key, stored) {
   let state = null;
   if (stored) {
     const fresh = tradePrices_(it, 3);
@@ -747,19 +766,133 @@ function tradeSignal_(it) {
   tradeEpicCheck_(it);
   // 已收盤的 K 線（同一根 K 線期間只向 IG 要一次，見 tradeCandles_）；bar 是最後一根已收盤 K 線的時間，用來避免重複提醒
   const kl = tradeCandles_(it);
+  const note = kl.stale ? '（IG 歷史資料額度用完，EMA 用上次更新的快取，僅供參考，不發送提醒）\n' : '';
   const closes = kl.closes;
   const n = closes.length;
   const bar = kl.bar;
   if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
-  const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
-  const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
+  // 進出場模式：預設 classic（原本 EMA9／EMA21 交叉，行為不變）；設為 ema5 才改用 EMA 6、12、21、32、200（見 tradeEma5Rule_）
+  const ema5 = (prop_('TRADE_EMA_MODE') || 'ema5') === 'ema5' && n >= 200;   // 2026-11-18 起預設用 EMA 規則
+  const fast = ema5 ? tradeEma_(closes, 6) : tradeEma_(closes, 9);
+  const slow = tradeEma_(closes, 21);
+  const rule = ema5 ? tradeEma5Rule_(closes, closes[n - 1]) : null;   // ema5 模式的進場與出場
+  const cross = rule ? rule.signal : fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
     : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
   const trend = fast[n - 1] > slow[n - 1] ? '多頭' : '空頭';
-  const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
+  const dir = rule ? rule.dir : fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
   // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
   const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
-  return { signal: cross, bar: bar, dir: dir, text: 'EMA 趨勢：' + trend + (cross ? '（這根剛交叉）' : '') +
-    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') };
+  const fib = tradeFibText_(it, closes[n - 1]);   // 預設關閉，關閉時回傳空字串，文字與判斷都跟原本一樣
+  return { signal: kl.stale ? '' : cross, bar: bar, dir: dir, text: note + (rule ? rule.text + '\n' : '') + 'EMA 趨勢：' + trend + (cross && !rule ? '（這根剛交叉）' : '') +
+    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') + (fib ? '\n' + fib : '') };
+}
+
+// 看盤（唯讀）：現價、停損停利參考、費波那契、EMA 與進出場狀態；不產生提案、不下單（對話頁快速下單用）
+function tradeLookText_(name) {
+  const it = TRADE_ITEMS[name];
+  if (it.off) return it.off;
+  const price = tradeQuote_(it);
+  const dec = (v) => v.toFixed(it.prec);
+  let sig;
+  try { sig = tradeSignal_(it); } catch (err) { return '【' + tradeLabelOf_(name) + '】看盤取不到（' + (err && err.message || err) + '）'; }
+  return '【' + tradeLabelOf_(name) + '】\n' +
+    '現價：' + dec(price) + '\n' +
+    '買進停損：' + dec(price - it.sl * it.pip) + ' ／ 停利：' + dec(price + it.tp * it.pip) + '\n' +
+    '賣出停損：' + dec(price + it.sl * it.pip) + ' ／ 停利：' + dec(price - it.tp * it.pip) + '\n' +
+    sig.text + '\n（看盤只讀取，沒有產生提案，也不會下單）';
+}
+
+// 進出場（EMA 6、12、21、32、200）：prop TRADE_EMA_MODE 未設定或為 ema5 時使用（2026-11-18 起預設），設為 classic 才改回 EMA9／21
+// 進場：EMA6 向上穿過 EMA21 且收盤在 EMA200 之上做多；EMA6 向下穿過 EMA21 且收盤在 EMA200 之下做空
+// 出場參考：EMA6 與 EMA12 反向交叉（只顯示，不會自動平倉）
+function tradeEma5Rule_(closes, last) {
+  const n = closes.length;
+  const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e200 = tradeEma_(closes, 200);
+  const up = e6[n - 2] <= e21[n - 2] && e6[n - 1] > e21[n - 1];
+  const down = e6[n - 2] >= e21[n - 2] && e6[n - 1] < e21[n - 1];
+  const signal = up && last > e200[n - 1] ? 'buy' : down && last < e200[n - 1] ? 'sell' : '';
+  const exitSig = e6[n - 2] >= e12[n - 2] && e6[n - 1] < e12[n - 1] ? '（出場參考：EMA6 下穿 EMA12）'
+    : e6[n - 2] <= e12[n - 2] && e6[n - 1] > e12[n - 1] ? '（出場參考：EMA6 上穿 EMA12）' : '';
+  return { signal: signal, dir: e6[n - 1] > e21[n - 1] ? 'buy' : 'sell',
+    text: 'EMA 6／12／21／32／200 模式：' + (signal ? (signal === 'buy' ? '做多進場點' : '做空進場點') : '無進場訊號') + exitSig };
+}
+
+// 切換進出場模式（在編輯器執行）。預設 classic 不變；ema5 會改變提醒與下單建議的訊號，需先確認
+function tradeEma5On() { setProp_('TRADE_EMA_MODE', 'ema5'); console.log('進出場已改用 EMA 6、12、21、32、200'); }
+function tradeEma5Off() { setProp_('TRADE_EMA_MODE', 'classic'); console.log('進出場已改回 EMA 9／21 交叉（預設）'); }
+
+/* ---------- 費波那契回檔參考（預設關閉，只顯示參考，不影響交叉訊號、提醒或下單） ---------- */
+
+// 開啟：在編輯器執行 tradeFibOn()。需先用 tradeFibSet(高點, 低點) 設定波段高低點
+function tradeFibOn() { setProp_('TRADE_FIB', 'on'); console.log('費波那契參考已開啟（只顯示參考，不影響下單）'); }
+
+// 關閉：在編輯器執行 tradeFibOff()。關閉後完全不顯示費波那契文字
+function tradeFibOff() { setProp_('TRADE_FIB', 'off'); console.log('費波那契參考已關閉'); }
+
+// 預設一律用 4 小時線自動算出的目前高低點（參考 IG 最近 30 根已收盤 4 小時 K 線的高低點，例如納斯達克100）。
+// 手動值只在明確帶入兩個數字時才會用：tradeFibSet(高, 低)。在編輯器的「執行」按鈕不會帶參數，所以那裡執行 tradeFibSet 或 tradeFibAuto 都是清除手動值、改回自動。
+function tradeFibSet(hi, lo) {
+  if (hi === undefined && lo === undefined) { tradeFibAuto(); return; }   // 不帶參數 = 清除手動值，改回自動
+  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（收到的高 ' + hi + '、低 ' + lo + '）');
+  setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
+  setProp_('TRADE_FIB_SRC', 'manual');
+  console.log('費波那契高低點已手動設定：高 ' + Number(hi) + '，低 ' + Number(lo));
+}
+
+// 清除手動值，改回用 4 小時線自動計算（預設）。在編輯器執行即可
+function tradeFibAuto() {
+  PropertiesService.getScriptProperties().deleteProperty('TRADE_FIB_HL');
+  setProp_('TRADE_FIB_SRC', 'auto');
+  console.log('費波那契高低點改用 4 小時線自動計算（已清除手動值）');
+}
+
+// 取最近 TRADE_FIB_BARS_4H 根已收盤 4 小時 K 線的最高價與最低價（中間價），每小時最多向 IG 要一次
+const TRADE_FIB_BARS_4H = 30;   // 約 5 天的 4 小時線
+function tradeFib4h_(it) {
+  const cache = CacheService.getScriptCache();
+  const key = 'H4_' + it.epic + '_' + Math.floor(Date.now() / 3600000);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  const h4Key = 'H4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
+  const saved = () => { const v = JSON.parse(prop_(h4Key) || 'null'); if (v && v.hi > v.lo) return Object.assign({}, v, { stale: true }); throw new Error(TRADE_QUOTA_MSG); };
+  if (cache.get('K15_QUOTA')) return saved();
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_FIB_BARS_4H + 1), 2); }
+  catch (err) {
+    if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
+      cache.put('K15_QUOTA', '1', 3600);
+      return saved();
+    }
+    throw err;
+  }
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
+  const closed = data.prices.slice(0, -1).slice(-TRADE_FIB_BARS_4H);   // 丟掉還沒收盤的最後一根
+  if (!closed.length) throw new Error('4 小時 K 線不足');
+  const mid = o => (Number(o.bid) + Number(o.ask)) / 2;
+  const out = { hi: Math.max(...closed.map(c => mid(c.highPrice))), lo: Math.min(...closed.map(c => mid(c.lowPrice))), bars: closed.length };
+  cache.put(key, JSON.stringify(out), 3600);
+  setProp_(h4Key, JSON.stringify({ hi: out.hi, lo: out.lo, bars: out.bars }));
+  return out;
+}
+
+// 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉時回傳空字串
+// 高低點預設用 4 小時線自動計算；若執行過 tradeFibSet(高, 低) 則改用手動數字
+function tradeFibText_(it, last) {
+  if (prop_('TRADE_FIB') === 'off') return '';   // 2026-11-18 起預設開啟
+  let hl = null, src = '';
+  if (prop_('TRADE_FIB_SRC') === 'manual') {
+    try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
+    if (!hl || !(hl.hi > hl.lo)) return '費波那契參考：手動高低點不正確（請重新執行 tradeFibSet）';
+    src = '手動設定';
+  } else {
+    try { hl = tradeFib4h_(it); } catch (err) { return '費波那契參考：4 小時線取不到（' + ((err && err.message) || err) + '）'; }
+    if (!(hl.hi > hl.lo)) return '費波那契參考：4 小時線高低點不正確';
+    src = '4 小時線近 ' + hl.bars + ' 根已收盤 K 線的高低點' + (hl.stale ? '（IG 額度用完，用上次快取）' : '');
+  }
+  const range = hl.hi - hl.lo;
+  const lines = TRADE_FIB_RATIOS.map(r => '・' + r.toFixed(3) + '：' + (hl.hi - range * r).toFixed(it.prec));
+  return '費波那契回檔參考（只是參考，不保證獲利）：\n高 ' + hl.hi.toFixed(it.prec) + '、低 ' + hl.lo.toFixed(it.prec) + '（' + src + '）\n' +
+    lines.join('\n') + '\n現價：' + Number(last).toFixed(it.prec);
 }
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
