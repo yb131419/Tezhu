@@ -505,6 +505,92 @@
   html[data-theme=dark] .tag.hot{background:rgba(224,97,59,.2);color:#F0A285;}
   html[data-theme=dark] .lightbox{background:rgba(0,0,0,.92);}
 </style>
+<style>
+/* 交易（2026-11-18）：小乖主頁快速功能；黑曜石＋香檳金（與對話頁一致）。只做外觀與入口，買賣仍只能按按鈕，按下先出提案，確認後才送出 */
+#xtr{position:fixed;inset:0;z-index:200;display:none;align-items:flex-end;justify-content:center;background:rgba(5,4,3,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#xtr.open{display:flex;}
+#xtr{font-variant-numeric:lining-nums tabular-nums;}
+#xtr .xtr-box{width:100%;max-width:560px;max-height:90vh;overflow:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;padding:calc(22px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));background:radial-gradient(ellipse 110% 45% at 50% -5%,rgba(201,165,106,.16),transparent 60%),linear-gradient(180deg,#221E18 0%,#120F0C 100%);border:1px solid rgba(220,195,148,.28);border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -30px 80px -24px #000,inset 0 1px 0 rgba(241,223,180,.12);color:#F3EEE5;font-family:-apple-system,"PingFang TC",sans-serif;}
+#xtr .xtr-sh{display:flex;align-items:center;justify-content:space-between;padding:4px 0 14px;margin-bottom:12px;border-bottom:1px solid rgba(220,195,148,.2);}
+#xtr .xtr-sh b{font-family:"Noto Serif TC","Songti TC",serif;font-size:22px;letter-spacing:3px;background:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+#xtr .xtr-x{width:44px;height:44px;border-radius:50%;background:transparent;border:1px solid rgba(220,195,148,.22);color:#DCC394;font-size:22px;line-height:1;padding:0;}
+#xtr .xtr-btn{display:flex;flex-direction:column;justify-content:center;width:100%;min-height:70px;margin:10px 0 0;padding:12px 18px;text-align:left;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(220,195,148,.22);color:#F3EEE5;font-family:"Noto Serif TC","Songti TC",serif;font-size:18px;letter-spacing:.5px;}
+#xtr .xtr-btn small{display:block;margin-top:4px;font-family:-apple-system,"PingFang TC",sans-serif;font-size:14px;letter-spacing:.3px;color:rgba(243,238,229,.55);line-height:1.6;}
+#xtr .xtr-btn:active{background:rgba(201,165,106,.14);}
+#xtr .xtr-back{background:transparent;border:0;color:#DCC394;font-family:"Noto Serif TC","Songti TC",serif;font-size:16px;letter-spacing:1px;padding:8px 2px 14px;}
+#xtr .xtr-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px;border-radius:999px;border:1px solid rgba(220,195,148,.2);margin:0 0 14px;}
+#xtr .xtr-seg button{height:44px;border:0;border-radius:999px;background:transparent;color:#DCC394;font:600 16px "Noto Serif TC",serif;letter-spacing:2px;}
+#xtr .xtr-seg button.on{background:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);color:#1A150D;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 22px -12px rgba(201,165,106,.7);}
+#xtr .xtr-note{font-size:13px;color:rgba(243,238,229,.55);text-align:center;line-height:1.7;margin:10px 0;}
+#xtr .xtr-warn{font-size:15px;line-height:1.7;color:#F2998A;padding:12px 14px;border-radius:14px;border:1px solid rgba(242,153,138,.35);margin-bottom:12px;}
+#xtr .xtr-warn.soft{color:#E9D3A2;border-color:rgba(220,195,148,.35);}
+#xtr .xtr-card{margin-bottom:12px;padding:16px;border-radius:20px;border:1px solid rgba(220,195,148,.2);background:rgba(255,255,255,.02);box-shadow:inset 0 1px 0 rgba(241,223,180,.08);}
+#xtr .xtr-hero{text-align:center;padding:14px 16px;}
+#xtr .xtr-lb{font-size:13px;color:rgba(243,238,229,.55);letter-spacing:2px;}
+#xtr .xtr-px{font:600 42px/1.1 "Cormorant Garamond","Noto Serif TC",Georgia,serif;letter-spacing:1px;margin-top:4px;color:#F3EEE5;font-variant-numeric:lining-nums tabular-nums;}
+#xtr .xtr-sec{font-family:"Noto Serif TC","Songti TC",serif;font-size:16px;letter-spacing:2px;color:#DCC394;margin-bottom:10px;}
+#xtr .xtr-sub{font-size:12px;color:rgba(243,238,229,.55);margin-top:6px;line-height:1.6;}
+#xtr .xtr-lad{display:grid;gap:6px;}
+#xtr .xtr-lv{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:12px;border:1px solid rgba(220,195,148,.2);font-variant-numeric:tabular-nums;}
+#xtr .xtr-lv.near{border-color:rgba(220,195,148,.6);background:linear-gradient(90deg,rgba(241,223,180,.14),rgba(241,223,180,.02));}
+#xtr .xtr-r{font:600 13px "Cormorant Garamond",serif;color:rgba(243,238,229,.55);letter-spacing:1px;}
+#xtr .xtr-lv.near .xtr-r{color:#DCC394;}
+#xtr .xtr-vv{font:600 17px "Cormorant Garamond",serif;color:#F3EEE5;}
+#xtr .xtr-d{font-size:12px;color:rgba(243,238,229,.55);}
+#xtr .xtr-pxl{display:flex;align-items:center;gap:10px;margin:2px 0;}
+#xtr .xtr-pxl:before,#xtr .xtr-pxl:after{content:"";flex:1;height:2px;background:linear-gradient(135deg,#F1DFB4,#C9A56A);border-radius:2px;}
+#xtr .xtr-pxl:after{opacity:.35;}
+#xtr .xtr-pxt{font:700 13px "Cormorant Garamond",serif;letter-spacing:1px;color:#1A150D;background:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);border-radius:999px;padding:3px 12px;}
+#xtr .xtr-emas{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+#xtr .xtr-em{border:1px solid rgba(220,195,148,.2);border-radius:14px;padding:8px 2px;text-align:center;}
+#xtr .xtr-ep{font:600 11px "Cormorant Garamond",serif;color:rgba(243,238,229,.55);letter-spacing:.3px;}
+#xtr .xtr-ev{font:600 14px "Cormorant Garamond",serif;margin-top:2px;font-variant-numeric:tabular-nums;color:#F3EEE5;}
+#xtr .xtr-em.up .xtr-ev{color:#DCC394;}
+#xtr .xtr-rule{margin-top:10px;}
+#xtr .xtr-k{font-size:12px;color:rgba(243,238,229,.55);letter-spacing:1px;}
+#xtr .xtr-t{font-size:14px;line-height:1.6;color:#F3EEE5;margin-top:2px;}
+#xtr .xtr-st{margin-top:4px;font-size:14px;color:rgba(243,238,229,.55);}
+#xtr .xtr-st.on{color:#E9D3A2;font-weight:600;}
+#xtr .xtr-qty{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+#xtr .xtr-qty button{width:48px;height:48px;border-radius:50%;border:1px solid rgba(220,195,148,.3);background:transparent;color:#DCC394;font-size:24px;padding:0;}
+#xtr .xtr-qn{font:600 22px "Cormorant Garamond",serif;color:#F1DFB4;}
+#xtr .xtr-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+#xtr .xtr-tk{height:64px;border-radius:16px;border:0;font-size:18px;font-weight:700;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;}
+#xtr .xtr-tk.buy{background:linear-gradient(135deg,#2F9E72,#1F7A56);}
+#xtr .xtr-tk.sell{background:linear-gradient(135deg,#D9624A,#B5523A);}
+#xtr .xtr-tk small{font-size:12px;font-weight:400;opacity:.85;margin-top:2px;}
+#xtr .xtr-out{margin-top:12px;}
+#xtr .xtr-line{font-size:15px;line-height:1.8;color:#F3EEE5;margin:6px 2px;}
+#xtr .xtr-pos{position:relative;margin-top:12px;padding:16px 18px 14px 22px;border-radius:18px;overflow:hidden;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:0 14px 30px -22px rgba(0,0,0,.7),inset 0 1px 0 rgba(241,223,180,.12);}
+#xtr .xtr-pos:before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(135deg,#F1DFB4,#C9A56A);}
+#xtr .xtr-posh{font-family:"Noto Serif TC","Songti TC",serif;font-size:18px;line-height:1.5;color:#F3EEE5;margin-bottom:8px;}
+#xtr .xtr-posd{font-size:15px;line-height:1.8;color:rgba(243,238,229,.72);}
+#xtr .xtr-posd.pos{color:#8FDBB2;font-weight:700;}
+#xtr .xtr-posd.neg{color:#F2998A;font-weight:700;}
+#xtr .xtr-pcard{margin-top:12px;padding:16px 18px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));}
+#xtr .xtr-phead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#xtr .xtr-dir{font-size:12px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:999px;border:1px solid rgba(220,195,148,.4);color:#E9D3A2;}
+#xtr .xtr-dir.dn{color:#F2998A;border-color:rgba(242,153,138,.45);}
+#xtr .xtr-pname{font-family:"Noto Serif TC","Songti TC",serif;font-size:18px;color:#F3EEE5;}
+#xtr .xtr-psize{font-size:13px;color:rgba(243,238,229,.55);margin-left:auto;}
+#xtr .xtr-pflow{display:flex;align-items:center;gap:10px;margin:14px 0 10px;font:600 22px "Cormorant Garamond",serif;color:rgba(243,238,229,.75);font-variant-numeric:tabular-nums;}
+#xtr .xtr-pflow .xtr-arr{color:#C9A56A;font-size:16px;}
+#xtr .xtr-pflow .xtr-now{color:#F1DFB4;}
+#xtr .xtr-pnl{padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid rgba(220,195,148,.18);}
+#xtr .xtr-pnl .xtr-big{font:700 24px "Cormorant Garamond",serif;font-variant-numeric:tabular-nums;}
+#xtr .xtr-pnl.pos .xtr-big{color:#8FDBB2;}
+#xtr .xtr-pnl.neg .xtr-big{color:#F2998A;}
+#xtr .xtr-pnl.nt .xtr-big{color:rgba(243,238,229,.6);}
+#xtr .xtr-prow{display:flex;justify-content:space-between;font-size:14px;margin-top:8px;color:rgba(243,238,229,.72);}
+#xtr .xtr-pn{font-size:13px;color:rgba(243,238,229,.55);margin-top:8px;line-height:1.6;}
+#xtr .xtr-act{display:grid;gap:10px;margin-top:14px;}
+#xtr .xtr-act .xtr-abtn{width:100%;min-height:54px;border-radius:14px;border:1px solid rgba(220,195,148,.3);background:transparent;color:#F3EEE5;font-size:16px;font-family:"Noto Serif TC","Songti TC",serif;letter-spacing:1px;padding:10px 12px;}
+#xtr .xtr-act .xtr-abtn.main{background:linear-gradient(135deg,#F1DFB4 0%,#C9A56A 48%,#E9D3A2 100%);color:#1A150D;border-color:transparent;font-weight:700;box-shadow:0 14px 30px -14px rgba(201,165,106,.6),inset 0 1px 0 rgba(255,255,255,.5);}
+#xtr .xtr-out .xtr-act{margin-top:12px;}
+#xtr .xtr-hint{font-size:12px;color:rgba(243,238,229,.45);text-align:center;margin-top:10px;}
+@media (min-width:640px){#xtr .xtr-box{border-radius:22px;border-bottom:1px solid rgba(220,195,148,.28);margin-bottom:24px;}#xtr{align-items:center;}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -541,6 +627,7 @@
         <button class="quick" onclick="quickAsk('幫我整理今天的待辦和行程，排個先後順序')">📋 今天怎麼安排</button>
         <button class="quick" onclick="quickAsk('這週有哪些行程和提醒？幫我做個重點摘要')">🗓️ 本週摘要</button>
         <button class="quick" onclick="quickAsk('幫我看看有哪些待辦拖太久，給我建議')">⏳ 拖延檢查</button>
+        <button class="quick" onclick="xtrOpen()">📈 交易</button>
       </div>
     </div>
 
@@ -1732,5 +1819,163 @@ checkReminders();
 setInterval(checkReminders,20000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ syncNow(); checkReminders(); if(document.getElementById("view-home").classList.contains("active")) renderHome(); } });
 </script>
+<!-- 交易面板（2026-11-18）：快速功能的「📈 交易」，結果只顯示在這個面板，不進聊天 -->
+<div id="xtr" onclick="if(event.target.id==='xtr')xtrClose()">
+  <div class="xtr-box" role="dialog" aria-modal="true" aria-labelledby="xtrT">
+    <div class="xtr-sh"><b id="xtrT">📈 交易</b><button type="button" class="xtr-x" onclick="xtrClose()" aria-label="關閉">×</button></div>
+    <div id="xtrMenu">
+      <button type="button" class="xtr-btn" onclick="xtrTicket()">⚡ 下單<small>選商品、數量與買賣，同一畫面看提案，確認後才送出</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrRun('📊 查看持倉','📊 查看持倉')">📊 查看持倉<small>持倉、停損、停利與未實現損益</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrRun('📊 查看持倉','💰 獲利查詢')">💰 獲利查詢<small>持倉的開倉成本、未實現損益，結果只在這裡顯示</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrRun('📉 平倉','📉 平倉')">📉 平倉<small>先看平倉提案，確認後才平倉</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrRun('📜 下單紀錄','📜 下單紀錄')">📜 下單紀錄<small>最近 10 筆，含獲利與虧損</small></button>
+      <button type="button" class="xtr-btn" onclick="xtrRun('🔔 交易提醒','🔔 交易提醒')">🔔 交易提醒<small>有交易訊號時推送提案，只推提案不自動下單</small></button>
+    </div>
+    <div id="xtrView" hidden>
+      <button type="button" class="xtr-back" onclick="xtrBack()">‹ 返回交易選單</button>
+      <div id="xtrBody"></div>
+      <div id="xtrAct" class="xtr-act"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 交易（2026-11-18）：沿用對話頁的交易邏輯，資料透過同一個小乖網址（Apps Script）的 talk 指令取得。
+   買賣與平倉只能按按鈕：按下先出提案，提案上的確認按鈕才會送出；語音不執行任何交易。 */
+const XT={p:'',n:1,look:null};
+function xtrOpen(){document.getElementById('xtr').classList.add('open');xtrBack();}
+function xtrClose(){document.getElementById('xtr').classList.remove('open');}
+function xtrBack(){document.getElementById('xtrMenu').hidden=false;document.getElementById('xtrView').hidden=true;document.getElementById('xtrT').textContent='📈 交易';}
+function xtrEl(p,cls,text){const d=document.createElement('div');if(cls)d.className=cls;if(text!==undefined)d.textContent=text;p.appendChild(d);return d;}
+function xtrBtn(p,label,fn,cls){const b=document.createElement('button');b.type='button';b.className=cls||'xtr-abtn';b.textContent=label;b.onclick=fn;p.appendChild(b);return b;}
+function xtrCfgOK(){return !!(state.syncUrl&&state.syncKey);}
+function xtrSetupMsg(){return '請先到「設定」填入小乖網址與同步密碼，才能使用交易。';}
+function xtrPost(ask,ms){
+  const ac=new AbortController();setTimeout(()=>ac.abort(),ms||60000);
+  return fetch(state.syncUrl,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:'talk',key:state.syncKey,ask:ask,image:'',voice:false,audio:'',audioType:''})})
+    .then(r=>r.text()).then(x=>{try{return JSON.parse(x);}catch(e){throw new Error('回應格式不對');}});
+}
+function xtrShowView(title){
+  document.getElementById('xtrMenu').hidden=true;document.getElementById('xtrView').hidden=false;
+  document.getElementById('xtrT').textContent=title;
+  const b=document.getElementById('xtrBody');b.textContent='';document.getElementById('xtrAct').textContent='';return b;
+}
+/* 一般查詢（持倉、平倉、紀錄、提醒）：結果只在面板顯示；按鈕（例如平倉的確認）照原樣帶回 */
+function xtrRun(q,title){
+  const body=xtrShowView(title||q);
+  if(!xtrCfgOK()){body.textContent=xtrSetupMsg();return;}
+  body.textContent='小乖想一下…';
+  xtrPost(q,120000).then(r=>{
+    if(/同步密碼不對/.test(r.say||'')){body.textContent='同步密碼不對，請到「設定」重新輸入。';return;}
+    body.textContent='';
+    if(/持倉/.test(q)||/獲利/.test(title||''))xtrProfit(body,r.show||r.say);else xtrTrade(body,r.show||r.say);
+    xtrActs(document.getElementById('xtrAct'),r.buttons||[]);
+  }).catch(e=>{body.textContent='連線有問題，請再試一次（'+e.message+'）';});
+}
+function xtrActs(p,list){p.textContent='';list.forEach((l,i)=>xtrBtn(p,l,()=>xtrRun(l,l),i===0?'xtr-abtn main':'xtr-abtn'));}
+/* 交易結果：以「・」開頭的行是一筆持倉，做成獨立卡片；空行結束一張卡片；停損停利碰到的損益不顯示 */
+function xtrTrade(el,text){let card=null;
+  String(text||'').split('\n').forEach(l=>{const t=l.trim();
+    if(!t){card=null;return;}
+    if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
+    if(/^・/.test(t)){card=xtrEl(el,'xtr-pos');xtrEl(card,'xtr-posh',t.slice(1).trim());return;}
+    const d=xtrEl(card||el,card?'xtr-posd':'xtr-line',t);
+    if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
+  });}
+/* 獲利查詢：每筆持倉一張卡，方向與商品在上，開倉→現價在中間，未實現損益與投入成本在下 */
+function xtrTone(v){if(/未/.test(v))return'nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'neg':'pos';}
+function xtrPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
+function xtrMoney(v){return String(v).replace(/[（(].*?[）)]/g,'').trim();}
+function xtrProfit(el,text){let card=null;
+  String(text||'').split('\n').forEach(l=>{const t=l.trim();
+    if(!t){card=null;return;}
+    if(/^・/.test(t)){card=xtrEl(el,'xtr-pcard');
+      const h=t.match(/^・(.+?)\s+(\S+?)\s*(?:📈|📉)\s*([\d.]+)\s*單位，開倉\s*([\d.]+)，現價\s*(\S+)$/);
+      if(!h){xtrEl(card,'xtr-pname',t.slice(1).trim());return;}
+      const top=xtrEl(card,'xtr-phead');xtrEl(top,'xtr-dir'+(/📈/.test(t)?'':' dn'),h[2]);xtrEl(top,'xtr-pname',h[1]);xtrEl(top,'xtr-psize',h[3]+' 單位');
+      const flow=xtrEl(card,'xtr-pflow');xtrEl(flow,'',h[4]);xtrEl(flow,'xtr-arr','→');xtrEl(flow,'xtr-now',h[5]);
+      return;}
+    if(card){let m;
+      if(/^開倉成本\s/.test(t))return;
+      if((m=t.match(/^投入成本\s+(.+)$/))){const r=xtrEl(card,'xtr-prow');xtrEl(r,'','投入成本');xtrEl(r,'',m[1]);return;}
+      if((m=t.match(/^未實現損益\s+(.+)$/))){const b=xtrEl(card,'xtr-pnl '+xtrTone(m[1]));xtrEl(b,'xtr-lb','未實現損益');const big=xtrEl(b,'xtr-big',xtrMoney(m[1]));const pc=xtrPct(m[1]);if(pc)xtrEl(big,'',' '+pc);return;}
+      if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
+      xtrEl(card,'xtr-pn',t);return;}
+    xtrEl(el,'xtr-line',t);});}
+/* ---- 快速下單：選商品 → 讀看盤（唯讀）→ 按買進或賣出出提案 → 提案上的確認才送出 ---- */
+function xtrTicket(){xtrShowView('⚡ 下單');XT.look=null;xtrTktDraw();if(XT.p)xtrTktLoad();}
+function xtrParse(text){const o={raw:String(text||''),price:'',hi:'',lo:'',fib:[],ema:[],buySl:'',sellSl:'',entry:'',exit:''};
+  o.raw.split('\n').map(s=>s.trim()).forEach(t=>{let m;
+    if(!o.price&&(m=t.match(/^現價：(\S+)/)))o.price=m[1];
+    else if((m=t.match(/^・(\d\.\d+)：(\S+)$/)))o.fib.push([m[1],m[2]]);
+    else if((m=t.match(/高 (\d+(?:\.\d+)?)、低 (\d+(?:\.\d+)?)/)))o.hi=m[1],o.lo=m[2];
+    else if((m=t.match(/^EMA(\d+)：(\S+)$/)))o.ema.push([m[1],m[2]]);
+    else if((m=t.match(/^買進停損：(.+)$/)))o.buySl=m[1];
+    else if((m=t.match(/^賣出停損：(.+)$/)))o.sellSl=m[1];
+    else if(/IG 歷史資料額度用完/.test(t))o.stale=t;
+    else if(/模式：/.test(t)){o.entry=t.replace(/^.*模式：/,'').replace(/（出場參考.*$/,'');const x=t.match(/出場參考：([^）]+)/);if(x)o.exit=x[1];}});
+  return o;}
+function xtrSl(s){return s?'停損 '+s.replace(/ ／.*/,'')+' ／ 停利 '+s.replace(/.*停利：/,''):'';}
+function xtrTktDraw(){const bx=document.getElementById('xtrBody');bx.textContent='';
+  const seg=xtrEl(bx,'xtr-seg');
+  ['黃金','原油','納指'].forEach(n=>{const b=document.createElement('button');b.type='button';b.textContent=n;if(XT.p===n)b.className='on';
+    b.onclick=()=>{XT.p=n;XT.look=null;xtrTktDraw();xtrTktLoad();};seg.appendChild(b);});
+  const body=xtrEl(bx,'','');body.id='xtrTkBody';
+  if(!XT.p)xtrEl(body,'xtr-note','請先選商品，會顯示現價、費波那契與 EMA 進出場。');
+  else if(XT.look)xtrCards(body,XT.look);
+  else xtrEl(body,'xtr-note','小乖讀取看盤中…');
+  const out=xtrEl(bx,'xtr-out');out.id='xtrOut';}
+function xtrTktBody(){return document.getElementById('xtrTkBody');}
+function xtrTktLoad(){const p=XT.p;if(!p)return;
+  if(!xtrCfgOK()){const b=xtrTktBody();if(b){b.textContent='';xtrEl(b,'xtr-warn',xtrSetupMsg());}return;}
+  xtrPost('看盤'+p,60000).then(r=>{
+    if(XT.p!==p)return;
+    if(/同步密碼不對/.test(r.say||'')){const b=xtrTktBody();if(b){b.textContent='';xtrEl(b,'xtr-warn','同步密碼不對，請到「設定」重新輸入。');}return;}
+    XT.look=xtrParse(r.show||r.say);xtrTktDraw();
+  }).catch(e=>{if(XT.p!==p)return;const b=xtrTktBody();if(b){b.textContent='';xtrEl(b,'xtr-warn','連線有問題，請再試一次（'+e.message+'）');}});}
+function xtrPxLine(p){const w=xtrEl(p,'xtr-pxl');xtrEl(w,'xtr-pxt','現價');}
+function xtrCards(body,o){body.textContent='';
+  if(!o.price){xtrEl(body,'xtr-warn',o.raw||'看盤資料取不到');return;}
+  if(o.stale)xtrEl(body,'xtr-warn soft',o.stale);
+  const px=Number(o.price);
+  let c=xtrEl(body,'xtr-card xtr-hero');xtrEl(c,'xtr-lb',XT.p+' 現價');xtrEl(c,'xtr-px',o.price);
+  c=xtrEl(body,'xtr-card');xtrEl(c,'xtr-sec','費波那契回檔');xtrEl(c,'xtr-sub','自動抓 4 小時線近 30 根已收盤 K 線的高低點');
+  let near=-1,best=Infinity;o.fib.forEach((f,i)=>{const d=Math.abs(Number(f[1])-px);if(d<best){best=d;near=i;}});
+  const lad=xtrEl(c,'xtr-lad');let pxDone=false;
+  o.fib.forEach((f,i)=>{
+    if(!pxDone&&Number(f[1])<px){xtrPxLine(lad);pxDone=true;}
+    const r=xtrEl(lad,'xtr-lv'+(i===near?' near':''));xtrEl(r,'xtr-r',f[0]);xtrEl(r,'xtr-vv',f[1]);xtrEl(r,'xtr-d',i===near?'最近':(Number(f[1])>px?'上方':'下方'));});
+  if(!pxDone)xtrPxLine(lad);
+  if(o.hi)xtrEl(c,'xtr-sub','高點 '+o.hi+'　低點 '+o.lo);
+  c=xtrEl(body,'xtr-card');xtrEl(c,'xtr-sec','EMA 進場與出場');
+  const eg=xtrEl(c,'xtr-emas');o.ema.forEach(e=>{const d=xtrEl(eg,'xtr-em'+(Number(e[1])<px?' up':''));xtrEl(d,'xtr-ep','EMA'+e[0]);xtrEl(d,'xtr-ev',e[1]);});
+  const entryOn=/進場點/.test(o.entry);
+  const r1=xtrEl(c,'xtr-rule');xtrEl(r1,'xtr-k','進場點');
+  xtrEl(r1,'xtr-t','做多：EMA6 上穿 EMA21，且現價在 EMA200 之上；做空相反');
+  xtrEl(r1,'xtr-st'+(entryOn?' on':''),entryOn?o.entry:'目前無新進場訊號');
+  const r2=xtrEl(c,'xtr-rule');xtrEl(r2,'xtr-k','出場點');
+  xtrEl(r2,'xtr-t','出場參考：EMA6 下穿 EMA12（做空則上穿）');
+  xtrEl(r2,'xtr-st'+(o.exit?' on':''),o.exit?'已出現：'+o.exit:'尚未出現');
+  c=xtrEl(body,'xtr-card');xtrEl(c,'xtr-sec','下單');
+  const q=xtrEl(c,'xtr-qty');
+  xtrBtn(q,'−',()=>{if(XT.n>1){XT.n--;xtrTktDraw();}},'');
+  xtrEl(q,'xtr-qn',XT.n+' 單位');
+  xtrBtn(q,'＋',()=>{if(XT.n<5){XT.n++;xtrTktDraw();}},'');
+  const pair=xtrEl(c,'xtr-pair');
+  const buy=xtrBtn(pair,'買進',()=>xtrSend('buy'),'xtr-tk buy');xtrEl(buy,'',xtrSl(o.buySl));
+  const sell=xtrBtn(pair,'賣出',()=>xtrSend('sell'),'xtr-tk sell');xtrEl(sell,'',xtrSl(o.sellSl));
+  xtrEl(c,'xtr-hint','買進與賣出只能按按鈕，按下後先出提案，確認後才送出。費波那契與 EMA 只是參考，不保證獲利。');
+}
+function xtrSend(side){if(!XT.p)return;const out=document.getElementById('xtrOut');if(!out)return;
+  if(!xtrCfgOK()){out.textContent=xtrSetupMsg();return;}
+  out.textContent='小乖送出提案中…';
+  xtrPost((side==='buy'?'買進':'賣出')+XT.p+' '+XT.n,60000).then(r=>{
+    if(/同步密碼不對/.test(r.say||'')){out.textContent='同步密碼不對，請到「設定」重新輸入。';return;}
+    out.textContent='';xtrTrade(out,r.show||r.say);
+    const a=xtrEl(out,'xtr-act');xtrActs(a,r.buttons||[]);
+  }).catch(e=>{out.textContent='連線有問題，請再試一次（'+e.message+'）';});}
+</script>
+
 </body>
 </html>
