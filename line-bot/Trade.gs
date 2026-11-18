@@ -780,18 +780,57 @@ function tradeFibSet(hi, lo) {
   if (hi === undefined && lo === undefined) { hi = TRADE_FIB_HI_DEFAULT; lo = TRADE_FIB_LO_DEFAULT; }
   if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（目前高 ' + hi + '、低 ' + lo + '）');
   setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
-  console.log('費波那契高低點已設定：高 ' + Number(hi) + '，低 ' + Number(lo));
+  setProp_('TRADE_FIB_SRC', 'manual');   // 手動設定優先；想回到 4 小時線自動計算，執行 tradeFibAuto()
+  console.log('費波那契高低點已手動設定：高 ' + Number(hi) + '，低 ' + Number(lo));
 }
 
-// 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉或沒設定時回傳空字串
+// 改回用 4 小時線自動計算高低點（預設）。在編輯器執行即可
+function tradeFibAuto() { setProp_('TRADE_FIB_SRC', 'auto'); console.log('費波那契高低點改用 4 小時線自動計算'); }
+
+// 取最近 TRADE_FIB_BARS_4H 根已收盤 4 小時 K 線的最高價與最低價（中間價），每小時最多向 IG 要一次
+const TRADE_FIB_BARS_4H = 30;   // 約 5 天的 4 小時線
+function tradeFib4h_(it) {
+  const cache = CacheService.getScriptCache();
+  const key = 'H4_' + it.epic + '_' + Math.floor(Date.now() / 3600000);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_FIB_BARS_4H + 1), 2); }
+  catch (err) {
+    if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
+      cache.put('K15_QUOTA', '1', 3600);
+      throw new Error(TRADE_QUOTA_MSG);
+    }
+    throw err;
+  }
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
+  const closed = data.prices.slice(0, -1).slice(-TRADE_FIB_BARS_4H);   // 丟掉還沒收盤的最後一根
+  if (!closed.length) throw new Error('4 小時 K 線不足');
+  const mid = o => (Number(o.bid) + Number(o.ask)) / 2;
+  const out = { hi: Math.max(...closed.map(c => mid(c.highPrice))), lo: Math.min(...closed.map(c => mid(c.lowPrice))), bars: closed.length };
+  cache.put(key, JSON.stringify(out), 3600);
+  return out;
+}
+
+// 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉時回傳空字串
+// 高低點預設用 4 小時線自動計算；若執行過 tradeFibSet(高, 低) 則改用手動數字
 function tradeFibText_(it, last) {
   if (prop_('TRADE_FIB') !== 'on') return '';
-  let hl = null;
-  try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
-  if (!hl || !(hl.hi > hl.lo)) return '費波那契參考：尚未設定高低點（請在編輯器執行 tradeFibSet）';
+  let hl = null, src = '';
+  if (prop_('TRADE_FIB_SRC') === 'manual') {
+    try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
+    if (!hl || !(hl.hi > hl.lo)) return '費波那契參考：手動高低點不正確（請重新執行 tradeFibSet）';
+    src = '手動設定';
+  } else {
+    try { hl = tradeFib4h_(it); } catch (err) { return '費波那契參考：4 小時線取不到（' + ((err && err.message) || err) + '）'; }
+    if (!(hl.hi > hl.lo)) return '費波那契參考：4 小時線高低點不正確';
+    src = '4 小時線近 ' + hl.bars + ' 根已收盤 K 線的高低點';
+  }
   const range = hl.hi - hl.lo;
   const lines = TRADE_FIB_RATIOS.map(r => '・' + r.toFixed(3) + '：' + (hl.hi - range * r).toFixed(it.prec));
-  return '費波那契回檔參考（只是參考，不保證獲利）：\n' + lines.join('\n') + '\n現價：' + Number(last).toFixed(it.prec);
+  return '費波那契回檔參考（只是參考，不保證獲利）：\n高 ' + hl.hi.toFixed(it.prec) + '、低 ' + hl.lo.toFixed(it.prec) + '（' + src + '）\n' +
+    lines.join('\n') + '\n現價：' + Number(last).toFixed(it.prec);
 }
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
