@@ -773,8 +773,12 @@ function tradeFibOn() { setProp_('TRADE_FIB', 'on'); console.log('費波那契�
 function tradeFibOff() { setProp_('TRADE_FIB', 'off'); console.log('費波那契參考已關閉'); }
 
 // 設定波段高點與低點（數字），例如 tradeFibSet(42073, 37971.5)。存在指令碼屬性 TRADE_FIB_HL
+// 注意：編輯器的「執行」按鈕不會帶參數，所以不帶參數時改用下面兩個常數（改這裡再存檔即可）
+const TRADE_FIB_HI_DEFAULT = 42073;    // 波段高點（從截圖反推，約略值）
+const TRADE_FIB_LO_DEFAULT = 37971.5;  // 波段低點（從截圖反推，約略值）
 function tradeFibSet(hi, lo) {
-  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點');
+  if (hi === undefined && lo === undefined) { hi = TRADE_FIB_HI_DEFAULT; lo = TRADE_FIB_LO_DEFAULT; }
+  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（目前高 ' + hi + '、低 ' + lo + '）');
   setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
   console.log('費波那契高低點已設定：高 ' + Number(hi) + '，低 ' + Number(lo));
 }
