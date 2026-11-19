@@ -32,11 +32,13 @@ button.go:disabled{opacity:.5;cursor:default}
   </form>
   <div class="msg" id="msg"></div>
 </div>
+<div id="ver" style="position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:11px;letter-spacing:.5px;color:var(--soft);opacity:.55;pointer-events:none"></div>
 <script>
 (function(){
   var STORE_KEY = "xiaoguai_v1";      // 小乖主頁原本的設定（網址、同步密碼）
   var GATE_KEY  = "xg_gate_v1";       // 當天解鎖記錄：日期＋主頁內容
   var TIMEOUT_MS = 25000;             // 超過這個時間沒回應就停止等待
+  var STAMP = "v 912d137 · 2026/11/19 15:04";                    // 版本標示（由 tools/stamp_gate.py 自動更新）
   var $ = function(id){ return document.getElementById(id); };
 
   function today(){ var d = new Date(); return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate(); }
@@ -58,6 +60,7 @@ button.go:disabled{opacity:.5;cursor:default}
     try { localStorage.removeItem(GATE_KEY); } catch(e){}
     var a = readStore(); a.syncKey = ""; writeStore(a);
   }
+  try { document.getElementById("ver").textContent = STAMP; } catch(e){}
   function showMsg(t){ $("msg").textContent = t || ""; }
   function busy(on){ $("go").disabled = on; $("go").textContent = on ? "開啟中…" : "進入"; }
   // 小乖主頁（含對話頁）固定尺寸：不能雙指放大縮小。iPhone Safari 會忽略 user-scalable=no，所以另外擋住多指手勢。
@@ -71,7 +74,15 @@ button.go:disabled{opacity:.5;cursor:default}
       '})();<\/script>';
     return out.replace(/<\/head>/i, guard + '</head>');
   }
-  function show(html){ document.open(); document.write(lockZoom(html)); document.close(); }
+  // 版本標示：低調的小字，貼在主頁右下角（只做標示用，不影響操作）
+  function stampTag(){
+    return '<div style="position:fixed;right:8px;bottom:4px;font:11px/1 sans-serif;letter-spacing:.5px;color:#8a7d66;opacity:.5;pointer-events:none;z-index:2147483000">' + STAMP + '</div>';
+  }
+  function show(html){
+    var out = lockZoom(html);
+    out = out.replace(/<\/body>/i, stampTag() + '</body>');
+    document.open(); document.write(out); document.close();
+  }
 
   function openApp(url, key){
     busy(true); showMsg("");
