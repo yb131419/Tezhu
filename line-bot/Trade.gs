@@ -1296,6 +1296,10 @@ function tradeBackfill_(days, write) {
   }
   const byEpic = {};
   Object.keys(TRADE_ITEMS).forEach(n => { if (TRADE_ITEMS[n].epic) byEpic[TRADE_ITEMS[n].epic] = n; });
+  // 只給補錄用的代碼（不進交易清單，不會出現在下單、提醒或看盤）：IG 的 WTI 原油
+  const backfillOnly = { 'CC.D.CL.UNC.IP': '原油（WTI）' };
+  Object.keys(backfillOnly).forEach(e => { if (!byEpic[e]) byEpic[e] = backfillOnly[e]; });
+  const precOf = n => TRADE_ITEMS[n] ? TRADE_ITEMS[n].prec : 2;
   const st = tradeState_();
   const stops = st.stops || [];
   const seen = {};
@@ -1320,7 +1324,7 @@ function tradeBackfill_(days, write) {
     const ms = Date.parse(String(a.date || '').replace(/Z?$/, 'Z'));
     const x = { at: isFinite(ms) ? Utilities.formatDate(new Date(ms), 'Asia/Taipei', 'MM/dd HH:mm') : '', ms: ms || 0,
       name: name, dirZh: dir === 'buy' ? '多' : '空', dir: dir, size: Number(d.size || a.size || 0),
-      trigger: '停損或停利', price: Number(d.level), prec: TRADE_ITEMS[name].prec, open: null, margin: null, cur: '', src: 'real', ref: a.dealId };
+      trigger: '停損或停利', price: Number(d.level), prec: precOf(name), open: null, margin: null, cur: '', src: 'real', ref: a.dealId };
     if (dup(x)) { skipped.push('略過（與既有紀錄重複）：' + name + ' ' + x.at); return; }
     found.push(x);
   });
