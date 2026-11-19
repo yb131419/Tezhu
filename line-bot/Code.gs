@@ -268,17 +268,28 @@ function doGet(e) {
 // 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
 const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
 // 程式版本標記：貼上新檔後，執行記錄與錯誤訊息會顯示這個版本，方便確認是不是新版
-const ASSISTANT_CODE_VERSION = 'drive-check-v2';
+const ASSISTANT_CODE_VERSION = 'drive-check-v3';
 function assistantHtml_() {
-  if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
-  let id = ASSISTANT_FILE_ID;
-  // 先用 Drive 進階服務看清楚這個 ID 是什麼：捷徑就改找它指向的檔案，資料夾直接說明
-  let meta;
+  const id = String(ASSISTANT_FILE_ID || '').trim();
+  if (!id || id.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
+  // 第一步：用 Drive 進階服務看這個 ID 是什麼（捷徑改找目標、資料夾直接說明）
+  let target = id, meta = null, advErr = '';
   try { meta = Drive.Files.get(id, { fields: 'id,name,mimeType,shortcutDetails', supportsAllDrives: true }); }
-  catch (e) { throw new Error('Drive 找不到這個 ID 或沒有權限（' + (e && e.name || 'Error') + '）：' + (e && e.message || e)); }
-  if (meta.mimeType === 'application/vnd.google-apps.folder') throw new Error('這個 ID 是資料夾，要填的是 Assistant.html 檔案的 ID');
-  if (meta.mimeType === 'application/vnd.google-apps.shortcut' && meta.shortcutDetails && meta.shortcutDetails.targetId) id = meta.shortcutDetails.targetId;
-  return DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
+  catch (e) { advErr = errText_(e); }
+  if (meta) {
+    if (meta.mimeType === 'application/vnd.google-apps.folder') throw new Error('這個 ID 是資料夾（' + meta.name + '），要填的是 Assistant.html 檔案的 ID');
+    if (meta.mimeType === 'application/vnd.google-apps.shortcut' && meta.shortcutDetails && meta.shortcutDetails.targetId) target = meta.shortcutDetails.targetId;
+  }
+  // 第二步：讀取檔案內容，失敗時把 Drive 的錯誤與進階服務的結果一併回報
+  try { return DriveApp.getFileById(target).getBlob().getDataAsString('UTF-8'); }
+  catch (e2) { throw new Error('讀取檔案失敗（ID ' + target + '）：' + errText_(e2) + (advErr ? '；進階服務：' + advErr : '')); }
+}
+
+// 把錯誤轉成可讀文字：名稱｜訊息（訊息空白時改用 String(錯誤)）
+function errText_(e) {
+  const name = (e && e.name) || 'Error';
+  const msg = (e && e.message) || String(e);
+  return name + '｜' + msg;
 }
 
 // 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
@@ -288,7 +299,7 @@ function authorizeAssistant() {
     const html = assistantHtml_();
     Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
   } catch (err) {
-    Logger.log('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + (err && err.name || 'Error') + '｜' + (err && err.message || err) + (err && err.stack ? '\n' + err.stack : ''));
+    Logger.log('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + errText_(err) + (err && err.stack ? '\n' + err.stack : ''));
     throw err;
   }
 }
@@ -496,7 +507,7 @@ function doPost(e) {
   if (body.action === 'assistant') {
     if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
     try { return text_(assistantHtml_()); }
-    catch (err) { console.error(err); return text_('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + (err && err.message || err)); }
+    catch (err) { console.error(err); return text_('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + errText_(err)); }
   }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
