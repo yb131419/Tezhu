@@ -60,7 +60,18 @@ button.go:disabled{opacity:.5;cursor:default}
   }
   function showMsg(t){ $("msg").textContent = t || ""; }
   function busy(on){ $("go").disabled = on; $("go").textContent = on ? "開啟中…" : "進入"; }
-  function show(html){ document.open(); document.write(html); document.close(); }
+  // 小乖主頁（含對話頁）固定尺寸：不能雙指放大縮小。iPhone Safari 會忽略 user-scalable=no，所以另外擋住多指手勢。
+  function lockZoom(html){
+    var vp = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">';
+    var out = /<meta[^>]+name=["']viewport["'][^>]*>/i.test(html) ? html.replace(/<meta[^>]+name=["']viewport["'][^>]*>/i, vp) : html.replace(/<head([^>]*)>/i, function(m){ return m + vp; });
+    var guard = '<style>html,body{touch-action:pan-x pan-y;}</style>' +
+      '<script>(function(){' +
+      'document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});' +
+      '["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault();},{passive:false});});' +
+      '})();<\/script>';
+    return out.replace(/<\/head>/i, guard + '</head>');
+  }
+  function show(html){ document.open(); document.write(lockZoom(html)); document.close(); }
 
   function openApp(url, key){
     busy(true); showMsg("");
