@@ -8,17 +8,30 @@
   :root{--paper:#F5F0E3;--paper-2:#FFFCF6;--ink:#1E1A14;--ink-soft:#5C5343;--ink-faint:#A0937A;--line:rgba(30,25,18,.11);--gold:#A8782E;--gold-deep:#7E5A22;--gold-soft:#D9B873;--gold-wash:rgba(168,120,46,.12);--shadow:0 1px 2px rgba(30,25,18,.04),0 16px 36px rgba(30,25,18,.08);--serif:"Noto Serif TC","Songti TC","PMingLiU",serif;--sans:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;}
   @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#17140F;--paper-2:#1F1B15;--ink:#F1EADB;--ink-soft:#BDB39C;--ink-faint:#867D68;--line:rgba(255,245,225,.10);--gold:#D9B873;--gold-deep:#E8CB92;--gold-wash:rgba(217,184,115,.12);--shadow:0 16px 36px rgba(0,0,0,.35);}}
   *{box-sizing:border-box;}
+  [hidden]{display:none!important;}
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
   body{font-family:var(--sans);font-size:15px;line-height:1.7;-webkit-text-size-adjust:100%;padding:env(safe-area-inset-top,0) max(16px,env(safe-area-inset-right,0px)) 56px max(16px,env(safe-area-inset-left,0px));}
   .wrap{max-width:760px;margin:0 auto;}
   .top{display:flex;align-items:center;gap:12px;padding:18px 0 6px;}
   .back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--gold-deep);font-size:14px;border:1px solid var(--line);background:var(--paper-2);border-radius:999px;padding:6px 14px;}
-  header{padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+  header{padding:14px 0 14px;}
   .kicker{font-family:var(--serif);font-size:12px;letter-spacing:5px;color:var(--gold);font-weight:600;margin:0 0 6px;}
   h1{font-family:var(--serif);font-size:26px;letter-spacing:3px;margin:0 0 8px;font-weight:700;}
   .note{color:var(--ink-soft);font-size:13px;margin:0;}
-  .sec{font-family:var(--serif);font-size:15px;letter-spacing:4px;color:var(--gold-deep);font-weight:600;margin:30px 2px 12px;}
-  details.item{background:var(--paper-2);border:1px solid var(--line);border-radius:18px;margin:0 0 10px;overflow:hidden;box-shadow:var(--shadow);}
+  /* 快速導覽：固定在上方，集數按鈕橫向捲動，省空間 */
+  .jump{position:sticky;top:0;z-index:5;background:var(--paper);padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .jtools{display:flex;gap:8px;align-items:center;}
+  #q{flex:1;min-width:0;font:inherit;font-size:15px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--paper-2);color:var(--ink);outline:none;}
+  #q:focus{border-color:var(--gold);}
+  #collapse{font:inherit;font-size:13px;color:var(--gold-deep);background:var(--gold-wash);border:1px solid rgba(168,120,46,.3);border-radius:999px;padding:8px 14px;white-space:nowrap;cursor:pointer;}
+  .jstat{font-size:12px;color:var(--ink-faint);margin:6px 2px 2px;min-height:18px;}
+  .jrow{display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;padding:4px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .jrow::-webkit-scrollbar{display:none;}
+  .jlab{flex:0 0 auto;font-size:12px;color:var(--ink-faint);letter-spacing:1px;margin-right:4px;}
+  .chip{flex:0 0 auto;font-size:13px;color:var(--gold-deep);text-decoration:none;border:1px solid var(--line);background:var(--paper-2);border-radius:999px;padding:4px 11px;}
+  .chip:active{background:var(--gold-wash);}
+  .sec{font-family:var(--serif);font-size:15px;letter-spacing:4px;color:var(--gold-deep);font-weight:600;margin:26px 2px 12px;}
+  details.item{scroll-margin-top:200px;background:var(--paper-2);border:1px solid var(--line);border-radius:18px;margin:0 0 10px;overflow:hidden;box-shadow:var(--shadow);}
   details.item[open]{border-color:var(--gold-soft);}
   summary{cursor:pointer;padding:15px 18px;font-family:var(--serif);font-weight:700;letter-spacing:1px;word-break:break-all;list-style:none;}
   summary::-webkit-details-marker{display:none;}
@@ -28,7 +41,7 @@
   .cp{font:inherit;font-size:13px;color:var(--gold-deep);background:var(--gold-wash);border:1px solid rgba(168,120,46,.3);border-radius:999px;padding:6px 16px;cursor:pointer;}
   .cp.done{color:#1F8A72;}
   pre{white-space:pre-wrap;word-break:break-word;font-family:var(--sans);font-size:14px;line-height:1.75;margin:0;padding:14px 18px 20px;border-top:1px solid var(--line);}
-  .cp:focus-visible,summary:focus-visible,.back:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .cp:focus-visible,summary:focus-visible,.back:focus-visible,.chip:focus-visible,#collapse:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 </style>
 </head>
 <body>
@@ -37,10 +50,10 @@
   <header>
     <p class="kicker">神對話</p>
     <h1>神對話劇本全集</h1>
-    <p class="note">點檔名展開，按「複製全文」即可複製。最新版排在最上面，共 53 個檔案。</p>
+    <p class="note">點上方的集數可直接跳到該集，也可以搜尋；點標題展開，按「複製全文」即可複製。最新版排在最上面。</p>
   </header>
-  <h2 class="sec">一念之間長影片</h2>
-<details class="item"><summary>神對話 一念之間 長影片.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話：一念之間（16:9 長影片）
+  <nav class="jump" aria-label="快速導覽"><div class="jtools"><input id="q" type="search" placeholder="搜尋集數或內文，例如 EP10" autocomplete="off"><button type="button" id="collapse">全部收合</button></div><p class="jstat" id="jstat"></p><div class="jrow"><span class="jlab">一念之間</span><a class="chip" href="#long" data-target="long">一念之間</a></div><div class="jrow"><span class="jlab">9:16</span><a class="chip" href="#ep26-916" data-target="ep26-916">EP26</a><a class="chip" href="#ep25-916" data-target="ep25-916">EP25</a><a class="chip" href="#ep24-916" data-target="ep24-916">EP24</a><a class="chip" href="#ep23-916" data-target="ep23-916">EP23</a><a class="chip" href="#ep22-916" data-target="ep22-916">EP22</a><a class="chip" href="#ep21-916" data-target="ep21-916">EP21</a><a class="chip" href="#ep20-916" data-target="ep20-916">EP20</a><a class="chip" href="#ep19-916" data-target="ep19-916">EP19</a><a class="chip" href="#ep18-916" data-target="ep18-916">EP18</a><a class="chip" href="#ep17-916" data-target="ep17-916">EP17</a><a class="chip" href="#ep16-916" data-target="ep16-916">EP16</a><a class="chip" href="#ep15-916" data-target="ep15-916">EP15</a><a class="chip" href="#ep14-916" data-target="ep14-916">EP14</a><a class="chip" href="#ep13-916" data-target="ep13-916">EP13</a><a class="chip" href="#ep12-916" data-target="ep12-916">EP12</a><a class="chip" href="#ep11-916" data-target="ep11-916">EP11</a><a class="chip" href="#ep10-916" data-target="ep10-916">EP10</a><a class="chip" href="#ep09-916" data-target="ep09-916">EP09</a><a class="chip" href="#ep08-916" data-target="ep08-916">EP08</a><a class="chip" href="#ep07-916" data-target="ep07-916">EP07</a><a class="chip" href="#ep06-916" data-target="ep06-916">EP06</a><a class="chip" href="#ep05-916" data-target="ep05-916">EP05</a><a class="chip" href="#ep04-916" data-target="ep04-916">EP04</a><a class="chip" href="#ep03-916" data-target="ep03-916">EP03</a><a class="chip" href="#ep02-916" data-target="ep02-916">EP02</a><a class="chip" href="#ep01-916" data-target="ep01-916">EP01</a></div><div class="jrow"><span class="jlab">16:9</span><a class="chip" href="#ep26-169" data-target="ep26-169">EP26</a><a class="chip" href="#ep25-169" data-target="ep25-169">EP25</a><a class="chip" href="#ep24-169" data-target="ep24-169">EP24</a><a class="chip" href="#ep23-169" data-target="ep23-169">EP23</a><a class="chip" href="#ep22-169" data-target="ep22-169">EP22</a><a class="chip" href="#ep21-169" data-target="ep21-169">EP21</a><a class="chip" href="#ep20-169" data-target="ep20-169">EP20</a><a class="chip" href="#ep19-169" data-target="ep19-169">EP19</a><a class="chip" href="#ep18-169" data-target="ep18-169">EP18</a><a class="chip" href="#ep17-169" data-target="ep17-169">EP17</a><a class="chip" href="#ep16-169" data-target="ep16-169">EP16</a><a class="chip" href="#ep15-169" data-target="ep15-169">EP15</a><a class="chip" href="#ep14-169" data-target="ep14-169">EP14</a><a class="chip" href="#ep13-169" data-target="ep13-169">EP13</a><a class="chip" href="#ep12-169" data-target="ep12-169">EP12</a><a class="chip" href="#ep11-169" data-target="ep11-169">EP11</a><a class="chip" href="#ep10-169" data-target="ep10-169">EP10</a><a class="chip" href="#ep09-169" data-target="ep09-169">EP09</a><a class="chip" href="#ep08-169" data-target="ep08-169">EP08</a><a class="chip" href="#ep07-169" data-target="ep07-169">EP07</a><a class="chip" href="#ep06-169" data-target="ep06-169">EP06</a><a class="chip" href="#ep05-169" data-target="ep05-169">EP05</a><a class="chip" href="#ep04-169" data-target="ep04-169">EP04</a><a class="chip" href="#ep03-169" data-target="ep03-169">EP03</a><a class="chip" href="#ep02-169" data-target="ep02-169">EP02</a><a class="chip" href="#ep01-169" data-target="ep01-169">EP01</a></div></nav>
+  <section class="grp"><h2 class="sec">一念之間長影片</h2><details class="item" id="long"><summary>神對話 一念之間 長影片</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話：一念之間（16:9 長影片）
 
 **劇名**：神對話：一念之間
 **影片標題**：一念之間｜下一念往哪？ #神對話 #一念之間 #修心 #慈悲
@@ -2263,9 +2276,8 @@
 **循環播放**：片尾畫面淡出後接回片頭劇名卡，影片可設為循環播放，形成可反覆觀看的收尾。
 
 一念之間，看清因果，從起心動念開始。
-</pre></details>
-<h2 class="sec">直式 9:16（EP26 到 EP01）</h2>
-<details class="item"><summary>Ep26 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP26｜誤會你，你要辯嗎？ #神對話 #與神對話 #無我 #忍辱 #念頭 #修心
+</pre></details></section>
+<section class="grp"><h2 class="sec">直式 9:16（EP26 到 EP01）</h2><details class="item" id="ep26-916"><summary>Ep26 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP26｜誤會你，你要辯嗎？ #神對話 #與神對話 #無我 #忍辱 #念頭 #修心
 
 #神對話 #念頭 #放下 #修心
 
@@ -2461,8 +2473,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep25 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP25｜幫了人，卻被嫌？ #神對話 #與神對話 #菩提心 #布施 #慈悲 #善念
+</pre></details><details class="item" id="ep25-916"><summary>Ep25 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP25｜幫了人，卻被嫌？ #神對話 #與神對話 #菩提心 #布施 #慈悲 #善念
 
 #神對話 #善念 #放下 #修心
 
@@ -2658,8 +2669,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep24 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP24｜他不回，你猜幾次？ #神對話 #與神對話 #念頭 #放下 #無我 #修心
+</pre></details><details class="item" id="ep24-916"><summary>Ep24 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP24｜他不回，你猜幾次？ #神對話 #與神對話 #念頭 #放下 #無我 #修心
 
 #神對話 #念頭 #放下 #修心
 
@@ -2855,8 +2865,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep23 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP23｜老師罵你，你還敬他？ #神對話 #與神對話 #善知識 #修行 #智慧
+</pre></details><details class="item" id="ep23-916"><summary>Ep23 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP23｜老師罵你，你還敬他？ #神對話 #與神對話 #善知識 #修行 #智慧
 
 #神對話 #善知識 #修行 #智慧
 
@@ -3062,8 +3071,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep22 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP22｜做好事，不想被記？ #神對話 #迴向 #功德 #慈悲
+</pre></details><details class="item" id="ep22-916"><summary>Ep22 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP22｜做好事，不想被記？ #神對話 #迴向 #功德 #慈悲
 
 #神對話 #迴向 #功德 #慈悲
 
@@ -3259,8 +3267,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep21 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP21｜愛消失，你放得下？ #神對話 #無常 #珍惜 #放下
+</pre></details><details class="item" id="ep21-916"><summary>Ep21 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP21｜愛消失，你放得下？ #神對話 #無常 #珍惜 #放下
 
 #神對話 #無常 #珍惜 #放下
 
@@ -3456,8 +3463,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep20 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP20｜你最想先給誰？ #神對話 #菩薩道 #慈悲
+</pre></details><details class="item" id="ep20-916"><summary>Ep20 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP20｜你最想先給誰？ #神對話 #菩薩道 #慈悲
 
 #神對話 #菩薩道 #慈悲
 
@@ -3654,8 +3660,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep19 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP19｜傷你的人，也平等？ #神對話 #平等心 #慈悲 #智慧 #修心
+</pre></details><details class="item" id="ep19-916"><summary>Ep19 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP19｜傷你的人，也平等？ #神對話 #平等心 #慈悲 #智慧 #修心
 
 #神對話 #平等心 #慈悲 #智慧 #修心
 
@@ -3852,8 +3857,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep18 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP18｜哪個念頭自在？ #神對話 #無我 #放下 #自在 #智慧
+</pre></details><details class="item" id="ep18-916"><summary>Ep18 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP18｜哪個念頭自在？ #神對話 #無我 #放下 #自在 #智慧
 
 #神對話 #無我 #放下 #自在 #智慧
 
@@ -4050,8 +4054,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep17 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP17｜別人好，你難受嗎？ #神對話 #隨喜 #善念 #慈悲
+</pre></details><details class="item" id="ep17-916"><summary>Ep17 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP17｜別人好，你難受嗎？ #神對話 #隨喜 #善念 #慈悲
 
 #神對話 #隨喜 #善念 #慈悲
 
@@ -4248,8 +4251,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep16 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP16｜幫人，要怎麼說？ #神對話 #方便 #慈悲 #智慧
+</pre></details><details class="item" id="ep16-916"><summary>Ep16 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP16｜幫人，要怎麼說？ #神對話 #方便 #慈悲 #智慧
 
 #神對話 #方便 #慈悲 #智慧
 
@@ -4446,8 +4448,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談方便與慈悲，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep15 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP15｜解脫了，還要發願？ #神對話 #菩提心 #慈悲 #修心
+</pre></details><details class="item" id="ep15-916"><summary>Ep15 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP15｜解脫了，還要發願？ #神對話 #菩提心 #慈悲 #修心
 
 #神對話 #菩提心 #慈悲 #修心
 
@@ -4644,8 +4645,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談菩提心與慈悲，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep14 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP14｜看清了，就能解脫？ #神對話 #解脫 #覺察 #修心
+</pre></details><details class="item" id="ep14-916"><summary>Ep14 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP14｜看清了，就能解脫？ #神對話 #解脫 #覺察 #修心
 
 #神對話 #解脫 #覺察 #修心
 
@@ -4842,8 +4842,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談解脫與覺察，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep13 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP13｜懂了，還是放不下？ #神對話 #般若 #智慧 #修心
+</pre></details><details class="item" id="ep13-916"><summary>Ep13 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP13｜懂了，還是放不下？ #神對話 #般若 #智慧 #修心
 
 #神對話 #般若 #智慧 #修心
 
@@ -5040,8 +5039,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談般若與看清念頭，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep12 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP12｜修了行，還在輪迴？ #神對話 #六道輪迴 #修心 #慈悲
+</pre></details><details class="item" id="ep12-916"><summary>Ep12 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP12｜修了行，還在輪迴？ #神對話 #六道輪迴 #修心 #慈悲
 
 #神對話 #六道輪迴 #修心 #慈悲
 
@@ -5239,8 +5237,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談修心與六道輪迴，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep11 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP11｜念頭吵到睡不著？ #神對話 #禪定 #修行 #覺察
+</pre></details><details class="item" id="ep11-916"><summary>Ep11 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP11｜念頭吵到睡不著？ #神對話 #禪定 #修行 #覺察
 
 #神對話 #禪定 #修行 #覺察
 
@@ -5436,8 +5433,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談禪定，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep10 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP10｜做到一半，想放棄？ #神對話 #精進 #修行 #覺察
+</pre></details><details class="item" id="ep10-916"><summary>Ep10 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP10｜做到一半，想放棄？ #神對話 #精進 #修行 #覺察
 
 #神對話 #精進 #修行 #覺察
 
@@ -5632,8 +5628,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談精進與回到正軌，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep09 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP09｜被罵，你還忍嗎？ #神對話 #忍辱 #修行 #覺察
+</pre></details><details class="item" id="ep09-916"><summary>Ep09 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP09｜被罵，你還忍嗎？ #神對話 #忍辱 #修行 #覺察
 
 #神對話 #忍辱 #修行 #覺察
 
@@ -5828,8 +5823,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談忍辱與回應，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep08 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP08｜給了，還想要回報？ #神對話 #布施 #修行 #慈悲
+</pre></details><details class="item" id="ep08-916"><summary>Ep08 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP08｜給了，還想要回報？ #神對話 #布施 #修行 #慈悲
 
 #神對話 #布施 #修行 #慈悲
 
@@ -6025,8 +6019,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談布施與不求回報，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep07 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP07｜守規矩，綁住你？ #神對話 #持戒 #修行 #慈悲
+</pre></details><details class="item" id="ep07-916"><summary>Ep07 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP07｜守規矩，綁住你？ #神對話 #持戒 #修行 #慈悲
 
 #神對話 #持戒 #修行 #慈悲
 
@@ -6221,8 +6214,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談守戒與界線，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep06 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP06｜委屈了，要忍嗎？ #神對話 #慈悲 #忍讓 #修心
+</pre></details><details class="item" id="ep06-916"><summary>Ep06 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP06｜委屈了，要忍嗎？ #神對話 #慈悲 #忍讓 #修心
 
 #神對話 #慈悲 #忍讓 #修心
 
@@ -6417,8 +6409,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談慈悲與界線，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep05 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP05｜放下了，念頭還來？ #神對話 #放下 #修心 #覺察
+</pre></details><details class="item" id="ep05-916"><summary>Ep05 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP05｜放下了，念頭還來？ #神對話 #放下 #修心 #覺察
 
 #神對話 #放下 #修心 #覺察
 
@@ -6613,8 +6604,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 角色外型與 Ep01 至 Ep04 一致：彥彬穿白色高級長袍，佛祖為二十五歲的年輕女相，蓮花座與佛光每段固定描述。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep04 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP04｜放不下，還要輪迴？ #神對話 #輪迴 #選擇 #修心
+</pre></details><details class="item" id="ep04-916"><summary>Ep04 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP04｜放不下，還要輪迴？ #神對話 #輪迴 #選擇 #修心
 
 #神對話 #輪迴 #選擇 #修心
 
@@ -6810,8 +6800,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談「放不下」時只談心裡的念頭與鬆開，沒有渲染恐懼，也沒有提到自傷或暴力情節。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep03 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP03｜許了願，落空了？ #神對話 #許願 #願力 #修心
+</pre></details><details class="item" id="ep03-916"><summary>Ep03 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP03｜許了願，落空了？ #神對話 #許願 #願力 #修心
 
 #神對話 #許願 #願力 #修心
 
@@ -7021,8 +7010,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 劇本沒有提到療效、收入或成效保證，也沒有涉及自傷或暴力情節。
 - 「一定會實現」的說法在劇情中被修正為「不是許了就等」，避免給人保證結果的感覺。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep02 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP02｜前世的錯，要還嗎？ #神對話 #業力 #因果 #修心
+</pre></details><details class="item" id="ep02-916"><summary>Ep02 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP02｜前世的錯，要還嗎？ #神對話 #業力 #因果 #修心
 
 #神對話 #業力 #因果 #修心
 
@@ -7220,8 +7208,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖的蓮花座與佛光每段都用同一段固定描述：盛開的白色蓮花座（蓮瓣層層展開），身後固定的圓形柔和金色佛光。
 - 劇本沒有提到療效、收入或成效保證，也沒有涉及自傷或暴力情節。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep01 劇本.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP01｜火氣上來，你停嗎？ #神對話 #引果 #覺察 #放下
+</pre></details><details class="item" id="ep01-916"><summary>Ep01 劇本</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP01｜火氣上來，你停嗎？ #神對話 #引果 #覺察 #放下
 
 #神對話 #引果 #覺察 #放下
 
@@ -7445,9 +7432,8 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 內容沒有療效、收入或成效保證，也沒有叫人留言或私訊。
 - 角色外型依照統一設定：彥彬穿白色高級長袍，佛祖已改為佛祖（女相），與 Ep02 同步。
 - 短劇台詞已精簡為約 260 字，以一般語速約 50 多秒可以念完。神對話部分保留原文，沒有精簡。
-</pre></details>
-<h2 class="sec">橫式 16:9（EP26 到 EP01）</h2>
-<details class="item"><summary>Ep26 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP26：誤會你，你要辯嗎？（16:9 橫式）
+</pre></details></section>
+<section class="grp"><h2 class="sec">橫式 16:9（EP26 到 EP01）</h2><details class="item" id="ep26-169"><summary>Ep26 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP26：誤會你，你要辯嗎？（16:9 橫式）
 
 ## 一、基本資料
 
@@ -7602,8 +7588,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep25 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP25：幫了人，卻被嫌？（16:9 橫式）
+</pre></details><details class="item" id="ep25-169"><summary>Ep25 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP25：幫了人，卻被嫌？（16:9 橫式）
 
 ## 一、基本資料
 
@@ -7758,8 +7743,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep24 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP24：他不回，你猜幾次？（16:9 橫式）
+</pre></details><details class="item" id="ep24-169"><summary>Ep24 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP24：他不回，你猜幾次？（16:9 橫式）
 
 ## 一、基本資料
 
@@ -7914,8 +7898,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep23 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP23：老師罵你，你還敬他？（16:9 橫式）
+</pre></details><details class="item" id="ep23-169"><summary>Ep23 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP23：老師罵你，你還敬他？（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8079,8 +8062,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep22 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP22：什麼是迴向（16:9 橫式）
+</pre></details><details class="item" id="ep22-169"><summary>Ep22 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP22：什麼是迴向（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8235,8 +8217,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep21 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP21：什麼是無常（16:9 橫式）
+</pre></details><details class="item" id="ep21-169"><summary>Ep21 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP21：什麼是無常（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8391,8 +8372,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖只執楊枝，左手放於膝上，不持其他物件；畫面不出現任何文字。
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
-</pre></details>
-<details class="item"><summary>Ep20 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP20：什麼是菩薩道（16:9 橫式）
+</pre></details><details class="item" id="ep20-169"><summary>Ep20 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP20：什麼是菩薩道（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8548,8 +8528,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep19 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP19：什麼是平等心（16:9 橫式）
+</pre></details><details class="item" id="ep19-169"><summary>Ep19 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP19：什麼是平等心（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8705,8 +8684,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep18 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP18：什麼是無我（16:9 橫式）
+</pre></details><details class="item" id="ep18-169"><summary>Ep18 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP18：什麼是無我（16:9 橫式）
 
 ## 一、基本資料
 
@@ -8862,8 +8840,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep17 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP17：什麼是隨喜（16:9 橫式）
+</pre></details><details class="item" id="ep17-169"><summary>Ep17 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP17：什麼是隨喜（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9019,8 +8996,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep16 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP16：什麼是方便（16:9 橫式）
+</pre></details><details class="item" id="ep16-169"><summary>Ep16 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP16：什麼是方便（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9176,8 +9152,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談方便與慈悲，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep15 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP15：什麼是菩提心（16:9 橫式）
+</pre></details><details class="item" id="ep15-169"><summary>Ep15 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP15：什麼是菩提心（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9333,8 +9308,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談菩提心與慈悲，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep14 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP14：什麼是解脫（16:9 橫式）
+</pre></details><details class="item" id="ep14-169"><summary>Ep14 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP14：什麼是解脫（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9490,8 +9464,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談解脫與覺察，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep13 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP13：看清念頭，什麼是般若（16:9 橫式）
+</pre></details><details class="item" id="ep13-169"><summary>Ep13 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP13：看清念頭，什麼是般若（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9647,8 +9620,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談般若與看清念頭，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep12 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP12：一念安定之後
+</pre></details><details class="item" id="ep12-169"><summary>Ep12 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP12：一念安定之後
 
 ## 一、基本資料
 
@@ -9805,8 +9777,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談修心與六道輪迴，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep11 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP11：什麼是禪定（16:9 橫式）
+</pre></details><details class="item" id="ep11-169"><summary>Ep11 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP11：什麼是禪定（16:9 橫式）
 
 ## 一、基本資料
 
@@ -9961,8 +9932,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談禪定，沒有提到療效、收入或成效保證，也沒有渲染恐懼。
 - 台詞依各段秒數控制，每秒約 3 字以內，語速放慢。
 
-</pre></details>
-<details class="item"><summary>Ep10 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP10：什麼是精進
+</pre></details><details class="item" id="ep10-169"><summary>Ep10 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP10：什麼是精進
 
 ## 一、基本資料
 
@@ -10116,8 +10086,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談精進與回到正軌，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep09 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP09：什麼是忍辱
+</pre></details><details class="item" id="ep09-169"><summary>Ep09 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP09：什麼是忍辱
 
 ## 一、基本資料
 
@@ -10271,8 +10240,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談忍辱與回應，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep08 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP08：什麼是布施
+</pre></details><details class="item" id="ep08-169"><summary>Ep08 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP08：什麼是布施
 
 ## 一、基本資料
 
@@ -10427,8 +10395,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談布施與不求回報，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep07 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP07：什麼是持戒
+</pre></details><details class="item" id="ep07-169"><summary>Ep07 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP07：什麼是持戒
 
 ## 一、基本資料
 
@@ -10582,8 +10549,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談守戒與界線，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep06 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP06：什麼是慈悲
+</pre></details><details class="item" id="ep06-169"><summary>Ep06 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP06：什麼是慈悲
 
 ## 一、基本資料
 
@@ -10737,8 +10703,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談慈悲與界線，沒有提到自傷或暴力情節，也沒有渲染恐懼。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep05 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP05：什麼是覺察
+</pre></details><details class="item" id="ep05-169"><summary>Ep05 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP05：什麼是覺察
 
 ## 一、基本資料
 
@@ -10892,8 +10857,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 角色外型與 Ep01 至 Ep04 一致：彥彬穿白色高級長袍，佛祖為二十五歲的年輕女相，蓮花座與佛光每段固定描述。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep04 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP04：什麼是輪迴
+</pre></details><details class="item" id="ep04-169"><summary>Ep04 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP04：什麼是輪迴
 
 ## 一、基本資料
 
@@ -11048,8 +11012,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 本集談「放不下」時只談心裡的念頭與鬆開，沒有渲染恐懼，也沒有提到自傷或暴力情節。
 - 劇本沒有提到療效、收入或成效保證。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep03 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP03：什麼是願果
+</pre></details><details class="item" id="ep03-169"><summary>Ep03 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP03：什麼是願果
 
 ## 一、基本資料
 
@@ -11218,8 +11181,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 劇本沒有提到療效、收入或成效保證，也沒有涉及自傷或暴力情節。
 - 「一定會實現」的說法在劇情中被修正為「不是許了就等」，避免給人保證結果的感覺。
 - 台詞約 260 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep02 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP02：什麼是業力
+</pre></details><details class="item" id="ep02-169"><summary>Ep02 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP02：什麼是業力
 
 ## 一、基本資料
 
@@ -11376,8 +11338,7 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 佛祖的蓮花座與佛光每段都用同一段固定描述：盛開的白色蓮花座（蓮瓣層層展開），身後固定的圓形柔和金色佛光。
 - 劇本沒有提到療效、收入或成效保證，也沒有涉及自傷或暴力情節。
 - 台詞約 250 字，以一般語速約 50 多秒可以念完。
-</pre></details>
-<details class="item"><summary>Ep01 劇本 16x9.md</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP01：什麼是引果
+</pre></details><details class="item" id="ep01-169"><summary>Ep01 劇本 16x9</summary><div class="bar"><button type="button" class="cp">複製全文</button></div><pre># 神對話系列 EP01：什麼是引果
 
 ## 一、一分鐘短劇腳本（橫式 16:9，55 秒，無字幕，每段都有提示詞與台詞）
 
@@ -11560,24 +11521,73 @@ https://youtube.com/playlist?list=PLZLcOre6BwBc
 - 內容沒有療效、收入或成效保證，也沒有叫人留言或私訊。
 - 角色外型依照統一設定：彥彬穿白色高級長袍，佛祖已改為佛祖（女相），與 Ep02 同步。
 - 短劇台詞已精簡為約 260 字，以一般語速約 50 多秒可以念完。神對話部分保留原文，沒有精簡。
-</pre></details>
+</pre></details></section>
 </div>
 <script>
-document.addEventListener('click', function(e){
-  var b = e.target.closest('.cp'); if(!b) return;
-  e.preventDefault();
-  var pre = b.closest('details').querySelector('pre');
-  var txt = pre.textContent;
-  var done = function(){ b.textContent='已複製 ✓'; b.classList.add('done'); setTimeout(function(){ b.textContent='複製全文'; b.classList.remove('done'); }, 1600); };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt).then(done, function(){ fallback(); });
-  } else { fallback(); }
-  function fallback(){
-    var r = document.createRange(); r.selectNodeContents(pre);
-    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-    try { document.execCommand('copy'); done(); } catch(err) { b.textContent='請手動長按複製'; }
+(function(){
+  var q = document.getElementById('q');
+  var stat = document.getElementById('jstat');
+  var items = [].slice.call(document.querySelectorAll('details.item'));
+  var chips = [].slice.call(document.querySelectorAll('.chip'));
+  var groups = [].slice.call(document.querySelectorAll('.grp'));
+  var total = items.length;
+  var texts = items.map(function(d){ return (d.querySelector('summary').textContent + ' ' + d.querySelector('pre').textContent).toLowerCase(); });
+
+  function apply(){
+    var k = q.value.trim().toLowerCase();
+    var shown = 0, vis = {};
+    items.forEach(function(d, i){
+      var on = !k || texts[i].indexOf(k) >= 0;
+      d.hidden = !on; vis[d.id] = on; if (on) shown++;
+    });
+    groups.forEach(function(g){ g.hidden = !g.querySelector('details.item:not([hidden])'); });
+    chips.forEach(function(c){ c.hidden = !vis[c.getAttribute('data-target')]; });
+    stat.textContent = k ? ('找到 ' + shown + ' 集（共 ' + total + ' 集）') : ('共 ' + total + ' 集');
   }
-});
+  q.addEventListener('input', apply);
+
+  // 點集數：展開該集並捲到標題
+  document.addEventListener('click', function(e){
+    var c = e.target.closest('a.chip');
+    if (!c) return;
+    e.preventDefault();
+    var d = document.getElementById(c.getAttribute('data-target'));
+    if (!d) return;
+    d.open = true;
+    history.replaceState(null, '', '#' + d.id);
+    d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  document.getElementById('collapse').addEventListener('click', function(){
+    items.forEach(function(d){ d.open = false; });
+  });
+
+  // 複製全文
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('.cp'); if (!b) return;
+    e.preventDefault();
+    var pre = b.closest('details').querySelector('pre');
+    var txt = pre.textContent;
+    var done = function(){ b.textContent = '已複製 ✓'; b.classList.add('done'); setTimeout(function(){ b.textContent = '複製全文'; b.classList.remove('done'); }, 1600); };
+    var fallback = function(){
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      try { document.execCommand('copy'); done(); } catch (err) { b.textContent = '請手動長按複製'; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, fallback);
+    } else { fallback(); }
+  });
+
+  // 網址帶 #EP10 之類的錨點時，直接展開那一集
+  var h = decodeURIComponent(location.hash.slice(1));
+  var t = h && document.getElementById(h);
+  if (t && t.tagName === 'DETAILS') {
+    t.open = true;
+    setTimeout(function(){ t.scrollIntoView({ block: 'start' }); }, 60);
+  }
+  apply();
+})();
 </script>
 </body>
 </html>
