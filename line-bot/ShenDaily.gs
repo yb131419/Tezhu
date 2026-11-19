@@ -63,13 +63,13 @@ function shenChunks_(text, max) {
 
 // 圖卡版面：{ W, H, build(slideId) }，和 reportLayout_ 一樣交給 layoutPng_ 畫成 PNG
 function shenCardLayout_(st, items, dateLine) {
-  const W = 720, ROW = 40, ITEMS_TOP = 380;
-  // 每一條依字數決定高度：一行約 40 個字（12pt、寬 560pt），一行約 18pt，最少一個 ROW
-  const hs = items.map(t => Math.max(ROW, Math.ceil(Array.from(t).length / 40) * 18 + 16));
+  const W = 720, ROW = 52, ITEMS_TOP = 442;
+  // 每一條依字數決定高度：字放大到 18pt、寬 556pt，一行保守估 26 個字，一行約 28pt
+  const hs = items.map(t => Math.max(ROW, Math.ceil(Array.from(t).length / 26) * 28 + 18));
   const offs = [];
   hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
-  const footY = ITEMS_TOP + hs.reduce((a, b) => a + b, 0) + 22;
-  const H = footY + 64;
+  const footY = ITEMS_TOP + hs.reduce((a, b) => a + b, 0) + 26;
+  const H = footY + 70;
   const s = st || { subs: '—', avg: '—', pct: '—' };
   const stats = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
   const build = pg => {
@@ -100,26 +100,26 @@ function shenCardLayout_(st, items, dateLine) {
     // 外框：金色細線＋內側一道淡框
     rect(24, 24, W - 48, H - 48, SC_.CARD, SC_.GOLD);
     rect(34, 34, W - 68, H - 68, null, SC_.FRAME);
-    text(0, 58, W, 20, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 10, bold: true, color: SC_.BRAND, align: 'CENTER' });
-    text(0, 80, W, 44, '今日頻道與神對話', { font: 'Noto Serif TC', size: 26, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
-    text(0, 128, W, 20, dateLine, { font: 'Noto Sans TC', size: 11, color: SC_.SOFT, align: 'CENTER' });
-    rect(96, 166, W - 192, 1, SC_.GOLD, null);
-    text(64, 184, 592, 24, '頻道數據', { font: 'Noto Serif TC', size: 14, bold: true, color: SC_.GOLD_D });
+    text(0, 56, W, 26, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 15, bold: true, color: SC_.BRAND, align: 'CENTER' });
+    text(0, 84, W, 60, '今日頻道與神對話', { font: 'Noto Serif TC', size: 36, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
+    text(0, 148, W, 26, dateLine, { font: 'Noto Sans TC', size: 16, color: SC_.SOFT, align: 'CENTER' });
+    rect(96, 186, W - 192, 1, SC_.GOLD, null);
+    text(64, 200, 592, 32, '頻道數據', { font: 'Noto Serif TC', size: 20, bold: true, color: SC_.GOLD_D });
     stats.forEach((b, i) => {
       const x = 64 + i * 202;
-      rect(x, 216, 188, 92, SC_.BOX, SC_.FRAME);
-      text(x, 226, 188, 40, b[0], { font: 'Noto Serif TC', size: 24, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
-      text(x, 272, 188, 18, b[1], { font: 'Noto Sans TC', size: 10, color: SC_.SOFT, align: 'CENTER' });
+      rect(x, 242, 188, 124, SC_.BOX, SC_.FRAME);
+      text(x, 254, 188, 56, b[0], { font: 'Noto Serif TC', size: 36, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
+      text(x, 318, 188, 24, b[1], { font: 'Noto Sans TC', size: 14, color: SC_.SOFT, align: 'CENTER' });
     });
-    rect(96, 328, W - 192, 1, SC_.GOLD, null);
-    text(64, 344, 592, 24, '神對話每日迭代', { font: 'Noto Serif TC', size: 14, bold: true, color: SC_.GOLD_D });
+    rect(96, 384, W - 192, 1, SC_.GOLD, null);
+    text(64, 398, 592, 32, '神對話每日迭代', { font: 'Noto Serif TC', size: 20, bold: true, color: SC_.GOLD_D });
     items.forEach((t, i) => {
       const y = ITEMS_TOP + offs[i], h = hs[i];
-      text(64, y + 8, 28, 24, SC_NUMS[i] || String(i + 1), { font: 'Noto Serif TC', size: 13, bold: true, color: SC_.GOLD_D });
-      text(96, y + 6, 560, h - 6, t, { font: 'Noto Sans TC', size: 12, color: SC_.INK });
+      text(60, y + 10, 34, 30, SC_NUMS[i] || String(i + 1), { font: 'Noto Serif TC', size: 19, bold: true, color: SC_.GOLD_D });
+      text(100, y + 8, 556, h - 8, t, { font: 'Noto Sans TC', size: 18, color: SC_.INK });
       rect(64, y + h - 1, 592, 1, SC_.RULE, null);
     });
-    text(0, footY, W, 20, '劇本網址　' + SHEN_SCRIPT_URL, { font: 'Noto Sans TC', size: 10, color: SC_.MUTE, align: 'CENTER' });
+    text(0, footY, W, 24, '劇本網址　' + SHEN_SCRIPT_URL, { font: 'Noto Sans TC', size: 14, color: SC_.MUTE, align: 'CENTER' });
     return req;
   };
   return { W: W, H: H, build: build };
