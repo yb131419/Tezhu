@@ -93,6 +93,7 @@ TEMPLATE = r'''<!doctype html>
   .kicker{font-family:var(--serif);font-size:12px;letter-spacing:5px;color:var(--gold);font-weight:600;margin:0 0 6px;}
   h1{font-family:var(--serif);font-size:26px;letter-spacing:3px;margin:0 0 8px;font-weight:700;}
   .note{color:var(--ink-soft);font-size:13px;margin:0;}
+  .ver{margin-left:auto;color:var(--ink-faint);font-size:12px;letter-spacing:.5px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* 快速導覽：固定在上方，集數按鈕橫向捲動，省空間 */
   .jump{position:sticky;top:0;z-index:5;background:var(--paper);padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:6px;}
   .jtools{display:flex;gap:8px;align-items:center;}
@@ -121,7 +122,7 @@ TEMPLATE = r'''<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a class="back" href="Assistant.html">‹ 回小乖主頁</a></div>
+  <div class="top"><a class="back" href="Assistant.html">‹ 回小乖主頁</a><span class="ver">__STAMP__</span></div>
   <header>
     <p class="kicker">神對話</p>
     <h1>神對話劇本全集</h1>
@@ -200,7 +201,10 @@ TEMPLATE = r'''<!doctype html>
 </html>
 '''
 
-html = TEMPLATE.replace('__NAV__', nav).replace('__GROUPS__', '\n'.join(group_html(s) for s in sections if s['items']))
+import hashlib
+_content_hash = hashlib.sha1((nav + ''.join(group_html(s) for s in sections if s['items'])).encode('utf-8')).hexdigest()[:7]
+STAMP = 'v ' + _content_hash + ' · ' + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y/%m/%d %H:%M')
+html = TEMPLATE.replace('__STAMP__', STAMP).replace('__NAV__', nav).replace('__GROUPS__', '\n'.join(group_html(s) for s in sections if s['items']))
 out_path = sys.argv[2] if len(sys.argv) > 2 else 'ShenScripts.html'
 open(out_path, 'w', encoding='utf-8').write(html)
 print('sections items:', count, 'bytes:', len(html.encode()))
