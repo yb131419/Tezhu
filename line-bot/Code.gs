@@ -265,13 +265,12 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
-// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
-const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。檔案 ID 存在「指令碼屬性」ASSISTANT_FILE_ID，只需執行一次 setAssistantFileId。
 // 程式版本標記：貼上新檔後，執行記錄與錯誤訊息會顯示這個版本，方便確認是不是新版
-const ASSISTANT_CODE_VERSION = 'drive-check-v3';
+const ASSISTANT_CODE_VERSION = 'prop-v4';
 function assistantHtml_() {
-  const id = String(ASSISTANT_FILE_ID || '').trim();
-  if (!id || id.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
+  const id = String(PropertiesService.getScriptProperties().getProperty('ASSISTANT_FILE_ID') || '').trim();
+  if (!id) throw new Error('尚未設定小乖主頁檔案 ID：請在編輯器執行一次 setAssistantFileId');
   // 第一步：用 Drive 進階服務看這個 ID 是什麼（捷徑改找目標、資料夾直接說明）
   let target = id, meta = null, advErr = '';
   try { meta = Drive.Files.get(id, { fields: 'id,name,mimeType,shortcutDetails', supportsAllDrives: true }); }
@@ -283,6 +282,14 @@ function assistantHtml_() {
   // 第二步：讀取檔案內容，失敗時把 Drive 的錯誤與進階服務的結果一併回報
   try { return DriveApp.getFileById(target).getBlob().getDataAsString('UTF-8'); }
   catch (e2) { throw new Error('讀取檔案失敗（ID ' + target + '）：' + errText_(e2) + (advErr ? '；進階服務：' + advErr : '')); }
+}
+
+// 一次性：在 Apps Script 編輯器選「setAssistantFileId」按「執行」一次，把檔案 ID 寫進指令碼屬性。
+// 執行記錄會顯示「已設定」與讀回的 ID。之後可以刪掉這個函式。
+function setAssistantFileId() {
+  const id = '1nxumIhDo6tUeXxOKagDUAcQlaNReOqLa';
+  PropertiesService.getScriptProperties().setProperty('ASSISTANT_FILE_ID', id);
+  Logger.log('已設定 ASSISTANT_FILE_ID，讀回：' + PropertiesService.getScriptProperties().getProperty('ASSISTANT_FILE_ID'));
 }
 
 // 把錯誤轉成可讀文字：名稱｜訊息（訊息空白時改用 String(錯誤)）
