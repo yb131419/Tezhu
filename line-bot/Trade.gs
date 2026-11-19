@@ -1080,7 +1080,11 @@ function tradeReconcile_(cur) {
     // 持倉不見了：上次看到的報價可能還沒碰到停損或停利，所以再用目前報價比一次（碰到的時間可能在兩次查詢之間）
     let kind = tradeKindOf_(p, p.now), price = p.now;
     if (!kind) { price = tradeNowOf_(p); kind = tradeKindOf_(p, price); }
-    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
+    if (kind) {
+      stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
+      // 停損或停利被平掉時也發通知，格式與平倉通知一致；價格是上次看到的報價，實際成交價以 IG 為準
+      tradeNotify_('📣 ' + kind + '通知\n' + tradeLabelOf_(p.name) + ' 平' + p.dirZh + ' ' + p.size + ' 單位，觸發價約 ' + Number(price).toFixed(p.prec) + '\n（實際成交價以 IG 為準）');
+    }
   });
   const snap = cur.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
