@@ -254,6 +254,12 @@ function doGet(e) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
     return ContentService.createTextOutput(askByVoice_(String(p.ask), '', true));
   }
+  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳；一定要輸入同步密碼才給看
+  if (p.page === 'assistant') {
+    if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對').setMimeType(ContentService.MimeType.TEXT);
+    try { return ContentService.createTextOutput(assistantHtml_()).setMimeType(ContentService.MimeType.HTML); }
+    catch (err) { return ContentService.createTextOutput('小乖主頁讀取失敗：' + (err && err.message || err)).setMimeType(ContentService.MimeType.TEXT); }
+  }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
     // 網址可以不帶密碼：頁面第一次會請你輸入，記在這支手機上
@@ -263,6 +269,13 @@ function doGet(e) {
       .setFaviconUrl('https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png');
   }
   return ContentService.createTextOutput('小乖雲端服務運作中');
+}
+
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。指令碼屬性 ASSISTANT_FILE_ID 記那個檔案的編號。
+function assistantHtml_() {
+  const id = prop_('ASSISTANT_FILE_ID');
+  if (!id) throw new Error('尚未設定指令碼屬性 ASSISTANT_FILE_ID');
+  return DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
 }
 
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
