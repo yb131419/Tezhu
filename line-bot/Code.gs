@@ -272,6 +272,17 @@ function assistantHtml_() {
   return DriveApp.getFileById(ASSISTANT_FILE_ID).getBlob().getDataAsString('UTF-8');
 }
 
+// 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
+function authorizeAssistant() {
+  try {
+    const html = assistantHtml_();
+    Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
+  } catch (err) {
+    Logger.log('小乖主頁讀取失敗：' + (err && err.message || err));
+    throw err;
+  }
+}
+
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
 let TALK_URL_ = null;
 function talkUrl_() {
