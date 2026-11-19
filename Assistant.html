@@ -519,6 +519,22 @@
   html[data-theme=dark] .count.zero{color:var(--ink-faint);}
   html[data-theme=dark] .tag.hot{background:rgba(224,97,59,.2);color:#F0A285;}
   html[data-theme=dark] .lightbox{background:rgba(0,0,0,.92);}
+
+#xtr .xtr-rec{margin-top:12px;border-radius:18px;border:1px solid rgba(220,195,148,.28);background:linear-gradient(180deg,rgba(241,223,180,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(241,223,180,.08);overflow:hidden;}
+#xtr .xtr-rec>summary{list-style:none;cursor:pointer;padding:16px 42px 14px 18px;position:relative;}
+#xtr .xtr-rec>summary::-webkit-details-marker{display:none;}
+#xtr .xtr-rec>summary:after{content:"";position:absolute;right:20px;top:24px;width:9px;height:9px;border-right:2px solid #C9A56A;border-bottom:2px solid #C9A56A;transform:rotate(45deg);transition:transform .2s ease;}
+#xtr .xtr-rec[open]>summary:after{transform:rotate(-135deg);top:28px;}
+#xtr .xtr-rh{font-family:"Noto Serif TC","Songti TC",serif;font-size:17px;line-height:1.5;color:#F3EEE5;letter-spacing:.3px;}
+#xtr .xtr-rpnl{margin-top:8px;font:600 15px "Cormorant Garamond","Noto Serif TC",serif;color:#5BE39A;font-variant-numeric:tabular-nums;}
+#xtr .xtr-rpnl.neg{color:#FF7A7A;}
+#xtr .xtr-rbody{padding:0 18px 16px;border-top:1px solid rgba(220,195,148,.18);margin:0 18px;padding-left:0;padding-right:0;}
+#xtr .xtr-rbody .xtr-line{padding-top:10px;font-size:14px;color:rgba(243,238,229,.72);line-height:1.7;}
+html:not([data-theme=dark]) #xtr .xtr-rec{border-color:rgba(176,141,87,.28);background:rgba(255,255,255,.75);box-shadow:0 14px 30px -22px rgba(30,25,18,.25),inset 0 1px 0 rgba(255,255,255,.9);}
+html:not([data-theme=dark]) #xtr .xtr-rec>summary:after{border-color:#B08D57;}
+html:not([data-theme=dark]) #xtr .xtr-rh{color:#1E1A14;}
+html:not([data-theme=dark]) #xtr .xtr-rbody{border-top-color:rgba(176,141,87,.22);}
+html:not([data-theme=dark]) #xtr .xtr-rbody .xtr-line{color:#6F6253;}
 </style>
 <style>
 /* 交易（2026-11-18）：小乖主頁快速功能；黑曜石＋香檳金（與對話頁一致）。只做外觀與入口，買賣仍只能按按鈕，按下先出提案，確認後才送出 */
@@ -2500,7 +2516,7 @@ function xtrRun(q,title){
   xtrPost(q,120000).then(r=>{
     if(/同步密碼不對/.test(r.say||'')){body.textContent='同步密碼不對，請到「設定」重新輸入。';return;}
     body.textContent='';
-    if(/持倉/.test(q)||/獲利/.test(title||''))xtrProfit(body,r.show||r.say);else xtrTrade(body,r.show||r.say);
+    if(/停損停利紀錄/.test(title||q))xtrRecs(body,r.show||r.say);else if(/持倉/.test(q)||/獲利/.test(title||''))xtrProfit(body,r.show||r.say);else xtrTrade(body,r.show||r.say);
     xtrActs(document.getElementById('xtrAct'),r.buttons||[]);
   }).catch(e=>{body.textContent='連線有問題，請再試一次（'+e.message+'）';});
 }
@@ -2529,6 +2545,19 @@ function xtrTrade(el,text){let card=null;
     const d=xtrEl(card||el,card?'xtr-posd':'xtr-line',t);
     if(card&&/損益/.test(t))d.classList.add(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos');
   });}
+/* 停損停利紀錄：每筆一張可收合卡片，預設收合，只顯示標題與損益；點開看開倉、成本等細節 */
+function xtrRecs(el,text){let rec=null;
+  String(text||'').split('\n').forEach(l=>{const t=l.trim();
+    if(!t){rec=null;return;}
+    if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
+    if(/^・/.test(t)){
+      const d=document.createElement('details');d.className='xtr-rec';
+      const sm=document.createElement('summary');const h=xtrEl(sm,'xtr-rh',t.slice(1).trim());d.appendChild(sm);
+      rec={d:d,sm:sm,body:xtrEl(d,'xtr-rbody')};el.appendChild(d);return;}
+    if(rec){
+      if(/損益/.test(t)){const p=xtrEl(rec.sm,'xtr-rpnl '+(/-\d/.test(t.replace(/[（(].*?[）)]/g,''))?'neg':'pos'),t);return;}
+      xtrEl(rec.body,'xtr-line',t);return;}
+    xtrEl(el,'xtr-line',t);});}
 /* 獲利查詢：每筆持倉一張卡，方向與商品在上，開倉→現價在中間，未實現損益與投入成本在下 */
 function xtrTone(v){if(/未/.test(v))return'nt';return/-\d/.test(String(v).replace(/[（(].*?[）)]/g,''))?'neg':'pos';}
 function xtrPct(v){const m=String(v).match(/[（(]([+-]?[\d.]+%)[）)]/);return m?m[1]:'';}
