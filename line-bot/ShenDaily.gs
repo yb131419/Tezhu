@@ -38,10 +38,32 @@ function shenDailyPush() {
   const msg = parts.join('\n\n━━━━━━━━\n\n');
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   try {
-    if (owner) push_(owner, msg.slice(0, 4900));
-    if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, msg.slice(0, 4000));
+    // 太長就分成數則依序傳，不切掉後面的內容（LINE 單則上限 5000 字，Telegram 單則上限 4096 字）
+    if (owner) shenChunks_(msg, 4800).forEach(t => push_(owner, t));
+    if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) shenChunks_(msg, 3800).forEach(t => tgSend_(tgOwner, t));
     const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
     pending.forEach(p => sh.getRange(p.row, 4).setValue(now));
     if (chanText) setProp_('CHAN_DAILY_MSG', '');
   } catch (e) { console.error('每日合併推送失敗：' + e); }
+}
+
+// 把長訊息依段落（空行）切成數段，每段不超過 max 字；單一段超過時依字元切（不切斷表情符號）
+function shenChunks_(text, max) {
+  const out = [];
+  let cur = '';
+  String(text).split('\n\n').forEach(p => {
+    const add = cur ? '\n\n' + p : p;
+    if (cur.length + add.length <= max) { cur += add; return; }
+    if (cur) out.push(cur);
+    cur = '';
+    if (p.length <= max) { cur = p; return; }
+    let buf = '';
+    Array.from(p).forEach(ch => {
+      if ((buf + ch).length > max) { out.push(buf); buf = ''; }
+      buf += ch;
+    });
+    cur = buf;
+  });
+  if (cur) out.push(cur);
+  return out;
 }
