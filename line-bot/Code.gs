@@ -265,6 +265,13 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
+const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
+function assistantHtml_() {
+  if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
+  return DriveApp.getFileById(ASSISTANT_FILE_ID).getBlob().getDataAsString('UTF-8');
+}
+
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
 let TALK_URL_ = null;
 function talkUrl_() {
@@ -462,6 +469,14 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳。密碼放在 POST 本文（不進網址、不進請求紀錄）；
+  // 用文字回傳（不用 HtmlService），因為主頁以 fetch 取得後再寫入頁面，HtmlService 不能跨網域讀取。
+  if (body.action === 'assistant') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
+    try { return text_(assistantHtml_()); }
+    catch (err) { console.error(err); return text_('小乖主頁讀取失敗：' + (err && err.message || err)); }
+  }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
   // 對話頁真人語音：文字先出來，語音另外合成（不擋住回答）
