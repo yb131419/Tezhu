@@ -22,12 +22,27 @@ let TRADE_AUTH_ = null;               // 同一次執行內共用一組登入，
 const TRADE_TTL_MS = 5 * 60 * 1000;   // 提案 5 分鐘內有效
 const TRADE_DRIFT = 0.5;              // 確認時報價離提案超過「停損距離 × 0.5」就不下單
 const TRADE_BARS = 210;               // 15 分鐘 K 線抓幾根：EMA200 需要約 200 根已收盤 K 線，多抓一點緩衝
-const TRADE_QUOTA_MSG = 'IG 歷史資料額度已用完（IG 回傳 403），無法取得趨勢，請稍後再試';
+function tradeIsQuota_(err) {
+  const m = String(err && err.message || err);
+  return m.indexOf('額度已用完') >= 0 || m.indexOf('exceeded-account-historical-data-allowance') >= 0;
+}
+// 額度用完的提示：算出還要等幾分鐘（額度鎖定 1 小時，從記錄時間起算）
+function tradeQuotaMsg_() {
+  const at = Number(prop_('QUOTA_AT') || 0);
+  const mins = at ? Math.max(1, Math.ceil((3600000 - (Date.now() - at)) / 60000)) : 60;
+  return 'IG 歷史資料額度已用完，暫時沒有可用的快取，約 ' + mins + ' 分鐘後會自動再試';
+}
+// 記下額度用完的時間，並鎖定 1 小時不再呼叫 IG
+function tradeMarkQuota_() {
+  CacheService.getScriptCache().put('K15_QUOTA', '1', 3600);
+  setProp_('QUOTA_AT', String(Date.now()));
+}
+const TRADE_FIB_RATIOS = [0.191, 0.382, 0.5, 0.618, 0.809];   // 費波那契回檔比例（與網路貼文截圖相同，0.191 非標準的 0.236）
 
 // 交易指令的關鍵字（群組裡用來直接不回應）：只有主人的私人對話才執行這些指令
 function tradeAskWord_(t) {
   const s = String(t || '').replace(/\s+/g, '').replace(/^[^\p{L}\p{N}]+/u, '');
-  return /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
+  return /^看盤(黃金|原油|納指)$/.test(s) || /^(查代碼|尋找下單|智能下單|自動下單|下單卡片|交易|交易卡片|選擇下單|下單|查看持倉|確認下單|取消下單|下單紀錄|下單上限|設上限|交易提醒|開啟提醒|關閉提醒|下單自檢|買進|賣出|平倉|全部平倉|清除虛擬|取消清除)/.test(s) || s === '持倉' || s === '查詢';
 }
 
 // 小乖的文字指令入口（answer_ 裡呼叫）：不是下單指令就回 null，交給後面的 AI
@@ -42,6 +57,8 @@ function tradeAsk_(t) {
     if (/^(選擇下單|下單|🛒選擇下單)$/.test(s)) return tradePickItem_();
     // 語音只能打開卡片、查詢；買進、賣出、平倉、確認一律要在卡片按鈕上按（VOICE_IN_ 由 Code.gs 語音入口設定）
     if (VOICE_IN_ && (/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/.test(s) || /^(確認|確認下單|確認平倉|平倉)/.test(s))) return '語音不能直接下單或確認。\n請打開「📈 智能下單」卡片，在卡片上按按鈕。';
+    const lk = s.match(/^看盤(黃金|原油|納指)$/);
+    if (lk) return tradeLookText_(lk[1]);
     let m = s.match(/^下單(黃金|原油|納指)$/);
     if (m) return tradePickSide_(m[1]);
     m = s.match(/^(買進|買|賣出|賣)(黃金|原油|納指)(\d+(?:\.\d+)?)?$/);   // 可在後面加數量，例如「買進納指 2」，不加就用預設數量
@@ -112,7 +129,7 @@ function tradePickItem_() {
 
 function tradePickSide_(name) {
   let dir = '';
-  try { dir = tradeSignal_(TRADE_ITEMS[name]).dir || ''; } catch (err) { dir = ''; }
+  dir = tradeDirOf_(TRADE_ITEMS[name]).dir || '';
   const label = tradeLabelOf_(name);
   const buy = ['🟢 買進' + label], sell = ['🔴 賣出' + label];
   const rows = (dir === 'sell' ? [sell, buy] : [buy, sell]).concat([['❌ 取消下單']]);   // 有利的方向排在前面，兩個都能按
@@ -139,15 +156,14 @@ function tradePropose_(name, side, sizeText, notice) {
   if (minDeal && size < minDeal) return '這個商品最小下單數量是 ' + minDeal + '，沒有產生提案。';
   const price = tradeQuote_(it);
   // 趨勢只是提案的參考資訊：K 線取不到（例如額度用完）不影響提案本身
-  let sig;
-  try { sig = tradeSignal_(it); } catch (err) { sig = { signal: '', text: 'EMA：趨勢資料取不到（' + (err && err.message || err) + '）' }; }
+  const sig = tradeDirOf_(it);   // 同一套 4 小時 EMA 方向（見 tradeDirOf_）
   const dir = side === 'buy' ? 1 : -1;
   const p = {
     id: tradeToken_(), name: name, side: side, size: size, price: price,
     sl: tradeRound_(price - dir * it.sl * it.pip, it.prec),
     tp: tradeRound_(price + dir * it.tp * it.pip, it.prec),
     expires: Date.now() + TRADE_TTL_MS, at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), sig: sig.text,
-    against: !!sig.signal && sig.signal !== side,
+    against: !!sig.dir && sig.dir !== side,
   };
   tradeSaveState_(Object.assign(tradeState_(), { pending: p }));
   const body = (notice ? notice + '\n\n' : '') + tradeProposalText_(p) + '\n\n5 分鐘內按確認才會送出。';
@@ -674,92 +690,171 @@ function tradeQuote_(it) {
   const snap = tradeFetch_('get', '/markets/' + it.epic, 3).snapshot;
   return (Number(snap.bid) + Number(snap.offer)) / 2;
 }
+// 共用方向判斷（智能下單、提案的參考都用這個，和 ⚡ 下單面板同一套 4 小時 EMA）：
+// 方向 = EMA6 在 EMA21 之上為多單、之下為空單；額度用完只剩過期資料時不給方向，只顯示等待提示
+function tradeDirOf_(it) {
+  try {
+    const h = tradeH4Look_(it);
+    if (h.stale) return { dir: '', text: 'EMA：IG 歷史資料額度用完，暫時沒有最新資料，請稍後再看', err: 'IG 歷史資料額度用完，請稍後再試' };
+    if (!h.dir) return { dir: '', text: h.text, err: 'K 線不足' };
+    return { dir: h.dir, text: h.text, err: '' };
+  } catch (err) {
+    const m = String((err && err.message) || err);
+    return { dir: '', text: 'EMA：' + m, err: m.slice(0, 120) };
+  }
+}
 
-// 15 分鐘 K 線（已收盤）。IG 的歷史資料有帳戶額度（用的是抓取的資料點數），所以：
-// 1. 第一次整段抓 210 根（EMA200 需要約 200 根），之後存在 PropertiesService（KB_ 開頭），每根 K 線只補 3 根，不再整段重抓
-// 2. 同一個 15 分鐘區間內只算一次，結果快取到下一根 K 線；智能下單、方向參考與提醒共用
-// 3. 中間缺了一段（補不上）就整段重抓一次；額度用完（exceeded-account-historical-data-allowance）就記住 1 小時，期間不再呼叫 IG
-function tradeCandles_(it) {
+// 看盤（唯讀）：現價、停損停利參考、EMA 與進出場燈號；不產生提案、不下單（對話頁快速下單用）
+// 2026-11-18：EMA 與燈號改用 4 小時已收盤 K 線，和圖表同一組資料；現價是即時報價（買賣中間價）
+function tradeLookText_(name) {
+  const it = TRADE_ITEMS[name];
+  if (it.off) return it.off;
+  const price = tradeQuote_(it);
+  const dec = (v) => v.toFixed(it.prec);
+  let h4;
+  try { h4 = tradeH4Look_(it); } catch (err) { return '【' + tradeLabelOf_(name) + '】看盤取不到（' + (err && err.message || err) + '）'; }
+  return '【' + tradeLabelOf_(name) + '】\n' +
+    '現價：' + dec(price) + '\n' +
+    '買進停損：' + dec(price - it.sl * it.pip) + ' ／ 停利：' + dec(price + it.tp * it.pip) + '\n' +
+    '賣出停損：' + dec(price + it.sl * it.pip) + ' ／ 停利：' + dec(price - it.tp * it.pip) + '\n' +
+    h4.text + '\n（看盤只讀取，沒有產生提案，也不會下單）';
+}
+
+// 4 小時已收盤 K 線的收盤中間價（舊到新），快取到下一根 4 小時 K 線；只給看盤用
+function tradeClosesH4_(it) {
   const cache = CacheService.getScriptCache();
-  const key = 'K15_' + it.epic + '_' + Math.floor(Date.now() / 900000);
+  const key = 'K4H_' + it.epic + '_' + Math.floor(Date.now() / 14400000);
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
-  if (cache.get('K15_QUOTA')) throw new Error(TRADE_QUOTA_MSG);
-  const stored = tradeKlineState_(it);
-  let state = null;
-  if (stored) {
-    const fresh = tradePrices_(it, 3);
-    if (tradeContinues_(stored.last, fresh)) {
-      const add = fresh.filter(b => b.t > stored.last);
-      state = {
-        last: add.length ? add[add.length - 1].t : stored.last,
-        closes: stored.closes.concat(add.map(b => b.c)).slice(-TRADE_BARS),
-      };
-    }
+  const saveKey = 'K4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
+  const saved = () => {
+    let v = null;
+    try { v = JSON.parse(prop_(saveKey) || 'null'); } catch (e) { v = null; }
+    if (v && v.closes && v.closes.length) return { closes: v.closes, stale: true, at: v.at, bar: v.bar || '' };
+    throw new Error(tradeQuotaMsg_());   // 從來沒有成功抓到過，只能等額度恢復
+  };
+  if (cache.get('K15_QUOTA')) return saved();
+  let data;
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_BARS + 1), 2); }
+  catch (err) {
+    if (tradeIsQuota_(err)) { tradeMarkQuota_(); return saved(); }
+    throw err;
   }
-  if (!state) {
-    const full = tradePrices_(it, TRADE_BARS);
-    state = { last: full.length ? full[full.length - 1].t : '', closes: full.map(b => b.c).slice(-TRADE_BARS) };
-  }
-  setProp_(tradeKlineKey_(it), JSON.stringify(state));
-  const out = { closes: state.closes, bar: state.last };
-  cache.put(key, JSON.stringify(out), 900);
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
+  const closes = data.prices.slice(0, -1).map(c => (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2).slice(-TRADE_BARS);
+  const at = Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm');
+  const bar = (data.prices.slice(0, -1).slice(-1)[0] || {}).snapshotTimeUTC || '';
+  const out = { closes: closes, stale: false, at: at, bar: bar };
+  cache.put(key, JSON.stringify(out), 3600);
+  setProp_(saveKey, JSON.stringify({ closes: closes, at: at, bar: bar }));
   return out;
 }
 
-// 向 IG 要最近 n 根 K 線，丟掉還沒收盤的最後一根，回傳 [{ t: 收盤時間, c: 收盤中間價 }]（舊到新）
-function tradePrices_(it, n) {
+// 看盤用的 EMA 與燈號（4 小時）：燈號是「這根剛成立」的條件，成立才亮
+function tradeH4Look_(it) {
+  tradeEpicCheck_(it);
+  const r = tradeClosesH4_(it);
+  const closes = r.closes;
+  const n = closes.length;
+  const note = r.stale ? '（IG 歷史資料額度用完，以下為 ' + r.at + ' 的快取，只供參考，不亮燈號）\n' : '';
+  if (n < 200) return { text: 'EMA：4 小時 K 線不足（只拿到 ' + n + ' 根已收盤 K 線）\n燈號：{}', dir: '', stale: !!r.stale, sig: '', bar: '' };
+  const e6 = tradeEma_(closes, 6), e12 = tradeEma_(closes, 12), e21 = tradeEma_(closes, 21), e32 = tradeEma_(closes, 32), e200 = tradeEma_(closes, 200);
+  const last = closes[n - 1];
+  const up = e6[n - 2] <= e21[n - 2] && e6[n - 1] > e21[n - 1];
+  const down = e6[n - 2] >= e21[n - 2] && e6[n - 1] < e21[n - 1];
+  const above = last > e200[n - 1], below = last < e200[n - 1];
+  const exDn = e6[n - 2] >= e12[n - 2] && e6[n - 1] < e12[n - 1];
+  const exUp = e6[n - 2] <= e12[n - 2] && e6[n - 1] > e12[n - 1];
+  const lamps = { up: up, above: above, down: down, below: below, exDn: exDn, exUp: exUp };
+  const sig = r.stale ? '' : up && above ? '做多進場點' : down && below ? '做空進場點' : '';
+  const exitSig = r.stale ? '' : exDn ? '（出場參考：EMA6 下穿 EMA12）' : exUp ? '（出場參考：EMA6 上穿 EMA12）' : '';
+  const p = it.prec;
+  const fibText = r.stale ? '費波那契：IG 額度用完，等待最新資料，暫不顯示' : tradeFibText_(it, last);
+  const sigDir = r.stale ? '' : up && above ? 'buy' : down && below ? 'sell' : '';
+  return { text: note + 'EMA（4 小時已收盤 K 線）：\n' +
+    'EMA6：' + e6[n - 1].toFixed(p) + '\nEMA12：' + e12[n - 1].toFixed(p) + '\nEMA21：' + e21[n - 1].toFixed(p) +
+    '\nEMA32：' + e32[n - 1].toFixed(p) + '\nEMA200：' + e200[n - 1].toFixed(p) + '\n' +
+    'EMA 6／12／21／32／200 模式：' + (sig || '無進場訊號') + exitSig + '\n' +
+    '燈號：' + JSON.stringify(r.stale ? {} : lamps) + (fibText ? '\n' + fibText : ''), dir: r.stale ? '' : (e6[n - 1] > e21[n - 1] ? 'buy' : 'sell'), stale: !!r.stale, sig: sigDir, bar: r.bar || '' };
+}
+
+// 切換進出場模式（在編輯器執行）。預設 classic 不變；ema5 會改變提醒與下單建議的訊號，需先確認
+function tradeEma5On() { console.log('進出場已固定使用 4 小時 EMA 規則，這個指令不再需要'); }
+function tradeEma5Off() { console.log('進出場已固定使用 4 小時 EMA 規則，這個指令不再需要'); }
+
+/* ---------- 費波那契回檔參考（預設關閉，只顯示參考，不影響交叉訊號、提醒或下單） ---------- */
+
+// 開啟：在編輯器執行 tradeFibOn()。需先用 tradeFibSet(高點, 低點) 設定波段高低點
+function tradeFibOn() { setProp_('TRADE_FIB', 'on'); console.log('費波那契參考已開啟（只顯示參考，不影響下單）'); }
+
+// 關閉：在編輯器執行 tradeFibOff()。關閉後完全不顯示費波那契文字
+function tradeFibOff() { setProp_('TRADE_FIB', 'off'); console.log('費波那契參考已關閉'); }
+
+// 預設一律用 4 小時線自動算出的目前高低點（參考 IG 最近 30 根已收盤 4 小時 K 線的高低點，例如納斯達克100）。
+// 手動值只在明確帶入兩個數字時才會用：tradeFibSet(高, 低)。在編輯器的「執行」按鈕不會帶參數，所以那裡執行 tradeFibSet 或 tradeFibAuto 都是清除手動值、改回自動。
+function tradeFibSet(hi, lo) {
+  if (hi === undefined && lo === undefined) { tradeFibAuto(); return; }   // 不帶參數 = 清除手動值，改回自動
+  if (!(Number(hi) > Number(lo))) throw new Error('高點要大於低點（收到的高 ' + hi + '、低 ' + lo + '）');
+  setProp_('TRADE_FIB_HL', JSON.stringify({ hi: Number(hi), lo: Number(lo) }));
+  setProp_('TRADE_FIB_SRC', 'manual');
+  console.log('費波那契高低點已手動設定：高 ' + Number(hi) + '，低 ' + Number(lo));
+}
+
+// 清除手動值，改回用 4 小時線自動計算（預設）。在編輯器執行即可
+function tradeFibAuto() {
+  PropertiesService.getScriptProperties().deleteProperty('TRADE_FIB_HL');
+  setProp_('TRADE_FIB_SRC', 'auto');
+  console.log('費波那契高低點改用 4 小時線自動計算（已清除手動值）');
+}
+
+// 取最近 TRADE_FIB_BARS_4H 根已收盤 4 小時 K 線的最高價與最低價（中間價），每小時最多向 IG 要一次
+const TRADE_FIB_BARS_4H = 30;   // 約 5 天的 4 小時線
+function tradeFib4h_(it) {
+  const cache = CacheService.getScriptCache();
+  const key = 'H4_' + it.epic + '_' + Math.floor(Date.now() / 3600000);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  const h4Key = 'H4B_' + it.epic.replace(/[^A-Za-z0-9]/g, '_');
+  const saved = () => { const v = JSON.parse(prop_(h4Key) || 'null'); if (v && v.hi > v.lo) return Object.assign({}, v, { stale: true }); throw new Error(tradeQuotaMsg_()); };
+  if (cache.get('K15_QUOTA')) return saved();
   let data;
-  try { data = tradeFetch_('get', '/prices/' + it.epic + '/MINUTE_15/' + n, 2); }
+  try { data = tradeFetch_('get', '/prices/' + it.epic + '/HOUR_4/' + (TRADE_FIB_BARS_4H + 1), 2); }
   catch (err) {
     if (String(err.message || err).indexOf('exceeded-account-historical-data-allowance') >= 0) {
-      CacheService.getScriptCache().put('K15_QUOTA', '1', 3600);
-      throw new Error(TRADE_QUOTA_MSG);
+      tradeMarkQuota_();
+      return saved();
     }
     throw err;
   }
-  if (!data || !data.prices) throw new Error('IG 回傳沒有 prices（欄位：' + Object.keys(data || {}).join(',') + '）');
-  return data.prices.slice(0, -1).map(c => ({
-    t: c.snapshotTimeUTC || '',
-    c: (Number(c.closePrice.bid) + Number(c.closePrice.ask)) / 2,
-  }));
+  if (!data || !data.prices) throw new Error('IG 回傳沒有 4 小時 prices');
+  const closed = data.prices.slice(0, -1).slice(-TRADE_FIB_BARS_4H);   // 丟掉還沒收盤的最後一根
+  if (!closed.length) throw new Error('4 小時 K 線不足');
+  const mid = o => (Number(o.bid) + Number(o.ask)) / 2;
+  const out = { hi: Math.max(...closed.map(c => mid(c.highPrice))), lo: Math.min(...closed.map(c => mid(c.lowPrice))), bars: closed.length };
+  cache.put(key, JSON.stringify(out), 3600);
+  setProp_(h4Key, JSON.stringify({ hi: out.hi, lo: out.lo, bars: out.bars }));
+  return out;
 }
 
-// 快取的 K 線：PropertiesService 存 { last: 最後一根收盤時間, closes: [...] }；沒有或壞掉就回傳 null
-function tradeKlineKey_(it) { return 'KB_' + it.epic.replace(/[^A-Za-z0-9]/g, '_'); }
-
-function tradeKlineState_(it) {
-  try {
-    const s = JSON.parse(prop_(tradeKlineKey_(it)) || 'null');
-    return s && s.closes && s.closes.length ? s : null;
-  } catch (e) { return null; }
-}
-
-// 新抓的 K 線能不能接上快取：最舊的一根不能晚於「快取最後一根的下一根」，中間才沒有缺
-function tradeContinues_(last, fresh) {
-  if (!last || !fresh.length || !fresh[0].t) return false;
-  const next = new Date(Date.parse(last + 'Z') + 900000).toISOString().slice(0, 19);
-  return fresh[0].t <= next;
-}
-
-// 同 analysis.py：15 分鐘收盤價算 EMA9／EMA21，這根剛好交叉才算訊號
-function tradeSignal_(it) {
-  tradeEpicCheck_(it);
-  // 已收盤的 K 線（同一根 K 線期間只向 IG 要一次，見 tradeCandles_）；bar 是最後一根已收盤 K 線的時間，用來避免重複提醒
-  const kl = tradeCandles_(it);
-  const closes = kl.closes;
-  const n = closes.length;
-  const bar = kl.bar;
-  if (n < 30) return { signal: '', bar: '', text: 'EMA：K 線不足（只拿到 ' + n + ' 根已收盤 K 線）' };
-  const fast = tradeEma_(closes, 9), slow = tradeEma_(closes, 21);
-  const cross = fast[n - 2] < slow[n - 2] && fast[n - 1] > slow[n - 1] ? 'buy'
-    : fast[n - 2] > slow[n - 2] && fast[n - 1] < slow[n - 1] ? 'sell' : '';
-  const trend = fast[n - 1] > slow[n - 1] ? '多頭' : '空頭';
-  const dir = fast[n - 1] > slow[n - 1] ? 'buy' : 'sell';   // 目前趨勢方向，只用來給參考，不是交叉訊號
-  // 參考線（只顯示，不影響交叉判斷）：6、12、21、32、200 週期，K 線不足的就不顯示
-  const refs = [6, 12, 21, 32, 200].filter(p => n >= p).map(p => ({ period: p, value: tradeEma_(closes, p)[n - 1].toFixed(it.prec) }));
-  return { signal: cross, bar: bar, dir: dir, text: 'EMA 趨勢：' + trend + (cross ? '（這根剛交叉）' : '') +
-    '\n' + refs.map(r => 'EMA' + r.period + '：' + r.value).join('\n') };
+// 由高點往下算回檔價位：價 = 高 − (高 − 低) × 比例。開關關閉時回傳空字串
+// 高低點預設用 4 小時線自動計算；若執行過 tradeFibSet(高, 低) 則改用手動數字
+function tradeFibText_(it, last) {
+  if (prop_('TRADE_FIB') === 'off') return '';   // 2026-11-18 起預設開啟
+  let hl = null, src = '';
+  if (prop_('TRADE_FIB_SRC') === 'manual') {
+    try { hl = JSON.parse(prop_('TRADE_FIB_HL') || 'null'); } catch (e) { hl = null; }
+    if (!hl || !(hl.hi > hl.lo)) return '費波那契參考：手動高低點不正確（請重新執行 tradeFibSet）';
+    src = '手動設定';
+  } else {
+    try { hl = tradeFib4h_(it); } catch (err) { return '費波那契參考：4 小時線取不到（' + ((err && err.message) || err) + '）'; }
+    if (!(hl.hi > hl.lo)) return '費波那契參考：4 小時線高低點不正確';
+    if (hl.stale) return '費波那契：IG 額度用完，等待最新資料，暫不顯示';
+    src = '4 小時線近 ' + hl.bars + ' 根已收盤 K 線的高低點' + (hl.stale ? '（IG 額度用完，用上次快取）' : '');
+  }
+  const range = hl.hi - hl.lo;
+  const lines = TRADE_FIB_RATIOS.map(r => '・' + r.toFixed(3) + '：' + (hl.hi - range * r).toFixed(it.prec));
+  return '費波那契回檔參考（只是參考，不保證獲利）：\n高 ' + hl.hi.toFixed(it.prec) + '、低 ' + hl.lo.toFixed(it.prec) + '（' + src + '）\n' +
+    lines.join('\n') + '\n現價：' + Number(last).toFixed(it.prec);
 }
 
 /* ---------- 自動提醒：EMA 交叉時推送提案，按確認才送單 ---------- */
@@ -798,7 +893,7 @@ function tradeRemindTick_() {
     const seen = tradeState_().alerts || {};
     for (const name of Object.keys(TRADE_ITEMS)) {
       if (TRADE_ITEMS[name].off) continue;   // 暫停的商品不推提醒
-      const sig = tradeSignal_(TRADE_ITEMS[name]);
+      const sig = tradeAlertOf_(TRADE_ITEMS[name]);
       if (!sig.signal || !sig.bar || seen[name] === sig.bar) continue;   // 同一根 K 線只提醒一次
       seen[name] = sig.bar;
       tradeSaveState_(Object.assign(tradeState_(), { alerts: seen }));
@@ -807,6 +902,16 @@ function tradeRemindTick_() {
     }
   } catch (err) {
     console.error(err);
+  }
+}
+
+// 自動提醒用的進場訊號：和 ⚡ 下單面板同一套（4 小時 EMA6 上穿 EMA21 且在 EMA200 之上做多，反向做空）；額度用完不推送
+function tradeAlertOf_(it) {
+  try {
+    const h = tradeH4Look_(it);
+    return { signal: h.stale ? '' : (h.sig || ''), bar: h.bar || '' };
+  } catch (err) {
+    return { signal: '', bar: '' };
   }
 }
 
@@ -854,12 +959,8 @@ function tradeTgCallback_(cq) {
 // 智能下單頁面最上面的方向參考：依 EMA 趨勢，只是參考，方向仍由使用者自己選，不會自動下單
 function tradeAdviceRows_() {
   return Object.keys(TRADE_ITEMS).map(name => {
-    try {
-      const s = tradeSignal_(TRADE_ITEMS[name]);
-      return { name: name, dir: s.dir || '', err: s.dir ? '' : s.text };
-    } catch (err) {
-      return { name: name, dir: '', err: String((err && err.message) || err).slice(0, 120) };
-    }
+    const d = tradeDirOf_(TRADE_ITEMS[name]);
+    return { name: name, dir: d.dir, err: d.err };
   });
 }
 
@@ -979,7 +1080,11 @@ function tradeReconcile_(cur) {
     // 持倉不見了：上次看到的報價可能還沒碰到停損或停利，所以再用目前報價比一次（碰到的時間可能在兩次查詢之間）
     let kind = tradeKindOf_(p, p.now), price = p.now;
     if (!kind) { price = tradeNowOf_(p); kind = tradeKindOf_(p, price); }
-    if (kind) stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
+    if (kind) {
+      stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '', src: 'real' });
+      // 停損或停利被平掉時也發通知，格式與平倉通知一致；價格是上次看到的報價，實際成交價以 IG 為準
+      tradeNotify_('📣 ' + kind + '通知\n' + tradeLabelOf_(p.name) + ' 平' + p.dirZh + ' ' + p.size + ' 單位，觸發價約 ' + Number(price).toFixed(p.prec) + '\n（實際成交價以 IG 為準）');
+    }
   });
   const snap = cur.map(x => {
     const now = x.dir === 'buy' ? x.bid : x.offer;
@@ -1021,12 +1126,15 @@ function tradeStopLine_(x) {
 
 // 「📋 停損停利紀錄」：最近 10 筆，只讀
 function tradeStopsAsk_() {
-  const list = (tradeState_().stops || []).slice(-10).reverse();
+  const all = (tradeState_().stops || []).slice(-20).reverse();
+  const real = all.filter(x => (x.src || 'real') !== 'virt');   // 沒有標記的都是以前從 IG 記下的，算真實倉位
+  const virt = all.filter(x => x.src === 'virt');
+  const sec = (title, arr) => '【' + title + '】\n' + (arr.length ? arr.map(tradeStopLine_).join('\n') : '・目前沒有紀錄');
   const rows = [['📊 查看持倉'], ['📈 智能下單']];
-  const text = list.length
-    ? '📋 停損停利紀錄（最近 ' + list.length + ' 筆）\n' + list.map(tradeStopLine_).join('\n') +
-      '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。'
-    : '📋 目前沒有停損停利紀錄。\n查看持倉或提醒開啟時，會比對持倉被停損或停利平掉的情況並記下。';
+  const text = '📋 停損停利紀錄（最近 ' + all.length + ' 筆）\n' +
+    sec('真實倉位（IG 帳戶）', real.slice(0, 10)) + '\n' +
+    sec('模擬倉（紙上模式）', virt.slice(0, 10)) +
+    '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。';
   return { text: text, buttons: rows, flex: tradeFlex_('📋 停損停利紀錄', text, rows), alt: '📋 停損停利紀錄' };
 }
 
@@ -1158,4 +1266,77 @@ function tradeFlex_(title, body, rows, lead, foot) {
         .concat(foot ? [{ type: 'separator', color: LINE, margin: 'lg' }, { type: 'text', text: foot, size: 'xxs', color: '#5C4E3C', wrap: true, margin: 'md' }] : []),
     },
   };
+}
+
+/* ---------- 補錄停損停利紀錄（一次性）：從 IG 歷史活動抓最近幾天被系統平掉的真實倉位 ----------
+   先在編輯器執行 tradeBackfillPreview()：只列出，不寫入。確認無誤後再執行 tradeBackfillWrite()。
+   欄位是依 IG REST 歷史活動的格式撰寫；第一次執行請看 Execution log，確認 channel、level、direction 等欄位對得上。
+   補進來的紀錄標記為真實倉位（src: 'real'），來源 ref 是 IG 的 dealId，重複執行不會重複寫入。 */
+function tradeBackfillPreview() { return tradeBackfill_(30, false); }
+function tradeBackfillWrite() { return tradeBackfill_(30, true); }
+
+function tradeBackfill_(days, write) {
+  const to = new Date(), from = new Date(to.getTime() - days * 86400000);
+  const fmt = d => Utilities.formatDate(d, 'UTC', "yyyy-MM-dd'T'HH:mm:ss");
+  const zh = d => Utilities.formatDate(d, 'Asia/Taipei', 'yyyy/MM/dd HH:mm');
+  console.log('查詢範圍（台北時間）：' + zh(from) + ' ～ ' + zh(to) + '，共 ' + days + ' 天，分段每 7 天查一次');
+  let acts = [];
+  try {
+    // 分段查詢，每段最多 7 天，避免 IG 對單次查詢的範圍限制
+    for (let a = from.getTime(); a < to.getTime(); a += 7 * 86400000) {
+      const b = Math.min(a + 7 * 86400000, to.getTime());
+      const res = tradeFetch_('get', '/history/activity?from=' + encodeURIComponent(fmt(new Date(a))) + '&to=' + encodeURIComponent(fmt(new Date(b))) + '&detailed=true&pageSize=500', 3);
+      const got = (res && res.activities) || [];
+      console.log('  段 ' + zh(new Date(a)) + ' ～ ' + zh(new Date(b)) + '：' + got.length + ' 筆活動');
+      acts = acts.concat(got);
+    }
+  } catch (e) {
+    console.log('補錄失敗（IG 查詢）：' + (e.message || e));
+    return '補錄失敗：' + (e.message || e);
+  }
+  const byEpic = {};
+  Object.keys(TRADE_ITEMS).forEach(n => { if (TRADE_ITEMS[n].epic) byEpic[TRADE_ITEMS[n].epic] = n; });
+  // 只給補錄用的代碼（不進交易清單，不會出現在下單、提醒或看盤）：IG 的 WTI 原油
+  const backfillOnly = { 'CC.D.CL.UNC.IP': '原油（WTI）' };
+  Object.keys(backfillOnly).forEach(e => { if (!byEpic[e]) byEpic[e] = backfillOnly[e]; });
+  const precOf = n => TRADE_ITEMS[n] ? TRADE_ITEMS[n].prec : 2;
+  const st = tradeState_();
+  const stops = st.stops || [];
+  const seen = {};
+  stops.forEach(x => { if (x.ref) seen[x.ref] = true; });
+  // 已經記下的（例如停損停利通知當時自動記的）同商品、同數量、相差一小時內視為重複
+  const near = (ms, at) => { const m = String(at || '').match(/^(\d\d)\/(\d\d) (\d\d):(\d\d)$/); if (!m) return false; const t = new Date(new Date().getFullYear(), +m[1] - 1, +m[2], +m[3], +m[4]).getTime(); return Math.abs(t - ms) < 3600000; };
+  const dup = x => stops.some(y => y.name === x.name && Number(y.size) === x.size && near(x.ms, y.at));
+  const lines = [], skipped = [];
+  let found = [];
+  // 每一筆活動都列出（不先過濾），方便對照 IG 的欄位
+  acts.forEach(a => {
+    const d = a.details || {};
+    const actions = (d.actions || []).map(x => x.actionType);
+    const name = byEpic[a.epic] || '';
+    if (actions.indexOf('POSITION_CLOSED') >= 0 || a.channel === 'SYSTEM') lines.push('・' + (a.date || '') + ' ' + (name || a.epic || '-') + ' type=' + a.type + ' status=' + a.status + ' channel=' + a.channel + ' actions=' + (actions.join('|') || '-') + ' level=' + d.level + ' size=' + (d.size || a.size || '-') + ' dir=' + d.direction + ' deal=' + a.dealId);
+    if (a.channel !== 'SYSTEM') return;   // 系統觸發的才可能是停損或停利；PUBLIC_WEB_API 是手動或本程式平倉，不補
+    if (!name) { skipped.push('略過（商品不在清單）：' + a.epic + ' ' + a.date); return; }
+    if (['POSITION', 'SYSTEM'].indexOf(a.type) < 0 || actions.indexOf('POSITION_CLOSED') < 0) { skipped.push('略過（不是平倉活動）：' + name + ' ' + a.date + ' type=' + a.type + ' actions=' + (actions.join('|') || '-')); return; }
+    if (seen[a.dealId]) { skipped.push('略過（已有 ref 紀錄）：' + name + ' ' + a.date); return; }
+    const closeDir = String(d.direction || '').toUpperCase();
+    const dir = closeDir === 'SELL' ? 'buy' : 'sell';   // 平多是賣出、平空是買進
+    const ms = Date.parse(String(a.date || '').replace(/Z?$/, 'Z'));
+    const x = { at: isFinite(ms) ? Utilities.formatDate(new Date(ms), 'Asia/Taipei', 'MM/dd HH:mm') : '', ms: ms || 0,
+      name: name, dirZh: dir === 'buy' ? '多' : '空', dir: dir, size: Number(d.size || a.size || 0),
+      trigger: '停損或停利', price: Number(d.level), prec: precOf(name), open: null, margin: null, cur: '', src: 'real', ref: a.dealId };
+    if (dup(x)) { skipped.push('略過（與既有紀錄重複）：' + name + ' ' + x.at); return; }
+    found.push(x);
+  });
+  found.sort((x, y) => x.ms - y.ms);
+  const clean = found.map(x => { const r = Object.assign({}, x); delete r.ms; return r; });
+  const head = (write ? '補錄完成' : '補錄預覽（未寫入）') + '：找到 ' + found.length + ' 筆可補的系統平倉，已存在 ' + Object.keys(seen).length + ' 筆紀錄';
+  const detail = found.map(x => '・' + x.at + ' ' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，觸發價約 ' + x.price).join('\n');
+  const raw = '所有活動（請把這段貼回來確認欄位）：\n' + (lines.join('\n') || '（這段時間沒有任何活動）');
+  const skip = '略過的系統活動：\n' + (skipped.join('\n') || '（無）');
+  console.log(head + '\n' + detail + '\n' + skip + '\n' + raw);
+  if (write && clean.length) {
+    tradeSaveState_(Object.assign(st, { stops: stops.concat(clean).slice(-20) }));
+  }
+  return head;
 }

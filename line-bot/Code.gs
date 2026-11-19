@@ -46,7 +46,7 @@ const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['⏰ 每日更新', '每天早上自動更新'], ['🔄 手動更新', '立刻更新一次頻道數據'], ['❓ 說明', '使用方式']] },
-  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新'], ['↩️ 還原標題', '回到最初的樣子']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
   { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在頻道後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
@@ -227,6 +227,11 @@ function setup() {
   Logger.log('安裝完成！你的同步密碼是：' + prop_('SYNC_KEY'));
 }
 
+// 一次性小工具（2026-11-18）：在編輯器選這個函式按「執行」，SYNC_KEY 的值會印在「執行記錄」裡。只讀取，不改任何屬性。
+function showSyncKey() {
+  Logger.log('SYNC_KEY 目前是：' + prop_('SYNC_KEY'));
+}
+
 /* ============ 接上 Telegram：部署完成後在編輯器選 setupTelegram 執行 ============ */
 function setupTelegram() {
   if (!prop_('TELEGRAM_BOT_TOKEN')) throw new Error('請先在指令碼屬性填入 TELEGRAM_BOT_TOKEN。');
@@ -258,6 +263,24 @@ function doGet(e) {
       .setFaviconUrl('https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png');
   }
   return ContentService.createTextOutput('小乖雲端服務運作中');
+}
+
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
+const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
+function assistantHtml_() {
+  if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
+  return DriveApp.getFileById(ASSISTANT_FILE_ID).getBlob().getDataAsString('UTF-8');
+}
+
+// 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
+function authorizeAssistant() {
+  try {
+    const html = assistantHtml_();
+    Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
+  } catch (err) {
+    Logger.log('小乖主頁讀取失敗：' + (err && err.message || err));
+    throw err;
+  }
 }
 
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
@@ -457,6 +480,14 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳。密碼放在 POST 本文（不進網址、不進請求紀錄）；
+  // 用文字回傳（不用 HtmlService），因為主頁以 fetch 取得後再寫入頁面，HtmlService 不能跨網域讀取。
+  if (body.action === 'assistant') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
+    try { return text_(assistantHtml_()); }
+    catch (err) { console.error(err); return text_('小乖主頁讀取失敗：' + (err && err.message || err)); }
+  }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
   // 對話頁真人語音：文字先出來，語音另外合成（不擋住回答）
@@ -1011,7 +1042,7 @@ function titleApply_() {
       sh.getRange(start + i, 5).setValue(st);
     });
     return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
-      buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
+      buttons: [[CHAN_BTN, MENU_BTN]] };
   });
 }
 // 還原：把最近一次批次的內容寫回每支影片最初的樣子（原說明或原標記是空的就不動那一項）
@@ -1064,7 +1095,6 @@ function channelHub_() {
     ['💡 改善建議', '依數據給出改善方向'],
     ['🧪 頻道診斷', '檢查分析數據為什麼沒有出來'],
     ['⏰ 每日更新', '每天早上 9:15 自動更新數據，9:30 併入神對話訊息傳給你'],
-    ['↩️ 還原標題', '把最近一次的改動寫回去'],
   ];
   const rows = menu.map(m => ({ type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
     { type: 'text', text: m[0], size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true },
@@ -1082,7 +1112,7 @@ function channelHub_() {
   return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
     flex: chanPair_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, buttons.concat([chanDailyBtn_()])),
     alt: '📺 YT頻道',
-    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), TITLE_RESTORE, MENU_BTN]] };
+    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), MENU_BTN]] };
 }
 // 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
@@ -1095,7 +1125,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：每日更新與手動更新都會傳給使用者；劇本頁在小乖主頁（GitHub Pages，不需登入），每日排程會自動重新產生
 const SHEN_SCRIPT_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1169,9 +1199,9 @@ function chanDailyCmd_(flat) {
 }
 // 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
 function chanDailyJob() {
-  let text;
+  let text, d = null;
   try {
-    const d = chanFetch_();
+    d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
     text = '☀️ 早安，今日頻道數據（自動更新）\n\n' + chanText_(d) + '\n\n（已寫進試算表「頻道數據紀錄」）';
   } catch (e) {
@@ -1179,7 +1209,7 @@ function chanDailyJob() {
   }
   text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL;
   // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
-  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text }));
+  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text, st: d ? chanStats_(d) : null }));
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
 function chanSafe_(fn) {
@@ -1394,7 +1424,7 @@ function chanDataFlex_(d) {
     row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
     pb('✏️ 更改全部標題和說明', '更改全部標題和說明', false),
     row([pb('🏷️ 只改標題', '只改標題', false), pb('📝 只改說明', '只改說明', false)]),
-    row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
+    row([pb('🔖 只改標記', '只改標記', false)]),
     pb_uri_(d.url),
   ];
   const pbShen = { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '📜 傳送神對話劇本', text: SHEN_SCRIPT_CMD } };
