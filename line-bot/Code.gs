@@ -269,7 +269,14 @@ function doGet(e) {
 const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
 function assistantHtml_() {
   if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
-  return DriveApp.getFileById(ASSISTANT_FILE_ID).getBlob().getDataAsString('UTF-8');
+  let id = ASSISTANT_FILE_ID;
+  // 先用 Drive 進階服務看清楚這個 ID 是什麼：捷徑就改找它指向的檔案，資料夾直接說明
+  let meta;
+  try { meta = Drive.Files.get(id, { fields: 'id,name,mimeType,shortcutDetails', supportsAllDrives: true }); }
+  catch (e) { throw new Error('Drive 找不到這個 ID 或沒有權限（' + (e && e.name || 'Error') + '）：' + (e && e.message || e)); }
+  if (meta.mimeType === 'application/vnd.google-apps.folder') throw new Error('這個 ID 是資料夾，要填的是 Assistant.html 檔案的 ID');
+  if (meta.mimeType === 'application/vnd.google-apps.shortcut' && meta.shortcutDetails && meta.shortcutDetails.targetId) id = meta.shortcutDetails.targetId;
+  return DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
 }
 
 // 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
@@ -278,7 +285,7 @@ function authorizeAssistant() {
     const html = assistantHtml_();
     Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
   } catch (err) {
-    Logger.log('小乖主頁讀取失敗：' + (err && err.message || err));
+    Logger.log('小乖主頁讀取失敗：' + (err && err.name || 'Error') + '｜' + (err && err.message || err) + (err && err.stack ? '\n' + err.stack : ''));
     throw err;
   }
 }
