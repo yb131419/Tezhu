@@ -1310,10 +1310,10 @@ function tradeBackfill_(days, write) {
     const d = a.details || {};
     const actions = (d.actions || []).map(x => x.actionType);
     const name = byEpic[a.epic] || '';
-    lines.push('・' + (a.date || '') + ' ' + (name || a.epic || '-') + ' type=' + a.type + ' status=' + a.status + ' channel=' + a.channel + ' actions=' + (actions.join('|') || '-') + ' level=' + d.level + ' size=' + (d.size || a.size || '-') + ' dir=' + d.direction + ' deal=' + a.dealId);
+    if (actions.indexOf('POSITION_CLOSED') >= 0 || a.channel === 'SYSTEM') lines.push('・' + (a.date || '') + ' ' + (name || a.epic || '-') + ' type=' + a.type + ' status=' + a.status + ' channel=' + a.channel + ' actions=' + (actions.join('|') || '-') + ' level=' + d.level + ' size=' + (d.size || a.size || '-') + ' dir=' + d.direction + ' deal=' + a.dealId);
     if (a.channel !== 'SYSTEM') return;   // 系統觸發的才可能是停損或停利；PUBLIC_WEB_API 是手動或本程式平倉，不補
     if (!name) { skipped.push('略過（商品不在清單）：' + a.epic + ' ' + a.date); return; }
-    if (a.type !== 'POSITION' || actions.indexOf('POSITION_CLOSED') < 0) { skipped.push('略過（不是平倉活動）：' + name + ' ' + a.date + ' type=' + a.type + ' actions=' + (actions.join('|') || '-')); return; }
+    if (['POSITION', 'SYSTEM'].indexOf(a.type) < 0 || actions.indexOf('POSITION_CLOSED') < 0) { skipped.push('略過（不是平倉活動）：' + name + ' ' + a.date + ' type=' + a.type + ' actions=' + (actions.join('|') || '-')); return; }
     if (seen[a.dealId]) { skipped.push('略過（已有 ref 紀錄）：' + name + ' ' + a.date); return; }
     const closeDir = String(d.direction || '').toUpperCase();
     const dir = closeDir === 'SELL' ? 'buy' : 'sell';   // 平多是賣出、平空是買進
