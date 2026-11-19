@@ -529,6 +529,7 @@
 #xtr .xtr-rpnl{margin-top:8px;font:600 15px "Cormorant Garamond","Noto Serif TC",serif;color:#5BE39A;font-variant-numeric:tabular-nums;}
 #xtr .xtr-rpnl.neg{color:#FF7A7A;}
 #xtr .xtr-rbody{padding:0 18px 16px;border-top:1px solid rgba(220,195,148,.18);margin:0 18px;padding-left:0;padding-right:0;}
+#xtr .xtr-rsec{margin-top:20px;}
 #xtr .xtr-rbody .xtr-line{padding-top:10px;font-size:14px;color:rgba(243,238,229,.72);line-height:1.7;}
 html:not([data-theme=dark]) #xtr .xtr-rec{border-color:rgba(176,141,87,.28);background:rgba(255,255,255,.75);box-shadow:0 14px 30px -22px rgba(30,25,18,.25),inset 0 1px 0 rgba(255,255,255,.9);}
 html:not([data-theme=dark]) #xtr .xtr-rec>summary:after{border-color:#B08D57;}
@@ -2550,6 +2551,8 @@ function xtrRecs(el,text){let rec=null;
   String(text||'').split('\n').forEach(l=>{const t=l.trim();
     if(!t){rec=null;return;}
     if(/^(停損|停利)\s+\S+，碰到損益/.test(t))return;
+    if(/^【/.test(t)){rec=null;xtrEl(el,'xtr-sec xtr-rsec',t.replace(/^【|】$/g,''));return;}
+    if(/^・目前沒有紀錄$/.test(t)){rec=null;xtrEl(el,'xtr-line',t.slice(1));return;}
     if(/^・/.test(t)){
       const d=document.createElement('details');d.className='xtr-rec';
       const sm=document.createElement('summary');const h=xtrEl(sm,'xtr-rh',t.slice(1).trim());d.appendChild(sm);

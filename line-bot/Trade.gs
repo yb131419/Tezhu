@@ -1081,7 +1081,7 @@ function tradeReconcile_(cur) {
     let kind = tradeKindOf_(p, p.now), price = p.now;
     if (!kind) { price = tradeNowOf_(p); kind = tradeKindOf_(p, price); }
     if (kind) {
-      stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '' });
+      stops.push({ at: Utilities.formatDate(new Date(), 'Asia/Taipei', 'MM/dd HH:mm'), name: p.name, dirZh: p.dirZh, dir: p.dir, size: p.size, trigger: kind, price: price, prec: p.prec, open: p.open || null, margin: p.margin || null, cur: p.cur || '', src: 'real' });
       // 停損或停利被平掉時也發通知，格式與平倉通知一致；價格是上次看到的報價，實際成交價以 IG 為準
       tradeNotify_('📣 ' + kind + '通知\n' + tradeLabelOf_(p.name) + ' 平' + p.dirZh + ' ' + p.size + ' 單位，觸發價約 ' + Number(price).toFixed(p.prec) + '\n（實際成交價以 IG 為準）');
     }
@@ -1126,12 +1126,15 @@ function tradeStopLine_(x) {
 
 // 「📋 停損停利紀錄」：最近 10 筆，只讀
 function tradeStopsAsk_() {
-  const list = (tradeState_().stops || []).slice(-10).reverse();
+  const all = (tradeState_().stops || []).slice(-20).reverse();
+  const real = all.filter(x => (x.src || 'real') !== 'virt');   // 沒有標記的都是以前從 IG 記下的，算真實倉位
+  const virt = all.filter(x => x.src === 'virt');
+  const sec = (title, arr) => '【' + title + '】\n' + (arr.length ? arr.map(tradeStopLine_).join('\n') : '・目前沒有紀錄');
   const rows = [['📊 查看持倉'], ['📈 智能下單']];
-  const text = list.length
-    ? '📋 停損停利紀錄（最近 ' + list.length + ' 筆）\n' + list.map(tradeStopLine_).join('\n') +
-      '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。'
-    : '📋 目前沒有停損停利紀錄。\n查看持倉或提醒開啟時，會比對持倉被停損或停利平掉的情況並記下。';
+  const text = '📋 停損停利紀錄（最近 ' + all.length + ' 筆）\n' +
+    sec('真實倉位（IG 帳戶）', real.slice(0, 10)) + '\n' +
+    sec('模擬倉（紙上模式）', virt.slice(0, 10)) +
+    '\n\n觸發價是上次查看持倉時的報價，不一定是實際成交價。';
   return { text: text, buttons: rows, flex: tradeFlex_('📋 停損停利紀錄', text, rows), alt: '📋 停損停利紀錄' };
 }
 
@@ -1263,4 +1266,61 @@ function tradeFlex_(title, body, rows, lead, foot) {
         .concat(foot ? [{ type: 'separator', color: LINE, margin: 'lg' }, { type: 'text', text: foot, size: 'xxs', color: '#5C4E3C', wrap: true, margin: 'md' }] : []),
     },
   };
+}
+
+/* ---------- 補錄停損停利紀錄（一次性）：從 IG 歷史活動抓最近幾天被系統平掉的真實倉位 ----------
+   先在編輯器執行 tradeBackfillPreview()：只列出，不寫入。確認無誤後再執行 tradeBackfillWrite()。
+   欄位是依 IG REST 歷史活動的格式撰寫；第一次執行請看 Execution log，確認 channel、level、direction 等欄位對得上。
+   補進來的紀錄標記為真實倉位（src: 'real'），來源 ref 是 IG 的 dealId，重複執行不會重複寫入。 */
+function tradeBackfillPreview() { return tradeBackfill_(7, false); }
+function tradeBackfillWrite() { return tradeBackfill_(7, true); }
+
+function tradeBackfill_(days, write) {
+  const to = new Date(), from = new Date(to.getTime() - days * 86400000);
+  const fmt = d => Utilities.formatDate(d, 'UTC', "yyyy-MM-dd'T'HH:mm:ss");
+  let acts = [];
+  try {
+    const res = tradeFetch_('get', '/history/activity?from=' + encodeURIComponent(fmt(from)) + '&to=' + encodeURIComponent(fmt(to)) + '&detailed=true&pageSize=500', 3);
+    acts = (res && res.activities) || [];
+  } catch (e) {
+    console.log('補錄失敗（IG 查詢）：' + (e.message || e));
+    return '補錄失敗：' + (e.message || e);
+  }
+  const byEpic = {};
+  Object.keys(TRADE_ITEMS).forEach(n => { if (TRADE_ITEMS[n].epic) byEpic[TRADE_ITEMS[n].epic] = n; });
+  const st = tradeState_();
+  const stops = st.stops || [];
+  const seen = {};
+  stops.forEach(x => { if (x.ref) seen[x.ref] = true; });
+  const lines = [];
+  let found = [];
+  acts.forEach(a => {
+    const d = a.details || {};
+    const actions = (d.actions || []).map(x => x.actionType);
+    if (a.type !== 'POSITION' || actions.indexOf('POSITION_CLOSED') < 0) return;
+    const name = byEpic[a.epic] || '';
+    lines.push('・' + (a.date || '') + ' ' + (name || a.epic) + ' channel=' + a.channel + ' level=' + d.level + ' size=' + d.size + ' dir=' + d.direction + ' deal=' + a.dealId);
+    if (a.channel !== 'SYSTEM' || !name) return;   // 只補系統平掉的（停損或停利）；手動、程式平倉不補
+    if (seen[a.dealId]) return;
+    const closeDir = String(d.direction || '').toUpperCase();
+    const dir = closeDir === 'SELL' ? 'buy' : 'sell';   // 平多是賣出、平空是買進
+    const ms = Date.parse(String(a.date || '').replace(/Z?$/, 'Z'));
+    found.push({ at: isFinite(ms) ? Utilities.formatDate(new Date(ms), 'Asia/Taipei', 'MM/dd HH:mm') : '', ms: ms || 0,
+      name: name, dirZh: dir === 'buy' ? '多' : '空', dir: dir, size: Number(d.size || a.size || 0),
+      trigger: '停損或停利', price: Number(d.level), prec: TRADE_ITEMS[name].prec, open: null, margin: null, cur: '', src: 'real', ref: a.dealId });
+  });
+  // 已經記下的（例如停損停利通知當時自動記的）同商品、同數量、相差一小時內視為重複
+  const near = (ms, at) => { const m = String(at || '').match(/^(\d\d)\/(\d\d) (\d\d):(\d\d)$/); if (!m) return false; const t = new Date(new Date().getFullYear(), +m[1] - 1, +m[2], +m[3], +m[4]).getTime(); return Math.abs(t - ms) < 3600000; };
+  const dup = x => stops.some(y => y.name === x.name && Number(y.size) === x.size && near(x.ms, y.at));
+  found = found.filter(x => !dup(x));
+  found.sort((x, y) => x.ms - y.ms);
+  const head = (write ? '補錄完成' : '補錄預覽（未寫入）') + '：找到 ' + found.length + ' 筆可補的系統平倉，已存在 ' + Object.keys(seen).length + ' 筆紀錄';
+  const detail = found.map(x => '・' + x.at + ' ' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，觸發價約 ' + x.price).join('\n');
+  const raw = '所有平倉活動（請把這段貼回來確認欄位）：\n' + (lines.join('\n') || '（這段時間沒有平倉活動）');
+  console.log(head + '\n' + detail + '\n' + raw);
+  if (write && found.length) {
+    const clean = found.map(x => { const r = Object.assign({}, x); delete r.ms; return r; });
+    tradeSaveState_(Object.assign(st, { stops: stops.concat(clean).slice(-20) }));
+  }
+  return head;
 }
