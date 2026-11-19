@@ -1165,7 +1165,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'all-three-1｜2026-11-19｜更改全部同時改標題、說明、標記（預覽分三項列出）';
+const CHAN_VERSION = 'action-layout-1｜2026-11-19｜操作卡片按鈕緊接在標題下面，去掉中間空白';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1216,9 +1216,11 @@ function chanDailyBtn_() {
 function chanPair_(head, content, buttons) {
   const info = chanBubble_(head, content, []);
   delete info.footer;   // 內容卡片不放按鈕
-  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
-    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片')] },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
+  // 按鈕接在標題下面（不用 footer），避免 LINE 把按鈕推到卡片底部、中間留一大段空白
+  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
+      chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片'),
+      { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } ] } };
   return { type: 'carousel', contents: [info, acts] };
 }
 function chanDailyCmd_(flat) {
