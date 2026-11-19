@@ -115,7 +115,12 @@ button.go:disabled{opacity:.5;cursor:default}
   var a = readStore();
   if (a.syncUrl && a.syncKey) {
     var cached = readGate();
-    if (cached) { show(cached); return; }
+    // 要等頁面解析完才能整頁替換（解析中呼叫會留下登錄頁的版面，主頁會被置中而超出螢幕寬度）
+    if (cached) {
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ show(cached); });
+      else show(cached);
+      return;
+    }
     openApp(a.syncUrl, a.syncKey);
   } else {
     $("url").classList.remove("hide");
