@@ -254,12 +254,6 @@ function doGet(e) {
     if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對，請檢查捷徑裡的網址。');
     return ContentService.createTextOutput(askByVoice_(String(p.ask), '', true));
   }
-  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳；一定要輸入同步密碼才給看
-  if (p.page === 'assistant') {
-    if (!prop_('SYNC_KEY') || p.key !== prop_('SYNC_KEY')) return ContentService.createTextOutput('同步密碼不對').setMimeType(ContentService.MimeType.TEXT);
-    try { return ContentService.createTextOutput(assistantHtml_()).setMimeType(ContentService.MimeType.HTML); }
-    catch (err) { return ContentService.createTextOutput('小乖主頁讀取失敗：' + (err && err.message || err)).setMimeType(ContentService.MimeType.TEXT); }
-  }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
     // 網址可以不帶密碼：頁面第一次會請你輸入，記在這支手機上
@@ -475,6 +469,14 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳。密碼放在 POST 本文（不進網址、不進請求紀錄）；
+  // 用文字回傳（不用 HtmlService），因為主頁以 fetch 取得後再寫入頁面，HtmlService 不能跨網域讀取。
+  if (body.action === 'assistant') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
+    try { return text_(assistantHtml_()); }
+    catch (err) { console.error(err); return text_('小乖主頁讀取失敗：' + (err && err.message || err)); }
+  }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
   // 對話頁真人語音：文字先出來，語音另外合成（不擋住回答）

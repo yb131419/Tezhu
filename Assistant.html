@@ -58,8 +58,12 @@ button.go:disabled{opacity:.5;cursor:default}
 
   function openApp(url, key){
     busy(true); showMsg("");
-    var full = url.replace(/\?.*$/, "") + "?page=assistant&key=" + encodeURIComponent(key);
-    fetch(full).then(function(r){ return r.text(); }).then(function(html){
+    // 密碼放在 POST 本文，不放網址
+    fetch(url.replace(/\?.*$/, ""), {
+      method: "POST",
+      headers: {"Content-Type": "text/plain"},
+      body: JSON.stringify({action: "assistant", key: key})
+    }).then(function(r){ return r.text(); }).then(function(html){
       if (html.indexOf("<html") < 0) {
         clearKey();
         busy(false);
