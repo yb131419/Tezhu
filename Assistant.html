@@ -34,65 +34,79 @@ button.go:disabled{opacity:.5;cursor:default}
 </div>
 <script>
 (function(){
-  var STORE_KEY = "xiaoguai_v1";
+  var STORE_KEY = "xiaoguai_v1";      // 小乖主頁原本的設定（網址、同步密碼）
+  var GATE_KEY  = "xg_gate_v1";       // 當天解鎖記錄：日期＋主頁內容
+  var TIMEOUT_MS = 25000;             // 超過這個時間沒回應就停止等待
   var $ = function(id){ return document.getElementById(id); };
 
-  function readStore(){
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch(e){ return {}; }
-  }
-  function saveStore(url, key){
+  function today(){ var d = new Date(); return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate(); }
+  function readStore(){ try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch(e){ return {}; } }
+  function writeStore(a){ try { localStorage.setItem(STORE_KEY, JSON.stringify(a)); } catch(e){} }
+  function readGate(){
     try {
-      var a = readStore();
-      a.syncUrl = url; a.syncKey = key;
-      localStorage.setItem(STORE_KEY, JSON.stringify(a));
-    } catch(e){}
+      var g = JSON.parse(localStorage.getItem(GATE_KEY) || "null");
+      return (g && g.day === today() && g.html) ? g.html : null;
+    } catch(e){ return null; }
   }
-  function clearKey(){
-    try {
-      var a = readStore(); a.syncKey = "";
-      localStorage.setItem(STORE_KEY, JSON.stringify(a));
-    } catch(e){}
+  // 登錄成功：記下網址與密碼（給小乖主頁用），並記下今天的主頁內容
+  function saveUnlock(url, key, html){
+    var a = readStore(); a.syncUrl = url; a.syncKey = key; writeStore(a);
+    try { localStorage.setItem(GATE_KEY, JSON.stringify({ day: today(), html: html })); } catch(e){}
+  }
+  // 密碼錯誤：清掉密碼與當天記錄，要重新輸入
+  function clearUnlock(){
+    try { localStorage.removeItem(GATE_KEY); } catch(e){}
+    var a = readStore(); a.syncKey = ""; writeStore(a);
   }
   function showMsg(t){ $("msg").textContent = t || ""; }
   function busy(on){ $("go").disabled = on; $("go").textContent = on ? "開啟中…" : "進入"; }
+  function show(html){ document.open(); document.write(html); document.close(); }
 
   function openApp(url, key){
     busy(true); showMsg("");
-    // 密碼放在 POST 本文，不放網址
-    fetch(url.replace(/\?.*$/, ""), {
+    var base = url.replace(/\?.*$/, "");
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, TIMEOUT_MS);
+    fetch(base, {
       method: "POST",
       headers: {"Content-Type": "text/plain"},
-      body: JSON.stringify({action: "assistant", key: key})
+      body: JSON.stringify({action: "assistant", key: key}),
+      signal: ctrl ? ctrl.signal : undefined
     }).then(function(r){ return r.text(); }).then(function(html){
+      clearTimeout(timer);
       if (html.indexOf("<html") < 0) {
-        clearKey();
+        clearUnlock();
         busy(false);
-        if (html.indexOf("同步密碼不對") >= 0) { showMsg("同步密碼不對，請重新輸入"); }
-        else { showMsg(html.slice(0, 120) || "小乖主頁暫時打不開，請稍後再試"); }
+        showMsg(html.indexOf("同步密碼不對") >= 0 ? "同步密碼不對，請重新輸入" : (html.slice(0, 120) || "小乖主頁暫時打不開，請稍後再試"));
         $("pw").value = ""; $("pw").focus();
         return;
       }
-      saveStore(url.replace(/\?.*$/, ""), key);
-      document.open(); document.write(html); document.close();
-    }).catch(function(){
+      saveUnlock(base, key, html);
+      show(html);
+    }).catch(function(e){
+      clearTimeout(timer);
       busy(false);
-      showMsg("連線有問題，請再試一次");
+      showMsg(e && e.name === "AbortError" ? "連線太久沒有回應，請再按一次「進入」" : "連線有問題，請再試一次");
     });
   }
 
   $("gate").addEventListener("submit", function(e){
     e.preventDefault();
-    var url = ($("url").value || readStore().syncUrl || "").trim();
+    var a = readStore();
+    var url = ($("url").value || a.syncUrl || "").trim();
     var key = $("pw").value.trim();
     if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { showMsg("請先填入小乖網址（https://script.google.com/… 結尾是 /exec）"); $("url").classList.remove("hide"); return; }
     if (!key) { showMsg("請輸入同步密碼"); return; }
     openApp(url, key);
   });
 
-  // 之前在這支手機設定過的，直接沿用，不用再填
+  // 今天已經登錄過：直接開啟，不用再輸入
   var a = readStore();
-  if (a.syncUrl && a.syncKey) { openApp(a.syncUrl, a.syncKey); }
-  else {
+  if (a.syncUrl && a.syncKey) {
+    var cached = readGate();
+    if (cached) { show(cached); return; }
+    openApp(a.syncUrl, a.syncKey);
+  } else {
     $("url").classList.remove("hide");
     $("url").value = a.syncUrl || "";
     $("pw").focus();
