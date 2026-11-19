@@ -267,6 +267,8 @@ function doGet(e) {
 
 // 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
 const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
+// 程式版本標記：貼上新檔後，執行記錄與錯誤訊息會顯示這個版本，方便確認是不是新版
+const ASSISTANT_CODE_VERSION = 'drive-check-v2';
 function assistantHtml_() {
   if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
   let id = ASSISTANT_FILE_ID;
@@ -281,11 +283,12 @@ function assistantHtml_() {
 
 // 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
 function authorizeAssistant() {
+  Logger.log('版本：' + ASSISTANT_CODE_VERSION);
   try {
     const html = assistantHtml_();
     Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
   } catch (err) {
-    Logger.log('小乖主頁讀取失敗：' + (err && err.name || 'Error') + '｜' + (err && err.message || err) + (err && err.stack ? '\n' + err.stack : ''));
+    Logger.log('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + (err && err.name || 'Error') + '｜' + (err && err.message || err) + (err && err.stack ? '\n' + err.stack : ''));
     throw err;
   }
 }
@@ -493,7 +496,7 @@ function doPost(e) {
   if (body.action === 'assistant') {
     if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
     try { return text_(assistantHtml_()); }
-    catch (err) { console.error(err); return text_('小乖主頁讀取失敗：' + (err && err.message || err)); }
+    catch (err) { console.error(err); return text_('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + (err && err.message || err)); }
   }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
