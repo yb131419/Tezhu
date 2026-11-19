@@ -35,16 +35,40 @@ function chanStats_(d) {
   };
 }
 
-// 去掉條列符號與編號，過長就截斷，讓每一條在圖卡上排得下
-function scClip_(s, max) {
-  const t = String(s).replace(/^[\s・•\-*]+/, '').replace(/^\d+[.、)]\s*/, '').trim();
-  return t.length > max ? t.slice(0, max - 1) + '…' : t;
+// 去掉條列符號與編號；不截斷內容（每一條會依字數自動加高，整段都會顯示）
+function scClip_(s) {
+  return String(s).replace(/^[\s・•\-*]+/, '').replace(/^\d+[.、)]\s*/, '').trim();
+}
+
+// 把長訊息依段落（空行）切成數段，每段不超過 max 字；單一段超過時依字元切（不切斷表情符號）
+function shenChunks_(text, max) {
+  const out = [];
+  let cur = '';
+  String(text).split('\n\n').forEach(p => {
+    const add = cur ? '\n\n' + p : p;
+    if (cur.length + add.length <= max) { cur += add; return; }
+    if (cur) out.push(cur);
+    cur = '';
+    if (p.length <= max) { cur = p; return; }
+    let buf = '';
+    Array.from(p).forEach(ch => {
+      if ((buf + ch).length > max) { out.push(buf); buf = ''; }
+      buf += ch;
+    });
+    cur = buf;
+  });
+  if (cur) out.push(cur);
+  return out;
 }
 
 // 圖卡版面：{ W, H, build(slideId) }，和 reportLayout_ 一樣交給 layoutPng_ 畫成 PNG
 function shenCardLayout_(st, items, dateLine) {
   const W = 720, ROW = 40, ITEMS_TOP = 380;
-  const footY = ITEMS_TOP + items.length * ROW + 22;
+  // 每一條依字數決定高度：一行約 40 個字（12pt、寬 560pt），一行約 18pt，最少一個 ROW
+  const hs = items.map(t => Math.max(ROW, Math.ceil(Array.from(t).length / 40) * 18 + 16));
+  const offs = [];
+  hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
+  const footY = ITEMS_TOP + hs.reduce((a, b) => a + b, 0) + 22;
   const H = footY + 64;
   const s = st || { subs: '—', avg: '—', pct: '—' };
   const stats = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
@@ -90,10 +114,10 @@ function shenCardLayout_(st, items, dateLine) {
     rect(96, 328, W - 192, 1, SC_.GOLD, null);
     text(64, 344, 592, 24, '神對話每日迭代', { font: 'Noto Serif TC', size: 14, bold: true, color: SC_.GOLD_D });
     items.forEach((t, i) => {
-      const y = ITEMS_TOP + i * ROW;
+      const y = ITEMS_TOP + offs[i], h = hs[i];
       text(64, y + 8, 28, 24, SC_NUMS[i] || String(i + 1), { font: 'Noto Serif TC', size: 13, bold: true, color: SC_.GOLD_D });
-      text(96, y + 6, 560, ROW - 6, t, { font: 'Noto Sans TC', size: 12, color: SC_.INK });
-      rect(64, y + ROW - 1, 592, 1, SC_.RULE, null);
+      text(96, y + 6, 560, h - 6, t, { font: 'Noto Sans TC', size: 12, color: SC_.INK });
+      rect(64, y + h - 1, 592, 1, SC_.RULE, null);
     });
     text(0, footY, W, 20, '劇本網址　' + SHEN_SCRIPT_URL, { font: 'Noto Sans TC', size: 10, color: SC_.MUTE, align: 'CENTER' });
     return req;
@@ -131,11 +155,11 @@ function shenDailyPush() {
   const msg = parts.join('\n\n━━━━━━━━\n\n');
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   try {
-    // 圖卡：摘要每一行一條（最多 6 條），沒有摘要就寫一句提示
+    // 圖卡：摘要每一行一條（全部顯示，不截斷），沒有摘要就寫一句提示
     const items = [];
-    pending.forEach(p => String(p.body).split('\n').forEach(l => { const t = scClip_(l, 84); if (t) items.push(t); }));
+    pending.forEach(p => String(p.body).split('\n').forEach(l => { const t = scClip_(l); if (t) items.push(t); }));
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
-    const L = shenCardLayout_(chanSt, items.length ? items.slice(0, 6) : ['今天還沒有新的神對話迭代建議。'], dateLine);
+    const L = shenCardLayout_(chanSt, items.length ? items : ['今天還沒有新的神對話迭代建議。'], dateLine);
     const png = layoutPng_(L, '每日回報_' + today + '.png');
     if (png) {
       const url = shenCardUrl_(png);
@@ -146,8 +170,8 @@ function shenDailyPush() {
     } else {
       // 圖卡畫不出來：照舊傳純文字，內容不漏
       console.error('每日回報圖卡沒產生，改傳文字。' + (REPORT_ERR_ || ''));
-      if (owner) push_(owner, msg.slice(0, 4900));
-      if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, msg.slice(0, 4000));
+      if (owner) shenChunks_(msg, 4800).forEach(t => push_(owner, t));
+      if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) shenChunks_(msg, 3800).forEach(t => tgSend_(tgOwner, t));
     }
     const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
     pending.forEach(p => sh.getRange(p.row, 4).setValue(now));
