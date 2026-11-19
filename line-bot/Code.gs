@@ -1309,11 +1309,16 @@ function chanAnalytics_(ids) {
 // 手動執行（編輯器選 chanSearchTerms → 執行）：把 YouTube 搜尋字詞（觀眾從 YouTube 搜尋進來時用的字）累積寫進試算表「搜尋字詞紀錄」，前 30 名會印在執行紀錄裡。
 // 需要的分析授權與頻道數據相同（頻道擁有者帳號）。不會改動 YouTube 上的任何內容。
 const CHAN_SEARCH_SHEET = '搜尋字詞紀錄';
-// 查詢一次搜尋字詞；withMax=false 時不帶 maxResults（用來排除參數造成的 500）
-function chanSearchQuery_(startDate, endDate, withMax) {
-  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate,
-    metrics: 'views', dimensions: 'insightTrafficSourceDetail', filters: 'insightTrafficSourceType==YT_SEARCH' };
-  if (withMax) params.maxResults = '50';
+// 查詢 YouTube Analytics 報表：opts.terms=true 時查搜尋字詞（維度 insightTrafficSourceDetail + 篩選 YT_SEARCH），false 時只查流量來源類型（診斷用）
+function chanSearchQuery_(startDate, endDate, opts) {
+  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate, metrics: 'views', sort: '-views' };
+  if (opts.terms) {
+    params.dimensions = 'insightTrafficSourceDetail';
+    params.filters = 'insightTrafficSourceType==YT_SEARCH';
+  } else {
+    params.dimensions = 'insightTrafficSourceType';
+  }
+  if (opts.max) params.maxResults = '50';
   const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
   const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
     muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
@@ -1321,27 +1326,24 @@ function chanSearchQuery_(startDate, endDate, withMax) {
   return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
 }
 // 手動執行（編輯器選 chanSearchTerms → 執行）：把 YouTube 搜尋字詞累積寫進試算表「搜尋字詞紀錄」，前 30 名印在執行紀錄裡。
-// 500 錯誤會重試，仍失敗就縮短日期（一年、九十天），最後不帶 maxResults 再試一次；每次結果都記在執行紀錄。不會改動 YouTube 上的任何內容。
+// 寫法與 YouTube 官方「搜尋字詞」報表範例相同（sort=-views）。查詢失敗時會記錄每次的 HTTP 結果，並再查一次流量來源類型，方便判斷問題。不會改動 YouTube 上的任何內容。
 function chanSearchTerms() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-  const ago = days => Utilities.formatDate(new Date(Date.now() - days * 86400000), 'Asia/Taipei', 'yyyy-MM-dd');
-  const tries = [
-    ['2005-01-01', today, true], ['2005-01-01', today, true],
-    [ago(365), today, true], [ago(90), today, true],
-    ['2005-01-01', today, false],
-  ];
+  const tries = [{ terms: true, max: true }, { terms: true, max: false }];
   let got = null, lastErr = '';
-  for (const [s, e, withMax] of tries) {
+  for (const o of tries) {
     if (got) break;
-    for (let t = 0; t < 2 && !got; t++) {
-      const r = chanSearchQuery_(s, e, withMax);
-      console.log('搜尋字詞查詢 ' + s + ' 到 ' + e + '（maxResults ' + (withMax ? '有' : '無') + '）：HTTP ' + r.code);
-      if (r.code === 200) got = { rows: r.data.rows || [], start: s, end: e };
-      else { lastErr = 'HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || ''); Utilities.sleep(3000); }
-    }
+    const r = chanSearchQuery_('2005-01-01', today, o);
+    console.log('搜尋字詞查詢（maxResults ' + (o.max ? '有' : '無') + '）：HTTP ' + r.code);
+    if (r.code === 200) got = { rows: r.data.rows || [] };
+    else lastErr = 'HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || '');
   }
-  if (!got) throw new Error('ANALYTICS 搜尋字詞查詢失敗：' + lastErr);
-  if (!got.rows.length) throw new Error('SEARCH_EMPTY 這段期間沒有搜尋字詞資料（' + got.start + ' 到 ' + got.end + '）');
+  if (!got) {
+    const d = chanSearchQuery_('2005-01-01', today, { terms: false, max: false });
+    console.log('診斷（流量來源類型）：HTTP ' + d.code + ' ' + ((d.data.error && d.data.error.message) || JSON.stringify(d.data.rows || []).slice(0, 300)));
+    throw new Error('ANALYTICS 搜尋字詞查詢失敗：' + lastErr);
+  }
+  if (!got.rows.length) throw new Error('SEARCH_EMPTY 沒有搜尋字詞資料');
   const rows = got.rows.slice().sort((a, b) => Number(b[1]) - Number(a[1]));
   const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
   const ss = ss_();
@@ -1353,7 +1355,7 @@ function chanSearchTerms() {
   }
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, 3).setValues(rows.map(r => [now, r[0], Number(r[1])]));
   const top = rows.slice(0, 30).map((r, i) => (i + 1) + '. ' + r[0] + '（' + r[1] + ' 次）').join('\n');
-  const msg = '搜尋字詞（期間 ' + got.start + ' 到 ' + got.end + '，共 ' + rows.length + ' 個，前 30 名已寫進「' + CHAN_SEARCH_SHEET + '」）：\n' + top;
+  const msg = '搜尋字詞（共 ' + rows.length + ' 個，前 30 名已寫進「' + CHAN_SEARCH_SHEET + '」）：\n' + top;
   console.log(msg);
   return msg;
 }
