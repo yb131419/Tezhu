@@ -1145,11 +1145,12 @@ function channelHub_() {
     btn('📝 只改說明', '只改說明', false),
     btn('🔖 只改標記', '只改標記', false),
     btn('📺 頻道數據', CHAN_BTN, false),
+    btn('📜 傳送神對話劇本', SHEN_SCRIPT_CMD, false),
   ];
   return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
     flex: chanPair_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, buttons.concat([chanDailyBtn_()])),
     alt: '📺 YT頻道',
-    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), MENU_BTN]] };
+    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [SHEN_SCRIPT_CMD, chanDailyTxt_()], [MENU_BTN]] };
 }
 // 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
@@ -1162,7 +1163,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'channel-script-1｜2026-11-19｜頻道管理加入📜傳送神對話劇本（最新單一播放清單連結）；前一版：no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
