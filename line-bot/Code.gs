@@ -1165,7 +1165,10 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'action-layout-1｜2026-11-19｜操作卡片按鈕緊接在標題下面，去掉中間空白';
+const CHAN_VERSION = 'version-tag-1｜2026-11-19｜卡片與每日推播加上低調版本號';
+// 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
+function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
+function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1194,6 +1197,7 @@ function chanDiagFlex_(ok, head, detail, raw) {
     { type: 'text', text: detail, size: 'sm', color: CHCARD_.INK, wrap: true, margin: 'md' },
   ];
   if (raw && !ok) body.push({ type: 'text', text: '原始訊息：' + raw, size: 'xxs', color: CHCARD_.SOFT, wrap: true, margin: 'lg' });
+  body.push(verLine_());
   const buttons = [
     { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
@@ -1220,7 +1224,8 @@ function chanPair_(head, content, buttons) {
   const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG } },
     body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
       chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片'),
-      { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } ] } };
+      { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) },
+      { type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingBottom: '10px', contents: [verLine_()] } ] } };
   return { type: 'carousel', contents: [info, acts] };
 }
 function chanDailyCmd_(flat) {
@@ -1251,7 +1256,7 @@ function chanDailyJob() {
   }
   const kwLine = chanDailyKeywords_();
   if (kwLine) text += '\n\n' + kwLine;
-  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL;
+  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL + '\n' + verTag_();
   // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
   setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text, st: d ? chanStats_(d) : null }));
 }
@@ -1542,7 +1547,7 @@ function chanBtnLeft_(b) {
 }
 function chanBubble_(head, content, buttons) {
   return { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
-    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content) },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content).concat([{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingBottom: '10px', contents: [verLine_()] }]) },
     footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
 }
 function chanStat_(label, value) {

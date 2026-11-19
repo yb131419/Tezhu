@@ -152,7 +152,7 @@ function shenDailyPush() {
   const parts = [];
   if (chanText) parts.push(chanText);
   pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + (p.url ? '\n\n📜 劇本網址：' + p.url : '')));
-  const msg = parts.join('\n\n━━━━━━━━\n\n');
+  const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   try {
     // 圖卡：摘要每一行一條（全部顯示，不截斷），沒有摘要就寫一句提示
