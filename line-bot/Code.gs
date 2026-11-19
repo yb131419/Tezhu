@@ -1310,15 +1310,17 @@ function chanAnalytics_(ids) {
 // 需要的分析授權與頻道數據相同（頻道擁有者帳號）。不會改動 YouTube 上的任何內容。
 const CHAN_SEARCH_SHEET = '搜尋字詞紀錄';
 // 查詢 YouTube Analytics 報表：opts.terms=true 時查搜尋字詞（維度 insightTrafficSourceDetail + 篩選 YT_SEARCH），false 時只查流量來源類型（診斷用）
+// opts.max：maxResults 的值（字串）或 null；opts.sort：是否帶 sort=-views
 function chanSearchQuery_(startDate, endDate, opts) {
-  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate, metrics: 'views', sort: '-views' };
+  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate, metrics: 'views' };
+  if (opts.sort) params.sort = '-views';
   if (opts.terms) {
     params.dimensions = 'insightTrafficSourceDetail';
     params.filters = 'insightTrafficSourceType==YT_SEARCH';
   } else {
     params.dimensions = 'insightTrafficSourceType';
   }
-  if (opts.max) params.maxResults = '50';
+  if (opts.max) params.maxResults = String(opts.max);
   const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
   const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
     muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
@@ -1326,22 +1328,34 @@ function chanSearchQuery_(startDate, endDate, opts) {
   return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
 }
 // 手動執行（編輯器選 chanSearchTerms → 執行）：把 YouTube 搜尋字詞累積寫進試算表「搜尋字詞紀錄」，前 30 名印在執行紀錄裡。
-// 寫法與 YouTube 官方「搜尋字詞」報表範例相同（sort=-views）。查詢失敗時會記錄每次的 HTTP 結果，並再查一次流量來源類型，方便判斷問題。不會改動 YouTube 上的任何內容。
+// 會依序試幾種寫法（maxResults 25、10、不帶 sort、不帶 maxResults），每次的 HTTP 結果與錯誤內容都記在執行紀錄裡。
+// 全部失敗時，再查一次流量來源類型作為診斷。不會改動 YouTube 上的任何內容。
 function chanSearchTerms() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
-  const tries = [{ terms: true, max: true }, { terms: true, max: false }];
-  let got = null, lastErr = '';
+  const tries = [
+    { terms: true, max: '25', sort: true },
+    { terms: true, max: '10', sort: true },
+    { terms: true, max: '25', sort: false },
+    { terms: true, max: null, sort: true },
+  ];
+  let got = null;
+  const log = [];
   for (const o of tries) {
-    if (got) break;
     const r = chanSearchQuery_('2005-01-01', today, o);
-    console.log('搜尋字詞查詢（maxResults ' + (o.max ? '有' : '無') + '）：HTTP ' + r.code);
-    if (r.code === 200) got = { rows: r.data.rows || [] };
-    else lastErr = 'HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || '');
+    const desc = '維度 detail、maxResults ' + (o.max || '無') + '、sort ' + (o.sort ? '-views' : '無');
+    if (r.code === 200) {
+      console.log('搜尋字詞查詢（' + desc + '）：HTTP 200');
+      got = { rows: r.data.rows || [] };
+      break;
+    }
+    const msg = desc + '：HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || JSON.stringify(r.data).slice(0, 200));
+    console.log('搜尋字詞查詢失敗（' + msg + '）');
+    log.push(msg);
   }
   if (!got) {
-    const d = chanSearchQuery_('2005-01-01', today, { terms: false, max: false });
-    console.log('診斷（流量來源類型）：HTTP ' + d.code + ' ' + ((d.data.error && d.data.error.message) || JSON.stringify(d.data.rows || []).slice(0, 300)));
-    throw new Error('ANALYTICS 搜尋字詞查詢失敗：' + lastErr);
+    const d = chanSearchQuery_('2005-01-01', today, { terms: false, max: null, sort: true });
+    console.log('診斷（流量來源類型）：HTTP ' + d.code + ' ' + JSON.stringify(d.data.rows || d.data.error || {}).slice(0, 300));
+    throw new Error('ANALYTICS 搜尋字詞查詢全部失敗：' + log.join('；'));
   }
   if (!got.rows.length) throw new Error('SEARCH_EMPTY 沒有搜尋字詞資料');
   const rows = got.rows.slice().sort((a, b) => Number(b[1]) - Number(a[1]));
