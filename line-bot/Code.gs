@@ -46,7 +46,7 @@ const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
   { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['⏰ 每日更新', '每天早上自動更新'], ['🔄 手動更新', '立刻更新一次頻道數據'], ['❓ 說明', '使用方式']] },
-  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
   { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在頻道後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
@@ -774,7 +774,7 @@ function chanReply_(t) {
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
   const cmd = tt.replace(/[、，,]/g, '');   // 「更改全部 標題、說明」也認得
-  if (/^(更改全部標題說明|更改標題和說明|更改全部標題和說明|更改全部說明標題)$/.test(cmd)) return chanSafe_(() => titlePreview_('both'));
+  if (/^(更改全部標題說明|更改標題和說明|更改全部|更改全部標題和說明|更改全部說明標題)$/.test(cmd)) return chanSafe_(() => titlePreview_('both'));
   if (/^(更改全部標題|更改標題|標題更改|改全部標題|只改標題)$/.test(cmd)) return chanSafe_(() => titlePreview_('title'));
   if (/^(更改全部標記|只改標記|更改標記|標記更改)$/.test(cmd)) return chanSafe_(() => titlePreview_('tags'));
   if (/^(更改全部|全部更改|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));
@@ -1027,8 +1027,8 @@ function titleApply_() {
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
-    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部標題和說明」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
-    if (!pend.snaps) return { text: '✏️ 預覽格式已更新，請重新打「更改全部標題和說明」產生預覽再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend.snaps) return { text: '✏️ 預覽格式已更新，請重新打「更改全部」產生預覽再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
     // 逐支比對：只有「預覽時看到的內容」與「現在的內容」一樣的影片才會改；有變動的那支跳過並寫出差在哪，其他照改
     const now = titleBuildItems_(pend.mode);
     const items = [], skipped = [];
@@ -1124,7 +1124,7 @@ function channelHub_() {
   const live = !!pend && Date.now() - pend.at < 60 * 60 * 1000;
   const note = live ? '有待確認的更改：' + pend.n + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
   const menu = [
-    ['✏️ 更改全部標題和說明', '標題與說明一起改，先看預覽再確認'],
+    ['✏️ 更改全部', '標題與說明一起改，先看預覽再確認'],
     ['🏷️ 只改標題', '只改影片標題，說明保持不變'],
     ['📝 只改說明', '只改影片說明，標題保持不變'],
     ['🔖 只改標記', '只改影片標記（觀眾看不到的搜尋關鍵字）'],
@@ -1140,7 +1140,7 @@ function channelHub_() {
     [{ type: 'text', text: note, size: 'xxs', color: live ? CHCARD_.GOLD : CHCARD_.SOFT, wrap: true, margin: 'xs' }].concat(rows) }];
   const btn = (label, text, primary) => ({ type: 'button', style: primary ? 'primary' : 'secondary', color: primary ? '#A07C34' : undefined, height: 'sm', action: { type: 'message', label: label, text: text } });
   const buttons = [
-    btn('✏️ 全部更改（標題＋說明）', '更改全部標題和說明', true),
+    btn('✏️ 更改全部', '更改全部', true),
     btn('🏷️ 只改標題（單項）', '只改標題', false),
     btn('📝 只改說明（單項）', '只改說明', false),
     btn('🔖 只改標記（單項）', '只改標記', false),
@@ -1150,7 +1150,7 @@ function channelHub_() {
   return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
     flex: chanPair_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, buttons.concat([chanDailyBtn_()])),
     alt: '📺 YT頻道',
-    buttons: [['更改全部標題和說明'], ['只改標題', '只改說明', '只改標記'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [SHEN_SCRIPT_CMD, chanDailyTxt_()], [MENU_BTN]] };
+    buttons: [['更改全部'], ['只改標題', '只改說明', '只改標記'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [SHEN_SCRIPT_CMD, chanDailyTxt_()], [MENU_BTN]] };
 }
 // 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
@@ -1163,7 +1163,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'channel-split-1｜2026-11-19｜頻道管理把「全部更改」與「單項更新」分開；前一版：channel-script-1｜2026-11-19｜頻道管理加入📜傳送神對話劇本（最新單一播放清單連結）；前一版：no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'button-tone-1｜2026-11-19｜更改全部改名，頻道管理按鈕配色分三種（更改全部金色、單項象牙底金字、取消還原酒紅）；前一版：channel-split-1｜2026-11-19｜頻道管理把「全部更改」與「單項更新」分開；前一版：channel-script-1｜2026-11-19｜頻道管理加入📜傳送神對話劇本（最新單一播放清單連結）；前一版：no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1517,12 +1517,24 @@ function chanHead_(label, title, sub) {
     ] };
 }
 // 按鈕文字靠左：LINE 的按鈕文字一律置中，所以卡片上的按鈕改用可點的方塊，文字靠左排
+// 按鈕配色分三種：①「更改全部」金色實心（主要）②單項更新象牙底金字（次要）③取消、還原等不可逆動作深酒紅（危險）；其餘維持白底
+function chanBtnTone_(b) {
+  const t = String(b.action.text || ''), lab = String(b.action.label || '');
+  if (t === '更改全部' || t === '更改全部標題和說明') return { bg: '#A07C34', border: '#C9A56A', ink: '#FFFFFF' };
+  if (/^只改(標題|說明|標記)$/.test(t)) return { bg: '#F5EEDF', border: '#A07C34', ink: '#6B4E1F' };
+  if (/取消|還原|刪除|清空/.test(t + lab)) return { bg: '#9E3B32', border: '#7A2A24', ink: '#FFFFFF' };
+  return null;
+}
 function chanBtnLeft_(b) {
   if (!b || b.type !== 'button' || !b.action) return b;
   const primary = b.style === 'primary';
+  const tone = chanBtnTone_(b);
+  const bg = tone ? tone.bg : (primary ? (b.color || '#A07C34') : '#FFFFFF');
+  const border = tone ? tone.border : (primary ? '#C9A56A' : CHCARD_.LINE);
+  const ink = tone ? tone.ink : (primary ? '#FFFFFF' : CHCARD_.INK);
   return { type: 'box', layout: 'vertical', paddingAll: '13px', cornerRadius: '12px', borderWidth: '1px',
-    borderColor: primary ? '#C9A56A' : CHCARD_.LINE, backgroundColor: primary ? (b.color || '#A07C34') : '#FFFFFF', action: b.action,
-    contents: [{ type: 'text', text: b.action.label, size: 'sm', weight: 'bold', align: 'start', wrap: true, color: primary ? '#FFFFFF' : CHCARD_.INK }] };
+    borderColor: border, backgroundColor: bg, action: b.action,
+    contents: [{ type: 'text', text: b.action.label, size: 'sm', weight: 'bold', align: 'start', wrap: true, color: ink }] };
 }
 function chanBubble_(head, content, buttons) {
   return { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
@@ -1575,7 +1587,7 @@ function chanDataFlex_(d) {
   const pb_uri_ = uri => ({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🔗 開啟頻道', uri: uri } });
   const buttons = [
     row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
-    pb('✏️ 更改全部標題和說明', '更改全部標題和說明', false),
+    pb('✏️ 更改全部', '更改全部', false),
     row([pb('🏷️ 只改標題', '只改標題', false), pb('📝 只改說明', '只改說明', false)]),
     row([pb('🔖 只改標記', '只改標記', false)]),
     pb_uri_(d.url),
