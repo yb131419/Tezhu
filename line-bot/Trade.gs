@@ -1272,16 +1272,24 @@ function tradeFlex_(title, body, rows, lead, foot) {
    先在編輯器執行 tradeBackfillPreview()：只列出，不寫入。確認無誤後再執行 tradeBackfillWrite()。
    欄位是依 IG REST 歷史活動的格式撰寫；第一次執行請看 Execution log，確認 channel、level、direction 等欄位對得上。
    補進來的紀錄標記為真實倉位（src: 'real'），來源 ref 是 IG 的 dealId，重複執行不會重複寫入。 */
-function tradeBackfillPreview() { return tradeBackfill_(7, false); }
-function tradeBackfillWrite() { return tradeBackfill_(7, true); }
+function tradeBackfillPreview() { return tradeBackfill_(30, false); }
+function tradeBackfillWrite() { return tradeBackfill_(30, true); }
 
 function tradeBackfill_(days, write) {
   const to = new Date(), from = new Date(to.getTime() - days * 86400000);
   const fmt = d => Utilities.formatDate(d, 'UTC', "yyyy-MM-dd'T'HH:mm:ss");
+  const zh = d => Utilities.formatDate(d, 'Asia/Taipei', 'yyyy/MM/dd HH:mm');
+  console.log('查詢範圍（台北時間）：' + zh(from) + ' ～ ' + zh(to) + '，共 ' + days + ' 天，分段每 7 天查一次');
   let acts = [];
   try {
-    const res = tradeFetch_('get', '/history/activity?from=' + encodeURIComponent(fmt(from)) + '&to=' + encodeURIComponent(fmt(to)) + '&detailed=true&pageSize=500', 3);
-    acts = (res && res.activities) || [];
+    // 分段查詢，每段最多 7 天，避免 IG 對單次查詢的範圍限制
+    for (let a = from.getTime(); a < to.getTime(); a += 7 * 86400000) {
+      const b = Math.min(a + 7 * 86400000, to.getTime());
+      const res = tradeFetch_('get', '/history/activity?from=' + encodeURIComponent(fmt(new Date(a))) + '&to=' + encodeURIComponent(fmt(new Date(b))) + '&detailed=true&pageSize=500', 3);
+      const got = (res && res.activities) || [];
+      console.log('  段 ' + zh(new Date(a)) + ' ～ ' + zh(new Date(b)) + '：' + got.length + ' 筆活動');
+      acts = acts.concat(got);
+    }
   } catch (e) {
     console.log('補錄失敗（IG 查詢）：' + (e.message || e));
     return '補錄失敗：' + (e.message || e);
