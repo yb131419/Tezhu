@@ -1306,6 +1306,36 @@ function chanAnalytics_(ids) {
   data.rows.forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
   return out;
 }
+// 手動執行（編輯器選 chanSearchTerms → 執行）：把 YouTube 搜尋字詞（觀眾從 YouTube 搜尋進來時用的字）累積寫進試算表「搜尋字詞紀錄」，前 30 名會印在執行紀錄裡。
+// 需要的分析授權與頻道數據相同（頻道擁有者帳號）。不會改動 YouTube 上的任何內容。
+const CHAN_SEARCH_SHEET = '搜尋字詞紀錄';
+function chanSearchTerms() {
+  const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  const params = { ids: 'channel==MINE', startDate: '2005-01-01', endDate: today,
+    metrics: 'views', dimensions: 'insightTrafficSourceDetail',
+    filters: 'insightTrafficSourceType==YT_SEARCH', sort: '-views', maxResults: '50' };
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  const code = res.getResponseCode();
+  const data = JSON.parse(res.getContentText() || '{}');
+  if (code !== 200) throw new Error('ANALYTICS ' + code + ' ' + ((data.error && data.error.message) || ''));
+  if (!data.rows || !data.rows.length) throw new Error('SEARCH_EMPTY 沒有搜尋字詞資料（請確認授權的是頻道擁有者帳號，或資料還沒產生）');
+  const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  const ss = ss_();
+  let sh = ss.getSheetByName(CHAN_SEARCH_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CHAN_SEARCH_SHEET);
+    sh.appendRow(['紀錄時間', '搜尋字詞', '觀看次數']);
+    sh.setFrozenRows(1);
+  }
+  sh.getRange(sh.getLastRow() + 1, 1, data.rows.length, 3).setValues(data.rows.map(r => [now, r[0], Number(r[1])]));
+  const top = data.rows.slice(0, 30).map((r, i) => (i + 1) + '. ' + r[0] + '（' + r[1] + ' 次）').join('\n');
+  const msg = '搜尋字詞（共 ' + data.rows.length + ' 個，前 30 名已寫進「' + CHAN_SEARCH_SHEET + '」）：\n' + top;
+  console.log(msg);
+  return msg;
+}
 // 每次查詢都把各集數據累積到使用者的試算表「頻道數據紀錄」分頁，方便之後比較神對話各集的表現
 const CHAN_LOG_SHEET = '頻道數據紀錄';
 function chanLog_(d) {
