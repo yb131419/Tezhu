@@ -1375,6 +1375,52 @@ function chanDailyKeywords_() {
     return '';
   }
 }
+// 只讀取：查流量來源類型的明細（例如 EXT_URL 的網域、YT_OTHER_PAGE 的頁面），寫進「流量來源明細」分頁並印出前 25 名。不會改動 YouTube 上的任何內容。
+const CHAN_TRAFFIC_SHEET = '流量來源明細';
+function chanTrafficQuery_(type) {
+  const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  const params = { ids: 'channel==MINE', startDate: '2005-01-01', endDate: today, metrics: 'views',
+    dimensions: 'insightTrafficSourceDetail', filters: 'insightTrafficSourceType==' + type, sort: '-views', maxResults: '25' };
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
+}
+function chanTrafficDetail() {
+  const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  const out = [];
+  const lines = [];
+  ['EXT_URL', 'YT_OTHER_PAGE'].forEach(type => {
+    const r = chanTrafficQuery_(type);
+    if (r.code !== 200) {
+      const err = 'HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || '');
+      console.log(type + ' 明細查詢失敗：' + err);
+      lines.push('【' + type + '】查詢失敗：' + err);
+      return;
+    }
+    const rows = r.data.rows || [];
+    console.log(type + ' 明細：' + rows.length + ' 列');
+    lines.push('【' + type + '】共 ' + rows.length + ' 列');
+    rows.forEach(x => {
+      out.push([now, type, x[0], Number(x[1])]);
+      lines.push('  ' + x[0] + '（' + x[1] + ' 次）');
+    });
+  });
+  if (out.length) {
+    const ss = ss_();
+    let sh = ss.getSheetByName(CHAN_TRAFFIC_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(CHAN_TRAFFIC_SHEET);
+      sh.appendRow(['紀錄時間', '來源類型', '明細', '觀看次數']);
+      sh.setFrozenRows(1);
+    }
+    sh.getRange(sh.getLastRow() + 1, 1, out.length, 4).setValues(out);
+  }
+  const msg = lines.join('\n');
+  console.log(msg);
+  return msg;
+}
 // 每次查詢都把各集數據累積到使用者的試算表「頻道數據紀錄」分頁，方便之後比較神對話各集的表現
 const CHAN_LOG_SHEET = '頻道數據紀錄';
 function chanLog_(d) {
