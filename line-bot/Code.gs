@@ -265,11 +265,11 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
-// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。指令碼屬性 ASSISTANT_FILE_ID 記那個檔案的編號。
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。把那個檔案的 ID 貼到下面引號中間，只貼 ID。
+const ASSISTANT_FILE_ID = 'PASTE_ASSISTANT_FILE_ID_HERE';
 function assistantHtml_() {
-  const id = prop_('ASSISTANT_FILE_ID');
-  if (!id) throw new Error('尚未設定指令碼屬性 ASSISTANT_FILE_ID');
-  return DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
+  if (!ASSISTANT_FILE_ID || ASSISTANT_FILE_ID.indexOf('PASTE_') === 0) throw new Error('尚未填入 ASSISTANT_FILE_ID（請在 Code.gs 找到 ASSISTANT_FILE_ID 那一行，把檔案 ID 貼進引號）');
+  return DriveApp.getFileById(ASSISTANT_FILE_ID).getBlob().getDataAsString('UTF-8');
 }
 
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
