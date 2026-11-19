@@ -1300,34 +1300,38 @@ function tradeBackfill_(days, write) {
   const stops = st.stops || [];
   const seen = {};
   stops.forEach(x => { if (x.ref) seen[x.ref] = true; });
-  const lines = [];
-  let found = [];
-  acts.forEach(a => {
-    const d = a.details || {};
-    const actions = (d.actions || []).map(x => x.actionType);
-    if (a.type !== 'POSITION' || actions.indexOf('POSITION_CLOSED') < 0) return;
-    const name = byEpic[a.epic] || '';
-    lines.push('・' + (a.date || '') + ' ' + (name || a.epic) + ' channel=' + a.channel + ' level=' + d.level + ' size=' + d.size + ' dir=' + d.direction + ' deal=' + a.dealId);
-    if (a.channel !== 'SYSTEM' || !name) return;   // 只補系統平掉的（停損或停利）；手動、程式平倉不補
-    if (seen[a.dealId]) return;
-    const closeDir = String(d.direction || '').toUpperCase();
-    const dir = closeDir === 'SELL' ? 'buy' : 'sell';   // 平多是賣出、平空是買進
-    const ms = Date.parse(String(a.date || '').replace(/Z?$/, 'Z'));
-    found.push({ at: isFinite(ms) ? Utilities.formatDate(new Date(ms), 'Asia/Taipei', 'MM/dd HH:mm') : '', ms: ms || 0,
-      name: name, dirZh: dir === 'buy' ? '多' : '空', dir: dir, size: Number(d.size || a.size || 0),
-      trigger: '停損或停利', price: Number(d.level), prec: TRADE_ITEMS[name].prec, open: null, margin: null, cur: '', src: 'real', ref: a.dealId });
-  });
   // 已經記下的（例如停損停利通知當時自動記的）同商品、同數量、相差一小時內視為重複
   const near = (ms, at) => { const m = String(at || '').match(/^(\d\d)\/(\d\d) (\d\d):(\d\d)$/); if (!m) return false; const t = new Date(new Date().getFullYear(), +m[1] - 1, +m[2], +m[3], +m[4]).getTime(); return Math.abs(t - ms) < 3600000; };
   const dup = x => stops.some(y => y.name === x.name && Number(y.size) === x.size && near(x.ms, y.at));
-  found = found.filter(x => !dup(x));
+  const lines = [], skipped = [];
+  let found = [];
+  // 每一筆活動都列出（不先過濾），方便對照 IG 的欄位
+  acts.forEach(a => {
+    const d = a.details || {};
+    const actions = (d.actions || []).map(x => x.actionType);
+    const name = byEpic[a.epic] || '';
+    lines.push('・' + (a.date || '') + ' ' + (name || a.epic || '-') + ' type=' + a.type + ' status=' + a.status + ' channel=' + a.channel + ' actions=' + (actions.join('|') || '-') + ' level=' + d.level + ' size=' + (d.size || a.size || '-') + ' dir=' + d.direction + ' deal=' + a.dealId);
+    if (a.channel !== 'SYSTEM') return;   // 系統觸發的才可能是停損或停利；PUBLIC_WEB_API 是手動或本程式平倉，不補
+    if (!name) { skipped.push('略過（商品不在清單）：' + a.epic + ' ' + a.date); return; }
+    if (a.type !== 'POSITION' || actions.indexOf('POSITION_CLOSED') < 0) { skipped.push('略過（不是平倉活動）：' + name + ' ' + a.date + ' type=' + a.type + ' actions=' + (actions.join('|') || '-')); return; }
+    if (seen[a.dealId]) { skipped.push('略過（已有 ref 紀錄）：' + name + ' ' + a.date); return; }
+    const closeDir = String(d.direction || '').toUpperCase();
+    const dir = closeDir === 'SELL' ? 'buy' : 'sell';   // 平多是賣出、平空是買進
+    const ms = Date.parse(String(a.date || '').replace(/Z?$/, 'Z'));
+    const x = { at: isFinite(ms) ? Utilities.formatDate(new Date(ms), 'Asia/Taipei', 'MM/dd HH:mm') : '', ms: ms || 0,
+      name: name, dirZh: dir === 'buy' ? '多' : '空', dir: dir, size: Number(d.size || a.size || 0),
+      trigger: '停損或停利', price: Number(d.level), prec: TRADE_ITEMS[name].prec, open: null, margin: null, cur: '', src: 'real', ref: a.dealId };
+    if (dup(x)) { skipped.push('略過（與既有紀錄重複）：' + name + ' ' + x.at); return; }
+    found.push(x);
+  });
   found.sort((x, y) => x.ms - y.ms);
+  const clean = found.map(x => { const r = Object.assign({}, x); delete r.ms; return r; });
   const head = (write ? '補錄完成' : '補錄預覽（未寫入）') + '：找到 ' + found.length + ' 筆可補的系統平倉，已存在 ' + Object.keys(seen).length + ' 筆紀錄';
   const detail = found.map(x => '・' + x.at + ' ' + x.name + ' ' + x.dirZh + ' ' + x.size + ' 單位，觸發價約 ' + x.price).join('\n');
-  const raw = '所有平倉活動（請把這段貼回來確認欄位）：\n' + (lines.join('\n') || '（這段時間沒有平倉活動）');
-  console.log(head + '\n' + detail + '\n' + raw);
-  if (write && found.length) {
-    const clean = found.map(x => { const r = Object.assign({}, x); delete r.ms; return r; });
+  const raw = '所有活動（請把這段貼回來確認欄位）：\n' + (lines.join('\n') || '（這段時間沒有任何活動）');
+  const skip = '略過的系統活動：\n' + (skipped.join('\n') || '（無）');
+  console.log(head + '\n' + detail + '\n' + skip + '\n' + raw);
+  if (write && clean.length) {
     tradeSaveState_(Object.assign(st, { stops: stops.concat(clean).slice(-20) }));
   }
   return head;
