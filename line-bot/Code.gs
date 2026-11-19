@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 圖卡設定'], ['❓ 說明']];
+const MENU = [['🐾 小乖', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 圖卡設定'], ['❓ 說明']];
 // 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
@@ -41,11 +41,11 @@ const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 小乖', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
-  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['⏰ 每日更新', '每天早上自動更新'], ['🔄 手動更新', '立刻更新一次頻道數據'], ['❓ 說明', '使用方式']] },
+  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 小乖', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['⏰ 每日更新', '每天早上自動更新'], ['🔄 手動更新', '立刻更新一次頻道數據'], ['❓ 說明', '使用方式']] },
   { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
   { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在頻道後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
@@ -77,8 +77,8 @@ function menuCard_() {
 // 象牙白＋香檳金精品風輪播卡片：每類一張，按一下就送出那個功能
 function menuFlex_() {
   const GOLD = '#B08D57', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
-  const act = t => t === TALK_BTN
-    ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
+  const act = t => isTalkBtn_(t)
+    ? { type: 'uri', label: '小乖', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
     : t === WALL_BTN ? { type: 'uri', label: '見證庫', uri: wallUrl_() }
     : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { type: 'uri', label: t.slice(0, 20), uri: talkMenuUrl_() }
     : { type: 'message', label: t.slice(0, 20), text: t };
@@ -327,14 +327,16 @@ function talkLink_() {
 }
 
 // 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
-const TALK_BTN = '🐾 對話頁';
+const TALK_BTN = '🐾 小乖';
+const TALK_BTN_OLD_ = '🐾 對話頁';   // 舊按鈕文字（舊的鍵盤還在手機上時仍然要能用）
+function isTalkBtn_(t) { return t === TALK_BTN || t === TALK_BTN_OLD_; }
 const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁的 ☰ 選單（#menu）
 function talkMenuUrl_() { return talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1#menu'; }
 const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
-  if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (isTalkBtn_(t)) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
   if (t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkMenuUrl_() } };
   if (t === SCHED_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: SCHEDULE_URL } };
   if (t === WALL_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: wallUrl_() } };
@@ -342,7 +344,7 @@ function lineQuick_(t) {
 }
 // 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
 const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
-function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() + '#menu' } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
+function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : isTalkBtn_(t) ? { text: t, web_app: { url: talkUrl_() } } : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() + '#menu' } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
 // 「🔎 見證庫」網頁（Cases.html）：跟對話頁一樣把小乖網址放 ?u=，密碼不放網址
 const WALL_PAGE = 'https://yb131419.github.io/Tezhu/Cases.html';
 function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE + (i >= 0 ? t.slice(i) + '&' : '?') + 'openExternalBrowser=1'; }
@@ -384,7 +386,7 @@ const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
-  ASK_BTNS_ = b && b !== QUICK ? capMenu_([].concat.apply([], b).filter(t => t !== TALK_BTN), 16) : [];
+  ASK_BTNS_ = b && b !== QUICK ? capMenu_([].concat.apply([], b).filter(t => !isTalkBtn_(t)), 16) : [];
 }
 
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
@@ -1787,7 +1789,7 @@ function answer_(text) {
   if (/^語音快捷指令$/.test(text.replace(/\s+/g, ''))) return { text: '🎙️ 語音快捷指令\n到對話頁按「🎙️ 語音快捷指令」，照一步一步的說明做，就能一鍵複製網址。\n做好後到「設定 → 輔助使用 → 語音快捷指令」綁定「嘿 小乖」。', buttons: QUICK };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
-  if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
+  if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁|🐾小乖|🐾對話頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
   if (/^(🔎)?(見證庫|見證庫網頁|見證網頁)$/.test(String(text).replace(/\s+/g, ''))) return wallLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
