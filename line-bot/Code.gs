@@ -1165,7 +1165,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'button-tone-1｜2026-11-19｜更改全部改名，頻道管理按鈕配色分三種（更改全部金色、單項象牙底金字、取消還原酒紅）；前一版：channel-split-1｜2026-11-19｜頻道管理把「全部更改」與「單項更新」分開；前一版：channel-script-1｜2026-11-19｜頻道管理加入📜傳送神對話劇本（最新單一播放清單連結）；前一版：no-restore-btn-4｜2026-11-17｜💎選單的YT頻道清單也移除「↩️ 還原標題」；文字指令仍可用；前一版：no-restore-btn-3｜2026-11-17｜卡片上的「↩️ 還原標題」全部移除（結果卡片、YT頻道卡片、頻道管理選單）；文字指令仍可用；前一版：no-restore-btn-2｜2026-11-17｜頻道數據卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：shen-page-1｜2026-11-17｜神對話劇本改送免登入的劇本頁（小乖主頁）；前一版：no-restore-btn-1｜2026-11-17｜YT頻道卡片移除「↩️ 還原標題」按鈕（還原功能保留）；前一版：left-buttons-1｜2026-11-17｜頻道卡片的按鈕文字靠左；前一版：script-link-1｜2026-11-17｜每日更新與手動更新會傳神對話劇本網址、按鈕一行一個；前一版：split-cards-1｜2026-11-17｜YT頻道、頻道數據、改善建議：內容與按鈕分兩張卡片，按鈕整排文字完整顯示；前一版：manual-update-1｜2026-11-17｜小乖主卡片加上「🔄 手動更新」（立刻更新一次頻道數據）、每日更新開關（顯示狀態、一按切換）、頻道改名為 YT頻道、卡片順序調整、按鈕兩欄排列';
+const CHAN_VERSION = 'action-layout-1｜2026-11-19｜操作卡片按鈕緊接在標題下面，去掉中間空白';
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
 // 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
@@ -1216,9 +1216,11 @@ function chanDailyBtn_() {
 function chanPair_(head, content, buttons) {
   const info = chanBubble_(head, content, []);
   delete info.footer;   // 內容卡片不放按鈕
-  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
-    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片')] },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
+  // 按鈕接在標題下面（不用 footer），避免 LINE 把按鈕推到卡片底部、中間留一大段空白
+  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
+      chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片'),
+      { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } ] } };
   return { type: 'carousel', contents: [info, acts] };
 }
 function chanDailyCmd_(flat) {
