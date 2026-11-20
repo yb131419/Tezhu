@@ -772,7 +772,7 @@ function chanReply_(t) {
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
   const dm = flat.match(/^⏰?每日更新(?:：?已(開啟|關閉))?$/);   // 按鈕「⏰ 每日更新：已開啟」按一下就關，「已關閉」按一下就開，單獨「每日更新」看狀態
   if (dm) return chanSafe_(() => chanDailyCmd_(dm[1] === '開啟' ? '頻道每日關' : dm[1] === '關閉' ? '頻道每日開' : '頻道每日'));
-  if (/^(傳送神對話劇本|神對話劇本)$/.test(flat)) return { text: '📜 神對話劇本（最新版）\n' + SHEN_SCRIPT_URL, buttons: [[CHAN_BTN, MENU_BTN]] };
+  if (/^(傳送神對話劇本|神對話劇本)$/.test(flat)) return { text: '📜 神對話劇本（最新版）\n' + SHEN_PAGE_URL, buttons: [[CHAN_BTN, MENU_BTN]] };
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
   const cmd = tt.replace(/[、，,]/g, '');   // 「更改全部 標題、說明」也認得
@@ -1164,6 +1164,8 @@ function 授權YouTube改標題() {
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
 // 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
 const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
+// LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
+const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
 const CHAN_VERSION = 'version-tag-1｜2026-11-19｜卡片與每日推播加上低調版本號';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
@@ -1256,7 +1258,7 @@ function chanDailyJob() {
   }
   const kwLine = chanDailyKeywords_();
   if (kwLine) text += '\n\n' + kwLine;
-  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_SCRIPT_URL + '\n' + verTag_();
+  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_PAGE_URL + '\n' + verTag_();
   // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
   setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text, st: d ? chanStats_(d) : null }));
 }
