@@ -61,11 +61,31 @@ function shenChunks_(text, max) {
   return out;
 }
 
+// 把迭代摘要拆成卡片的幾列：開頭結論、①②… 各一列、最後「不確定」一列（小字）
+function shenCardItems_(body) {
+  const s = String(body || '').replace(/\r/g, '').replace(/\n+/g, ' ').trim();
+  if (!s) return [];
+  const out = [];
+  const ui = s.indexOf('不確定');
+  const tail = ui >= 0 ? s.slice(ui).trim() : '';
+  const main = ui >= 0 ? s.slice(0, ui) : s;
+  const ci = main.search(/[①②③④⑤⑥⑦⑧⑨]/);
+  const lead = (ci >= 0 ? main.slice(0, ci) : main).replace(/改善建議[：:]?\s*$/, '').trim();
+  const rest = ci >= 0 ? main.slice(ci) : '';
+  if (lead) out.push({ num: '', text: lead, lead: true });
+  rest.split(/(?=[①②③④⑤⑥⑦⑧⑨])/).forEach(seg => {
+    const m = seg.match(/^([①②③④⑤⑥⑦⑧⑨])\s*([\s\S]*)$/);
+    if (m) out.push({ num: m[1], text: m[2].replace(/[；;]\s*$/, '').trim() });
+  });
+  if (tail) out.push({ num: '', text: tail, muted: true });
+  return out.length ? out : [{ num: '', text: s, lead: true }];
+}
+
 // 圖卡版面：{ W, H, build(slideId) }，和 reportLayout_ 一樣交給 layoutPng_ 畫成 PNG
 function shenCardLayout_(st, items, dateLine) {
-  const W = 720, ROW = 52, ITEMS_TOP = 442;
-  // 每一條依字數決定高度：字放大到 18pt、寬 556pt，一行保守估 26 個字，一行約 28pt
-  const hs = items.map(t => Math.max(ROW, Math.ceil(Array.from(t).length / 26) * 28 + 18));
+  const W = 720, ITEMS_TOP = 442;
+  // 每一列依字數決定高度：內文 18pt、寬約 556pt，一行保守估 24 個字，行高 27pt
+  const hs = items.map(it => Math.max(44, Math.ceil(Array.from(it.text).length / 24) * 27 + 20));
   const offs = [];
   hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
   const footY = ITEMS_TOP + hs.reduce((a, b) => a + b, 0) + 26;
@@ -113,13 +133,19 @@ function shenCardLayout_(st, items, dateLine) {
     });
     rect(96, 384, W - 192, 1, SC_.GOLD, null);
     text(64, 398, 592, 32, '神對話每日迭代', { font: 'Noto Serif TC', size: 20, bold: true, color: SC_.GOLD_D });
-    items.forEach((t, i) => {
+    items.forEach((it, i) => {
       const y = ITEMS_TOP + offs[i], h = hs[i];
-      text(60, y + 10, 34, 30, SC_NUMS[i] || String(i + 1), { font: 'Noto Serif TC', size: 19, bold: true, color: SC_.GOLD_D });
-      text(100, y + 8, 556, h - 8, t, { font: 'Noto Sans TC', size: 18, color: SC_.INK });
+      if (it.num) {
+        text(64, y + 10, 34, 30, it.num, { font: 'Noto Serif TC', size: 19, bold: true, color: SC_.GOLD_D });
+        text(100, y + 8, 556, h - 8, it.text, { font: 'Noto Sans TC', size: 18, color: SC_.INK });
+      } else {
+        text(64, y + 8, 592, h - 8, it.text, it.muted
+          ? { font: 'Noto Sans TC', size: 14, color: SC_.MUTE }
+          : { font: 'Noto Sans TC', size: 18, bold: true, color: SC_.INK });
+      }
       rect(64, y + h - 1, 592, 1, SC_.RULE, null);
     });
-    text(0, footY, W, 24, '劇本網址　' + SHEN_SCRIPT_URL, { font: 'Noto Sans TC', size: 14, color: SC_.MUTE, align: 'CENTER' });
+    text(0, footY, W, 24, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 14, color: SC_.MUTE, align: 'CENTER' });
     return req;
   };
   return { W: W, H: H, build: build };
@@ -145,7 +171,7 @@ function shenDailyPush() {
   if (sh && sh.getLastRow() >= 2) {
     sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach((r, i) => {
       const body = String(r[1] || '').trim();
-      if (body && !String(r[3] || '').trim()) pending.push({ row: i + 2, date: r[0], body: body, url: SHEN_SCRIPT_URL });
+      if (body && !String(r[3] || '').trim()) pending.push({ row: i + 2, date: r[0], body: body, url: SHEN_PAGE_URL });
     });
   }
   if (!chanText && !pending.length) return;
@@ -157,16 +183,16 @@ function shenDailyPush() {
   try {
     // 圖卡：摘要每一行一條（全部顯示，不截斷），沒有摘要就寫一句提示
     const items = [];
-    pending.forEach(p => String(p.body).split('\n').forEach(l => { const t = scClip_(l); if (t) items.push(t); }));
+    pending.forEach(p => shenCardItems_(p.body).forEach(it => items.push(it)));
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
-    const L = shenCardLayout_(chanSt, items.length ? items : ['今天還沒有新的神對話迭代建議。'], dateLine);
+    const L = shenCardLayout_(chanSt, items.length ? items : [{ num: '', text: '今天還沒有新的神對話迭代建議。', lead: true }], dateLine);
     const png = layoutPng_(L, '每日回報_' + today + '.png');
     if (png) {
       const url = shenCardUrl_(png);
       if (owner) lineApi_('push', { to: owner, messages: withQuick_([
         { type: 'image', originalContentUrl: url, previewImageUrl: url },
-        { type: 'text', text: '📜 劇本網址：' + SHEN_SCRIPT_URL }]) });
-      if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_SCRIPT_URL, png: png });
+        { type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL }]) });
+      if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: png });
     } else {
       // 圖卡畫不出來：照舊傳純文字，內容不漏
       console.error('每日回報圖卡沒產生，改傳文字。' + (REPORT_ERR_ || ''));
