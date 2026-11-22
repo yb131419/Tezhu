@@ -161,6 +161,20 @@ function shenCardUrl_(png) {
   return 'https://lh3.googleusercontent.com/d/' + file.getId();
 }
 
+// 每日回報要帶上「劇本關鍵字」分頁的前幾名（最新一次搜尋字詞，依觀看次數排序）；沒有資料就回傳空字串
+function shenKeywordLine_() {
+  const kw = ss_().getSheetByName(CHAN_KEYWORD_SHEET);
+  if (!kw || kw.getLastRow() < 2) return '';
+  const rows = kw.getRange(2, 1, kw.getLastRow() - 1, 3).getValues()
+    .filter(r => String(r[1] || '').trim())
+    .sort((a, b) => Number(b[2]) - Number(a[2]))
+    .slice(0, 5);
+  if (!rows.length) return '';
+  const t0 = rows[0][0];
+  const when = t0 instanceof Date ? Utilities.formatDate(t0, 'Asia/Taipei', 'yyyy-MM-dd') : String(t0 || '').trim();
+  return '劇本關鍵字（' + when + '）：' + rows.map(r => String(r[1]).trim() + ' ' + Number(r[2]) + ' 次').join('、');
+}
+
 // 由時間觸發器執行（9:30）：頻道數據（今天的）＋還沒傳的摘要，畫成一張圖卡，傳到 LINE 與 Telegram
 function shenDailyPush() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
@@ -176,15 +190,18 @@ function shenDailyPush() {
     });
   }
   if (!chanText && !pending.length) return;
+  const kwLine = shenKeywordLine_();
   const parts = [];
   if (chanText) parts.push(chanText);
   pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + (p.url ? '\n\n📜 劇本網址：' + p.url : '')));
+  if (kwLine) parts.push('🔎 ' + kwLine);
   const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   try {
     // 圖卡：摘要每一行一條（全部顯示，不截斷），沒有摘要就寫一句提示
     const items = [];
     pending.forEach(p => shenCardItems_(p.body).forEach(it => items.push(it)));
+    if (kwLine) items.push({ num: '', text: kwLine, muted: true });
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
     const L = shenCardLayout_(chanSt, items.length ? items : [{ num: '', text: '今天還沒有新的神對話迭代建議。', lead: true }], dateLine);
     const png = layoutPng_(L, '每日回報_' + today + '.png');
