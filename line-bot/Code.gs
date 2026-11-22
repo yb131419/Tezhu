@@ -1167,7 +1167,7 @@ const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 // LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'version-tag-1｜2026-11-19｜卡片與每日推播加上低調版本號';
+const CHAN_VERSION = 'version-tag-2｜2026-11-22｜補回搜尋字詞查詢函式與分頁名稱，修正每日關鍵字更新失敗';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
 function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
 function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
@@ -1324,8 +1324,28 @@ function chanAnalytics_(ids) {
   data.rows.forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
   return out;
 }
+// 搜尋字詞紀錄的分頁名稱（chanSearchWrite_ 累積寫入）
+const CHAN_SEARCH_SHEET = '搜尋字詞紀錄';
+// 查詢 YouTube Analytics 報表：opts.terms=true 時查搜尋字詞（維度 insightTrafficSourceDetail + 篩選 YT_SEARCH），false 時只查流量來源類型（診斷用）
+// opts.max：maxResults 的值（字串）或 null；opts.sort：是否帶 sort=-views
+function chanSearchQuery_(startDate, endDate, opts) {
+  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate, metrics: 'views' };
+  if (opts.sort) params.sort = '-views';
+  if (opts.terms) {
+    params.dimensions = 'insightTrafficSourceDetail';
+    params.filters = 'insightTrafficSourceType==YT_SEARCH';
+  } else {
+    params.dimensions = 'insightTrafficSourceType';
+  }
+  if (opts.max) params.maxResults = String(opts.max);
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
+}
 // 與劇本內容相關的字詞：搜尋字詞只保留包含這些字的（略過音樂、人名、新聞等無關詞）
-const SEARCH_KEEP_ = ['神對話', '與神對話', '修行', '菩提', '無我', '斷捨離', '地藏', '念頭', '放下', '慈悲', '布施', '忍辱', '善知識', '輪迴', '業力', '因果', '覺察', '禪定', '般若', '解脫', '發願', '隨喜', '平等', '菩薩', '方便', '利他', '持戒', '精進', '善念', '冥想', '感恩', '阿彌陀', '阿弥陀', '念佛', '心經', '佛法', '佛陀', '佛祖'];
+const SEARCH_KEEP_ =['神對話', '與神對話', '修行', '菩提', '無我', '斷捨離', '地藏', '念頭', '放下', '慈悲', '布施', '忍辱', '善知識', '輪迴', '業力', '因果', '覺察', '禪定', '般若', '解脫', '發願', '隨喜', '平等', '菩薩', '方便', '利他', '持戒', '精進', '善念', '冥想', '感恩', '阿彌陀', '阿弥陀', '念佛', '心經', '佛法', '佛陀', '佛祖'];
 const CHAN_KEYWORD_SHEET = '劇本關鍵字';
 function chanSearchRelevant_(rows) {
   return rows.filter(r => SEARCH_KEEP_.some(k => String(r[0]).indexOf(k) >= 0));
