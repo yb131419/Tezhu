@@ -181,15 +181,15 @@ function shenIterCardLayout_(items, dateLine) {
       d.text(PAD, KW_Y + 18, W - PAD * 2, 40, kwHead, { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND });
       d.text(PAD + 20, KW_Y + 62, W - PAD * 2 - 40, kwH - 74, kwBody, { font: 'Noto Sans TC', size: 32, bold: true, color: SC_.INK });
     }
-    d.text(PAD, LABEL_Y, W - PAD * 2, 40, '改善建議', { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND });
+    d.text(PAD, LABEL_Y, W - PAD * 2, 40, '改善建議', { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND, align: 'START' });
     let y = TOP;
     main.forEach((it, i) => {
       const h = hs[i];
       if (it.muted) {
-        d.text(PAD, y + 12, W - PAD * 2, h - 12, it.text, { font: 'Noto Sans TC', size: 32, color: SC_.MUTE });
+        d.text(PAD, y + 12, W - PAD * 2, h - 12, it.text, { font: 'Noto Sans TC', size: 32, color: SC_.MUTE, align: 'START' });
       } else {
         const body = it.num ? it.num + '　' + it.text : it.text;
-        d.text(PAD, y + 14, W - PAD * 2, h - 14, body, { font: 'Noto Sans TC', size: 38, bold: !it.num, color: SC_.INK });
+        d.text(PAD, y + 14, W - PAD * 2, h - 14, body, { font: 'Noto Sans TC', size: 38, bold: !it.num, color: SC_.INK, align: 'START' });
       }
       d.rect(60, y + h - 1, W - 120, 1, SC_.RULE, null);
       y += h;
