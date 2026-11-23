@@ -31,7 +31,7 @@ const HISTORY_TURNS = 12;      // 送給 AI 的聊天則數（LINE 與 Telegram 
 const TOMBSTONE_DAYS = 60;     // 刪除紀錄保留天數
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 // 快捷按鈕：LINE 是訊息下方的快速回覆，Telegram 是輸入框下方的按鈕
-const MENU = [['🐾 對話頁', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 圖卡設定'], ['❓ 說明']];
+const MENU = [['🐾 小乖', '📋 試算'], ['🪶 智囊軍師', '⏰ 今天行程'], ['✅ 我的待辦', '📝 我的筆記'], ['📁 本機找', '🌐 上網找'], ['🗂️ 案例分類', '⚙️ 圖卡設定'], ['❓ 說明']];
 // 快速回覆只留最常用的 5 個，其他收進「💎 選單」精品卡片（LINE 輪播卡片；Telegram／對話頁用分組按鈕）
 const MENU_BTN = '💎 選單';
 const REELS_BTN = '🎬 剪 Reels';
@@ -41,14 +41,14 @@ const PASTE_EV_BTN = '📋 貼上行程';   // 快速回覆：按了之後貼上
 const AUTO_TOGGLE_BTN = '🕗 自動發文開關';   // 快速回覆上的自動發文開關（按一下切換）；軍師卡片只留「自動發文」一項
 const HERO_BTN = '👤 設定主角';   // 短劇主角：按了一步步問名字、性別、年齡、外型
 const HERO2_BTN = '👤 設定第二主角';   // 短劇第二位主角（需一男一女）
-const QUICK = [['🐾 對話頁', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
+const QUICK = [['🐾 小乖', MENU_BTN, '🪶軍師'],['📋 試算', AUTO_TOGGLE_BTN, PASTE_EV_BTN, HERO_BTN, HERO2_BTN]];   // 「🪶軍師」不加空格：「🪶 軍師」是軍師卡片裡的「軍師判定」主題按鈕
 const WALL_BTN = '🔎 見證庫';   // 見證庫網頁按鈕（LINE／Telegram 直接打開網頁）
 const CHAN_BTN = '📺 頻道數據', CHAN_ADV_BTN = '💡 改善建議', CHAN_DIAG_BTN = '🧪 頻道診斷';   // YouTube 頻道：查數據、依數據給改善建議
 const MENU_CARDS = [
-  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 對話頁', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['❓ 說明', '使用方式']] },
-  { en: 'CHANNEL', title: '頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部標題和說明', '標題與說明一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['↩️ 還原標題', '回到最初的樣子']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'XIAOGUAI', title: '小乖', sub: '你的專屬特助，語音對話、使用說明', items: [['🐾 小乖', '語音・選照片'], ['📈 下單', '智能下單・持倉・平倉'], ['📅 行程', '今天・接下來・新增'], ['⏰ 每日更新', '每天早上自動更新'], ['🔄 手動更新', '立刻更新一次頻道數據'], ['❓ 說明', '使用方式']] },
+  { en: 'CHANNEL', title: 'YT頻道', sub: '數據、改標題與說明、診斷，都先預覽再確認', items: [[CHAN_BTN, '訂閱・觀看・各集數據'], ['✏️ 更改全部', '標題、說明、標記一起改'], ['🏷️ 只改標題', '只改影片標題'], ['📝 只改說明', '只改影片說明'], ['🔖 只改標記', '觀眾看不到的搜尋關鍵字'], [CHAN_ADV_BTN, '依數據給改善方向'], [CHAN_DIAG_BTN, '分析為什麼沒出來'], ['⏰ 每日更新', '每天早上自動更新']] },   // 放在軍師卡片前面；TITLE_* 常數在後面才宣告，所以這裡直接寫字串
+  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在頻道後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'CONCIERGE', title: '軍師', sub: '經營文案與個人化設定', items: [['🪶 智囊軍師', '經營文案'], ['✍️ 貼文案改寫', '貼上文案，照主題改寫'], ['🧘 修行', '修行分享・彥彬與佛祖的對話'], ['📕 7張＋PDF', '輪播圖卡＋PDF'], ['⚙️ 圖卡設定', '署名・標題'], ['👤 設定主角', '短劇的主角・一步步設定'], ['👤 設定第二主角', '短劇的第二位主角（一男一女）'], ['💬 自動留言', '按一下開／關'], ['🕗 自動發文', '看狀態・開關在快速回覆']] },
-  { en: 'REPLY', title: '回覆', sub: '貼上別人的留言，照神對話的角度寫溫和回覆', items: [['📨 回覆留言', '貼上留言，寫溫和回覆'], ['📷 上傳截圖', '傳留言的截圖，讀出後回覆'], ['🔎 Threads 搜尋', '搜別人的公開貼文，列出前 10 則']] },   // 獨立卡片，放在軍師後面（字串直接寫，因為 RP_BTN 在後面才宣告）
   { en: 'VIDEO', title: '剪輯', sub: '傳影片給小乖，自動剪接、上字幕、動畫、配樂', items: [[REELS_BTN, '直式短影音'], [REELS_LONG_BTN, '完整長片'], [WM_BTN, '去掉固定位置的浮水印']] },
   { en: 'TESTIMONY', title: '見證', sub: '好見證整理好，隨時轉傳分享', items: [['💬 見證案例', '看見證・轉傳'], ['➕ 新增見證', '圖片影片文字'], ['🔍 查詢案例', '關鍵字找見證'], ['🗂️ 案例分類', '全部分類'], [WALL_BTN, '網頁找・一鍵分享']] },
   { en: 'BUSINESS', title: '試算', sub: '明細表一傳，金額與 PV 立刻算好', items: [['📋 試算', '傳明細表照片']] },
@@ -77,8 +77,8 @@ function menuCard_() {
 // 象牙白＋香檳金精品風輪播卡片：每類一張，按一下就送出那個功能
 function menuFlex_() {
   const GOLD = '#B08D57', INK = '#2A2118', SOFT = '#9A8B74', LINE = '#E8DCC4';
-  const act = t => t === TALK_BTN
-    ? { type: 'uri', label: '對話頁', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
+  const act = t => isTalkBtn_(t)
+    ? { type: 'uri', label: '小乖', uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' }
     : t === WALL_BTN ? { type: 'uri', label: '見證庫', uri: wallUrl_() }
     : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { type: 'uri', label: t.slice(0, 20), uri: talkMenuUrl_() }
     : { type: 'message', label: t.slice(0, 20), text: t };
@@ -88,9 +88,9 @@ function menuFlex_() {
     borderWidth: '1px', borderColor: first ? '#C9A56A' : LINE,
     background: first ? { type: 'linearGradient', angle: '120deg', startColor: '#E9D3A2', endColor: '#C9A56A' } : undefined,
     backgroundColor: first ? '#D9BC85' : '#FFFFFF',
-    action: act(it[0]), contents: [
+    action: act(it[0] === '⏰ 每日更新' ? chanDailyTxt_() : it[0] === '🔄 手動更新' ? CHAN_BTN : it[0]), contents: [
       { type: 'text', text: name(it[0]), size: 'sm', weight: 'bold', color: INK, flex: 0 },
-      { type: 'text', text: it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開')
+      { type: 'text', text: it[0] === '⏰ 每日更新' ? (chanDailyOn_() ? '已開啟・按一下關' : '已關閉・按一下開') : it[0] === '💬 自動留言' ? (prop_('LEAD_ON') === '1' ? '開著・按一下關' : '關著・按一下開')
         : it[0] === '🕗 自動發文' ? (prop_('AUTO_POST') === 'on' ? '開著・看詳情' : '關著・看詳情') : it[1], size: 'xxs', color: first ? '#5A4630' : SOFT, align: 'end', flex: 1, margin: 'md' },
       { type: 'text', text: '›', size: 'md', weight: 'bold', color: first ? INK : GOLD, flex: 0, margin: 'md' },
     ] });
@@ -227,6 +227,11 @@ function setup() {
   Logger.log('安裝完成！你的同步密碼是：' + prop_('SYNC_KEY'));
 }
 
+// 一次性小工具（2026-11-18）：在編輯器選這個函式按「執行」，SYNC_KEY 的值會印在「執行記錄」裡。只讀取，不改任何屬性。
+function showSyncKey() {
+  Logger.log('SYNC_KEY 目前是：' + prop_('SYNC_KEY'));
+}
+
 /* ============ 接上 Telegram：部署完成後在編輯器選 setupTelegram 執行 ============ */
 function setupTelegram() {
   if (!prop_('TELEGRAM_BOT_TOKEN')) throw new Error('請先在指令碼屬性填入 TELEGRAM_BOT_TOKEN。');
@@ -260,6 +265,52 @@ function doGet(e) {
   return ContentService.createTextOutput('小乖雲端服務運作中');
 }
 
+// 小乖主頁的程式存在使用者的雲端硬碟（不在 GitHub）。檔案 ID 存在「指令碼屬性」ASSISTANT_FILE_ID，只需執行一次 setAssistantFileId。
+// 程式版本標記：貼上新檔後，執行記錄與錯誤訊息會顯示這個版本，方便確認是不是新版
+const ASSISTANT_CODE_VERSION = 'prop-v4';
+function assistantHtml_() {
+  const id = String(PropertiesService.getScriptProperties().getProperty('ASSISTANT_FILE_ID') || '').trim();
+  if (!id) throw new Error('尚未設定小乖主頁檔案 ID：請在編輯器執行一次 setAssistantFileId');
+  // 第一步：用 Drive 進階服務看這個 ID 是什麼（捷徑改找目標、資料夾直接說明）
+  let target = id, meta = null, advErr = '';
+  try { meta = Drive.Files.get(id, { fields: 'id,name,mimeType,shortcutDetails', supportsAllDrives: true }); }
+  catch (e) { advErr = errText_(e); }
+  if (meta) {
+    if (meta.mimeType === 'application/vnd.google-apps.folder') throw new Error('這個 ID 是資料夾（' + meta.name + '），要填的是 Assistant.html 檔案的 ID');
+    if (meta.mimeType === 'application/vnd.google-apps.shortcut' && meta.shortcutDetails && meta.shortcutDetails.targetId) target = meta.shortcutDetails.targetId;
+  }
+  // 第二步：讀取檔案內容，失敗時把 Drive 的錯誤與進階服務的結果一併回報
+  try { return DriveApp.getFileById(target).getBlob().getDataAsString('UTF-8'); }
+  catch (e2) { throw new Error('讀取檔案失敗（ID ' + target + '）：' + errText_(e2) + (advErr ? '；進階服務：' + advErr : '')); }
+}
+
+// 一次性：在 Apps Script 編輯器選「setAssistantFileId」按「執行」一次，把檔案 ID 寫進指令碼屬性。
+// 執行記錄會顯示「已設定」與讀回的 ID。之後可以刪掉這個函式。
+function setAssistantFileId() {
+  const id = '1nxumIhDo6tUeXxOKagDUAcQlaNReOqLa';
+  PropertiesService.getScriptProperties().setProperty('ASSISTANT_FILE_ID', id);
+  Logger.log('已設定 ASSISTANT_FILE_ID，讀回：' + PropertiesService.getScriptProperties().getProperty('ASSISTANT_FILE_ID'));
+}
+
+// 把錯誤轉成可讀文字：名稱｜訊息（訊息空白時改用 String(錯誤)）
+function errText_(e) {
+  const name = (e && e.name) || 'Error';
+  const msg = (e && e.message) || String(e);
+  return name + '｜' + msg;
+}
+
+// 在 Apps Script 編輯器選「authorizeAssistant」按「執行」：會跳出雲端硬碟授權，並在「執行記錄」顯示能不能讀到小乖主頁（不影響網頁）。
+function authorizeAssistant() {
+  Logger.log('版本：' + ASSISTANT_CODE_VERSION);
+  try {
+    const html = assistantHtml_();
+    Logger.log('小乖主頁讀取成功，長度 ' + html.length + '，開頭：' + html.slice(0, 40));
+  } catch (err) {
+    Logger.log('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + errText_(err) + (err && err.stack ? '\n' + err.stack : ''));
+    throw err;
+  }
+}
+
 // 對話頁網址：小乖網址放在 ?u= 裡，第一次打開會自動填好，只要輸入同步密碼（密碼不放網址）
 let TALK_URL_ = null;
 function talkUrl_() {
@@ -276,14 +327,16 @@ function talkLink_() {
 }
 
 // 「🐾 對話頁」按鈕直接打開網頁：LINE 用網址按鈕（開到 Safari，麥克風才能用），Telegram 用 Web App 按鈕
-const TALK_BTN = '🐾 對話頁';
+const TALK_BTN = '🐾 小乖';
+const TALK_BTN_OLD_ = '🐾 對話頁';   // 舊按鈕文字（舊的鍵盤還在手機上時仍然要能用）
+function isTalkBtn_(t) { return t === TALK_BTN || t === TALK_BTN_OLD_; }
 const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁的 ☰ 選單（#menu）
 function talkMenuUrl_() { return talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1#menu'; }
 const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
-  if (t === TALK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
+  if (isTalkBtn_(t)) return { type: 'action', action: { type: 'uri', label: t, uri: talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1' } };
   if (t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: talkMenuUrl_() } };
   if (t === SCHED_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: SCHEDULE_URL } };
   if (t === WALL_BTN) return { type: 'action', action: { type: 'uri', label: t, uri: wallUrl_() } };
@@ -291,7 +344,7 @@ function lineQuick_(t) {
 }
 // 試算要照片時給的按鈕：LINE 直接打開相簿／相機，對話頁打開選照片；Telegram 沒有這種按鈕，改成文字提示
 const PHOTO_BTNS = ['📷 選照片', '📸 拍照'];
-function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : t === TALK_BTN ? { text: t, web_app: { url: talkUrl_() } } : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() + '#menu' } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
+function tgKey_(t) { return t === SCHED_BTN ? { text: t, web_app: { url: SCHEDULE_URL } } : isTalkBtn_(t) ? { text: t, web_app: { url: talkUrl_() } } : t === TRADE_QUICK_BTN || t === SCHED_QUICK_BTN ? { text: t, web_app: { url: talkUrl_() + '#menu' } } : t === WALL_BTN ? { text: t, web_app: { url: wallUrl_().replace(/[?&]openExternalBrowser=1$/, '') } } : { text: t }; }
 // 「🔎 見證庫」網頁（Cases.html）：跟對話頁一樣把小乖網址放 ?u=，密碼不放網址
 const WALL_PAGE = 'https://yb131419.github.io/Tezhu/Cases.html';
 function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE + (i >= 0 ? t.slice(i) + '&' : '?') + 'openExternalBrowser=1'; }
@@ -333,7 +386,7 @@ const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
-  ASK_BTNS_ = b && b !== QUICK ? capMenu_([].concat.apply([], b).filter(t => t !== TALK_BTN), 16) : [];
+  ASK_BTNS_ = b && b !== QUICK ? capMenu_([].concat.apply([], b).filter(t => !isTalkBtn_(t)), 16) : [];
 }
 
 // 語音轉成的字結尾常多一個「。」（例如「試算。」），指令就對不上、變成一般聊天；結尾的標點和空白拿掉
@@ -457,6 +510,14 @@ function doPost(e) {
 
   // 網頁 AI 代理（ai-proxy/AiProxy.gs 一起貼進專案後才會啟用）
   if (body.action === 'openai' && typeof handleAiProxy_ === 'function') return handleAiProxy_(body);
+
+  // 小乖主頁（Assistant.html）：程式不放在公開的 GitHub，由這裡回傳。密碼放在 POST 本文（不進網址、不進請求紀錄）；
+  // 用文字回傳（不用 HtmlService），因為主頁以 fetch 取得後再寫入頁面，HtmlService 不能跨網域讀取。
+  if (body.action === 'assistant') {
+    if (!prop_('SYNC_KEY') || String(body.key || '') !== prop_('SYNC_KEY')) return text_('同步密碼不對');
+    try { return text_(assistantHtml_()); }
+    catch (err) { console.error(err); return text_('版本 ' + ASSISTANT_CODE_VERSION + '｜小乖主頁讀取失敗：' + errText_(err)); }
+  }
 
   // 對話頁兩步語音：先只轉文字（馬上顯示你說的話），再用 action:'talk' 送出去執行
   // 對話頁真人語音：文字先出來，語音另外合成（不擋住回答）
@@ -709,15 +770,18 @@ function chanReply_(t) {
   if (/^(改善建議|頻道改善建議|YT改善建議|頻道建議)$/.test(flat)) return chanSafe_(chanAdvice_);
   if (/^(金鑰狀態|權限查詢|YT金鑰|YT權限)$/.test(flat)) return chanSafe_(chanKeyStatus_);
   if (/^(頻道每日|每日頻道)(開|關)?$/.test(flat)) return chanSafe_(() => chanDailyCmd_(flat));
+  const dm = flat.match(/^⏰?每日更新(?:：?已(開啟|關閉))?$/);   // 按鈕「⏰ 每日更新：已開啟」按一下就關，「已關閉」按一下就開，單獨「每日更新」看狀態
+  if (dm) return chanSafe_(() => chanDailyCmd_(dm[1] === '開啟' ? '頻道每日關' : dm[1] === '關閉' ? '頻道每日開' : '頻道每日'));
+  if (/^(傳送神對話劇本|神對話劇本)$/.test(flat)) return { text: '📜 神對話劇本（最新版）\n' + SHEN_PAGE_URL, buttons: [[CHAN_BTN, MENU_BTN]] };
   if (/^(🧪頻道診斷|頻道診斷|YT診斷|診斷頻道)$/.test(flat)) return chanSafe_(chanDiag_);
   const tt = flat.replace(/^[^一-龥A-Za-z]+/u, '');   // 去掉按鈕前面的表情符號再比對
   const cmd = tt.replace(/[、，,]/g, '');   // 「更改全部 標題、說明」也認得
-  if (/^(更改全部標題說明|更改標題和說明|更改全部標題和說明|更改全部說明標題)$/.test(cmd)) return chanSafe_(() => titlePreview_('both'));
+  if (/^(更改標題和說明)$/.test(cmd)) return chanSafe_(() => titlePreview_('both'));
   if (/^(更改全部標題|更改標題|標題更改|改全部標題|只改標題)$/.test(cmd)) return chanSafe_(() => titlePreview_('title'));
   if (/^(更改全部標記|只改標記|更改標記|標記更改)$/.test(cmd)) return chanSafe_(() => titlePreview_('tags'));
-  if (/^(更改全部|全部更改|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));
+  if (/^(更改全部|全部更改|更改全部標題說明|更改全部標題和說明|更改全部說明標題|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));   // 更改全部＝標題＋說明＋標記三項一起
   if (/^(更改全部說明|更改說明|說明更改|只改說明)$/.test(cmd)) return chanSafe_(() => titlePreview_('desc'));
-  if (/^(頻道|頻道管理)$/.test(cmd)) return chanSafe_(channelHub_);
+  if (/^(頻道|頻道管理|YT頻道)$/i.test(cmd)) return chanSafe_(channelHub_);
   if (/^(全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
   if (/^取消更改標題$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
   if (/^還原標題$/.test(cmd)) return chanSafe_(titleRestore_);
@@ -729,61 +793,70 @@ function chanReply_(t) {
 const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
 const TITLE_SHEET = '標題更改紀錄';
 const TITLE_HEAD_ = ['批次', '影片ID', '原標題', '新標題', '結果', '原說明', '新說明', '原標記', '新標記'];
-const TAG_PLAN_ = {"EP01": ["神對話", "引果", "念頭", "覺察", "放下", "嗔念", "修行", "心靈成長"], "EP02": ["神對話", "業力", "因果", "善念", "修行", "心靈成長", "人生感悟"], "EP03": ["神對話", "許願", "願果", "因果", "慈悲", "修行", "心靈成長"], "EP04": ["神對話", "輪迴", "放下", "選擇", "修行", "心靈成長", "人生感悟"], "EP05": ["神對話", "覺察", "放下", "呼吸", "修行", "心靈成長"], "EP06": ["神對話", "慈悲", "忍讓", "原諒", "修行", "心靈成長", "人際關係"], "EP07": ["神對話", "持戒", "戒律", "界線", "修行", "心靈成長"], "EP08": ["神對話", "布施", "不求回報", "慈悲", "修行", "心靈成長"], "EP09": ["神對話", "忍辱", "情緒管理", "覺察", "修行", "心靈成長"], "EP10": ["神對話", "精進", "堅持", "自我成長", "修行", "心靈成長"], "EP11": ["神對話", "禪定", "安住", "打坐", "覺察", "修行", "心靈成長"], "EP12": ["神對話", "六道輪迴", "口業", "志業", "修心", "修行", "心靈成長"], "EP13": ["神對話", "般若", "智慧", "看清", "放下", "修行", "心靈成長"], "EP14": ["神對話", "解脫", "覺察", "放下", "修行", "心靈成長"], "EP15": ["神對話", "菩提心", "慈悲", "發願", "修行", "心靈成長"], "EP16": ["神對話", "方便", "慈悲", "智慧", "幫助他人", "修行"], "EP17": ["神對話", "隨喜", "善念", "讚歎", "慈悲", "修行", "心靈成長"], "EP18": ["神對話", "無我", "放下", "自在", "智慧", "修行", "心靈成長"], "EP19": ["神對話", "平等心", "慈悲", "智慧", "修心", "修行", "心靈成長"], "EP20": ["神對話", "菩薩道", "慈悲", "利他", "修行", "心靈成長"], "LONG": ["神對話", "一念之間", "引果", "業力", "願果", "輪迴", "修行", "心靈成長"]};   // 標記（搜尋關鍵字）：依各集主題整理，不是 YouTube 的熱門搜尋數據
+const TAG_PLAN_ = {"EP01": ["神對話", "引果", "念頭", "覺察", "放下", "嗔念", "修行", "心靈成長"], "EP02": ["神對話", "業力", "因果", "善念", "修行", "心靈成長", "人生感悟"], "EP03": ["神對話", "許願", "願果", "因果", "慈悲", "修行", "心靈成長"], "EP04": ["神對話", "輪迴", "放下", "選擇", "修行", "心靈成長", "人生感悟"], "EP05": ["神對話", "覺察", "放下", "呼吸", "修行", "心靈成長"], "EP06": ["神對話", "慈悲", "忍讓", "原諒", "修行", "心靈成長", "人際關係"], "EP07": ["神對話", "持戒", "戒律", "界線", "修行", "心靈成長"], "EP08": ["神對話", "布施", "不求回報", "慈悲", "修行", "心靈成長"], "EP09": ["神對話", "忍辱", "情緒管理", "覺察", "修行", "心靈成長"], "EP10": ["神對話", "精進", "堅持", "自我成長", "修行", "心靈成長"], "EP11": ["神對話", "禪定", "安住", "打坐", "覺察", "修行", "心靈成長"], "EP12": ["神對話", "六道輪迴", "口業", "志業", "修心", "修行", "心靈成長"], "EP13": ["神對話", "般若", "智慧", "看清", "放下", "修行", "心靈成長"], "EP14": ["神對話", "解脫", "覺察", "放下", "修行", "心靈成長"], "EP15": ["神對話", "菩提心", "慈悲", "發願", "修行", "心靈成長"], "EP16": ["神對話", "方便", "慈悲", "智慧", "幫助他人", "修行"], "EP17": ["神對話", "隨喜", "善念", "讚歎", "慈悲", "修行", "心靈成長"], "EP18": ["神對話", "無我", "放下", "自在", "智慧", "修行", "心靈成長"], "EP19": ["神對話", "平等心", "慈悲", "智慧", "修心", "修行", "心靈成長"], "EP20": ["神對話", "菩薩道", "慈悲", "利他", "修行", "心靈成長"], "EP23": ["神對話", "與神對話", "善知識", "修行", "智慧"], "EP24": ["神對話", "與神對話", "念頭", "放下", "無我", "修心"], "EP25": ["神對話", "與神對話", "菩提心", "布施", "慈悲", "善念"], "EP26": ["神對話", "與神對話", "無我", "忍辱", "念頭", "修心"], "LONG": ["神對話", "一念之間", "引果", "業力", "願果", "輪迴", "修行", "心靈成長"]};   // 標記（搜尋關鍵字）：依各集主題整理，不是 YouTube 的熱門搜尋數據
 const TITLE_LONG_ID_ = '0BYMpfpwBtU';   // 一念之間第一集（長影片，不是 EP）
 const TITLE_EP18_ID_ = 'D5ZXjv7SQ1A';   // EP18：觀看最高，預覽時提醒改動有風險
 // 新標題（主文字最多七個字，標點不計）：影片 ID 對應頻道上的影片
 const TITLE_PLAN_ = [
-  ['VSzo0ZPetiU', 'EP20｜慈悲給誰？ #神對話 #菩薩道 #慈悲'],
-  ['LPNdqIIMHiM', 'EP19｜最難平等看誰？ #神對話 #平等心 #慈悲 #智慧 #修心'],
+  ['VSzo0ZPetiU', 'EP20｜你最想先給誰？ #神對話 #菩薩道 #慈悲'],
+  ['LPNdqIIMHiM', 'EP19｜傷你的人，也平等？ #神對話 #平等心 #慈悲 #智慧 #修心'],
   ['D5ZXjv7SQ1A', 'EP18｜哪個念頭自在？ #神對話 #無我 #放下 #自在 #智慧'],
-  ['3OtihBMOxSQ', 'EP17｜別人好，你呢？ #神對話 #隨喜 #善念 #慈悲'],
-  ['1SMAOEdXnF8', 'EP16｜守不住怎麼辦？ #神對話 #方便 #慈悲 #智慧'],
-  ['WyrrSYcLV3M', 'EP15｜菩提心是什麼？ #神對話 #菩提心 #慈悲 #修心'],
-  ['wTMHG8dX574', 'EP14｜心怎麼解開？ #神對話 #解脫 #覺察 #修心'],
-  ['RdrfGqT-lho', 'EP13｜懂了還過不去？ #神對話 #般若 #智慧 #修心'],
-  ['6TCStCM9Byo', 'EP12｜安定往哪走？ #神對話 #六道輪迴 #修心 #慈悲'],
-  ['ERjFddrX_2M', 'EP11｜心安住在哪？ #神對話 #禪定 #修行 #覺察'],
-  ['sQ1VNRuutGE', 'EP10｜一滴能堅持嗎？ #神對話 #精進 #修行 #覺察'],
-  ['GJJHD9enCWg', 'EP09｜風吹心會動嗎？ #神對話 #忍辱 #修行 #覺察'],
-  ['olr9xtTKs9w', 'EP08｜付出等回報嗎？ #神對話 #布施 #修行 #慈悲'],
-  ['HVubQ7jPCzw', 'EP07｜守戒是綁住嗎？ #神對話 #持戒 #修行 #慈悲'],
-  ['-fCpj5Cs7fU', 'EP06｜慈悲要忍讓嗎？ #神對話 #慈悲 #忍讓 #修心'],
-  ['x76o0MEKLKc', 'EP05｜放下第一步？ #神對話 #放下 #修心 #覺察'],
-  ['g8AdLdwuEF4', 'EP04｜還在輪迴嗎？ #神對話 #輪迴 #選擇 #修心'],
-  ['NR81_n8Qw7U', 'EP03｜許願會靈嗎？ #神對話 #許願 #願力 #修心'],
-  ['fmlQBwqg6zk', 'EP02｜業力能改嗎？ #神對話 #業力 #因果 #修心'],
+  ['3OtihBMOxSQ', 'EP17｜別人好，你難受嗎？ #神對話 #隨喜 #善念 #慈悲'],
+  ['1SMAOEdXnF8', 'EP16｜幫人，要怎麼說？ #神對話 #方便 #慈悲 #智慧'],
+  ['WyrrSYcLV3M', 'EP15｜解脫了，還要發願？ #神對話 #菩提心 #慈悲 #修心'],
+  ['wTMHG8dX574', 'EP14｜看清了，就能解脫？ #神對話 #解脫 #覺察 #修心'],
+  ['RdrfGqT-lho', 'EP13｜懂了，還是放不下？ #神對話 #般若 #智慧 #修心'],
+  ['6TCStCM9Byo', 'EP12｜修了行，還在輪迴？ #神對話 #六道輪迴 #修心 #慈悲'],
+  ['ERjFddrX_2M', 'EP11｜念頭吵到睡不著？ #神對話 #禪定 #修行 #覺察'],
+  ['sQ1VNRuutGE', 'EP10｜做到一半，想放棄？ #神對話 #精進 #修行 #覺察'],
+  ['GJJHD9enCWg', 'EP09｜被罵，你還忍嗎？ #神對話 #忍辱 #修行 #覺察'],
+  ['olr9xtTKs9w', 'EP08｜給了，還想要回報？ #神對話 #布施 #修行 #慈悲'],
+  ['HVubQ7jPCzw', 'EP07｜守規矩，綁住你？ #神對話 #持戒 #修行 #慈悲'],
+  ['-fCpj5Cs7fU', 'EP06｜委屈了，要忍嗎？ #神對話 #慈悲 #忍讓 #修心'],
+  ['x76o0MEKLKc', 'EP05｜放下了，念頭還來？ #神對話 #放下 #修心 #覺察'],
+  ['g8AdLdwuEF4', 'EP04｜放不下，還要輪迴？ #神對話 #輪迴 #選擇 #修心'],
+  ['NR81_n8Qw7U', 'EP03｜許了願，落空了？ #神對話 #許願 #願力 #修心'],
+  ['fmlQBwqg6zk', 'EP02｜前世的錯，要還嗎？ #神對話 #業力 #因果 #修心'],
   ['0BYMpfpwBtU', '一念之間｜第一集｜一念怎麼開始？ #神對話 #一念之間 #業力 #輪迴'],
 ];
 // 清單沒有影片 ID 時，依標題的集數對應（頻道上找不到 ID 的集數，例如 EP01）
 const TITLE_EP_PLAN_ = {
-  'EP01': 'EP01｜火氣來了停嗎？ #神對話 #引果 #覺察 #放下',
+  'EP01': 'EP01｜火氣上來，你停嗎？ #神對話 #引果 #覺察 #放下',
+  // 未上架的新集：標題與劇本一致（2026-11-19 改標題），上架後的改標題批次也會用這個標題
+  'EP21': 'EP21｜愛消失，你放得下？ #神對話 #無常 #珍惜 #放下',
+  'EP22': 'EP22｜做好事，不想被記？ #神對話 #迴向 #功德 #慈悲',
+  'EP23': 'EP23｜老師罵你，你還敬他？ #神對話 #與神對話 #善知識 #修行 #智慧',
+  'EP24': 'EP24｜他不回，你猜幾次？ #神對話 #與神對話 #念頭 #放下 #無我 #修心',
+  'EP25': 'EP25｜幫了人，卻被嫌？ #神對話 #與神對話 #菩提心 #布施 #慈悲 #善念',
+  'EP26': 'EP26｜誤會你，你要辯嗎？ #神對話 #與神對話 #無我 #忍辱 #念頭 #修心',
 };
 const TITLE_KEEP_ = [];   // 目前沒有需要強制保留標題的影片
 // 新影片說明：來自劇本（神對話系列／Ep01–Ep20 劇本的「影片說明」，一念之間來自「YouTube 說明 一念之間 第一集」）
 // 只有說明：EP21–EP23 尚未發布，不在清單內
 const DESC_PLAN_ = {
-  "EP01": "念頭一冒出來，就拉著人走，怎麼辦？\n神對話 EP01，佛祖告訴我們：引果，是當下突然冒出來的念頭與行為。念頭本身不是罪，不跟著它走，新的因果就停住了。\n\n本集重點：\n・念頭本身不是罪\n・先覺察，再選擇怎麼回應\n・能放下嗔念，就能停住新的因果\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易被哪一種念頭拉著走？留言告訴我。\n\n#神對話 #引果 #覺察 #放下 #修行",
-  "EP02": "以為前世做過的事，今生都要還嗎？\n神對話 EP02，佛祖告訴我們：業力像一條走慣了的路，但路從來不只一條。善念與善行一次次做下去，就能慢慢換掉舊的習氣。\n\n本集重點：\n・業力不是判決書\n・善念善行，慢慢蓋過舊習氣\n・每天做一件利他的小事\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最想換掉的一個習慣是什麼？留言告訴我。\n\n#神對話 #業力 #修行 #慈悲 #覺察",
-  "EP03": "許了願，為什麼有時候會落空？\n神對話 EP03，佛祖告訴我們：願果，是此生心念與行為結出的果。發願助人的慈悲心，才是那顆種子。\n\n本集重點：\n・許願不是許了就等\n・願要帶著慈悲，才能圓滿\n・每天做一件利他的小事，願就會慢慢長出枝葉\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n留言告訴我，你心裡的那個願，是為了自己，還是為了別人？\n\n#神對話 #願果 #慈悲 #許願 #修行",
-  "EP04": "心裡放不下的事，真的會一直跟著我們嗎？\n神對話 EP04，佛祖告訴我們：輪迴，是心在六道之間來回打轉。放下執念，心就輕了，才能跳出輪迴。\n\n本集重點：\n・放下，不是忘記\n・先看見，再慢慢鬆開\n・不再為同一件事，加上新的怨\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你心裡最難放下的一件事，是什麼？留言告訴我。\n\n#神對話 #輪迴 #放下 #慈悲 #修行",
-  "EP05": "放下了，念頭卻還是一直跑出來，該怎麼辦？\n神對話 EP05，佛祖告訴我們：覺察不是把念頭壓住，而是先認出它、看見它，再慢慢回到呼吸。\n\n本集重點：\n・念頭跑出來，不代表你失敗了\n・先認出它，它就不再那麼用力\n・不急著反應，先呼吸一次\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你在生活裡，最常覺察到的一種情緒是什麼？留言告訴我。\n\n#神對話 #覺察 #放下 #慈悲 #修行",
-  "EP06": "委屈了，是不是就該忍？\n神對話 EP06，佛祖告訴我們：慈悲不是忍讓，是看見對方也有他的苦。慈悲，先從自己開始。\n\n本集重點：\n・慈悲不是忍讓\n・原諒是心裡放下，慈悲是願對方也離苦\n・界線可以保留，慈悲也可以有\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，慈悲和忍讓最大的不同是什麼？留言告訴我。\n\n#神對話 #慈悲 #放下 #覺察 #修行",
-  "EP07": "守規矩，是不是就要把自己綁住？\n神對話 EP07，佛祖告訴我們：戒不是繩子，是提醒。提醒自己，哪一步會走向傷害。\n\n本集重點：\n・戒是提醒，不是綁住\n・守住戒，心才會安定\n・先守住不說傷人的話\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最難守住的一條界線是什麼？留言告訴我。\n\n#神對話 #持戒 #慈悲 #修行 #覺察",
-  "EP08": "給出去之後，心裡還會想著回報嗎？\n神對話 EP08，佛祖告訴我們：布施有三種，重點是不求回報。看見需要，就願意給。\n\n本集重點：\n・財布施、法布施、無畏布施\n・布施不求回報，心裡要空\n・從一句好話、一次傾聽開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易做到的布施是什麼？留言告訴我。\n\n#神對話 #布施 #慈悲 #修行 #覺察",
-  "EP09": "被人說了難聽的話，你是硬忍，還是跟著反擊？\n神對話 EP09，佛祖告訴我們：忍辱不是忍讓，是心不被風吹動。先看清楚，再決定要不要回應。\n\n本集重點：\n・忍辱不是硬忍，也不是吞下委屈\n・風來了，知道它是風，但不跟著飄走\n・該說的清楚地說，說的時候心要靜\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，被刺痛的時候，你最難做到的是什麼？留言告訴我。\n\n#神對話 #忍辱 #慈悲 #修行 #覺察",
-  "EP10": "你覺得自己做事常常半途而廢嗎？\n神對話 EP10，佛祖告訴我們：精進不是拚命，是跌倒後還願意再起來。\n\n本集重點：\n・精進不是硬撐，是不間斷地走在對的路上\n・累了先休息，再回來\n・先做一件小事，就是今天的精進\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難堅持的一件事是什麼？留言告訴我。\n\n#神對話 #精進 #慈悲 #修行 #覺察",
-  "EP11": "坐下來，念頭還是一直跑出來嗎？\n神對話 EP11，佛祖告訴我們：禪定不是讓心空無一物，而是讓心安住在一處。\n\n本集重點：\n・念頭來了不必急著趕走，看見它，再回來安住\n・心安住在哪裡，哪裡就清楚起來\n・一次次回來，就是禪定\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，靜下來的時候，你的心會安住在哪裡？留言告訴我。\n\n#神對話 #禪定 #慈悲 #修行 #覺察",
-  "EP12": "修了行，怎麼還會陷在輪迴裡？\n神對話 EP12，佛祖告訴我們：修行的根本在修心，不在表面的形式。\n\n本集重點：\n・口業不改，善行也會被抵消\n・靜下心來，念頭自然沉澱\n・事業若以利益眾生為心，就是志業\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最需要先修的是哪一件事？留言告訴我。\n\n#神對話 #六道輪迴 #口業 #志業 #修心 #慈悲",
-  "EP13": "志業之後，還要看清念頭嗎？\n神對話 EP13，佛祖告訴我們：般若是智慧，看清念頭從哪裡來、要往哪裡去。\n\n本集重點：\n・念頭來了，先看它只是一陣風\n・看清因果，不執著，智慧自然生起\n・看清，放下，就是般若\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難看清的是哪一種念頭？留言告訴我。\n\n#神對話 #般若 #智慧 #修心 #慈悲",
-  "EP14": "看清之後，就能解脫嗎？\n神對話 EP14，佛祖告訴我們：解脫不是逃離，而是心不再被念頭綁住。\n\n本集重點：\n・念頭來了，不必強迫它停\n・覺察每一天，習慣慢慢鬆開\n・放下執著，不跟著念頭走，就是解脫的起點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，什麼時候最難讓念頭停下來？留言告訴我。\n\n#神對話 #解脫 #覺察 #修心 #慈悲",
-  "EP15": "解脫之後，就結束了嗎？\n神對話 EP15，佛祖告訴我們：心自在之後，更要發願，讓一切眾生都離苦。\n\n本集重點：\n・菩提心是願一切眾生離苦\n・慈悲是情，菩提心是智\n・把自在分享出去，從身邊的人開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，修行之後最想分享的是什麼？留言告訴我。\n\n#神對話 #菩提心 #慈悲 #修心 #智慧",
-  "EP16": "幫助別人，要怎麼說才對？\n神對話 EP16，佛祖告訴我們：方便是依對方的根器，變通方法，不變的是慈悲。\n\n本集重點：\n・每個人的根器不同，方法也要不同\n・先聽他說，再慢慢說\n・方便不離慈悲，智慧引路\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，幫助別人時，最難的是什麼？留言告訴我。\n\n#神對話 #方便 #慈悲 #修心 #智慧",
-  "EP17": "看見別人好，為什麼心裡會不舒服？\n神對話 EP17，佛祖告訴我們：覺察嫉妒的念頭，為對方歡喜，就是隨喜。\n\n本集重點：\n・嫉妒的念頭來了，先覺察，不跟著走\n・為別人的好感到歡喜，善念會互相感染\n・隨喜之心，就是慈悲的回響\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最近看見別人好，心裡第一個念頭是什麼？留言告訴我。\n\n#神對話 #隨喜 #慈悲 #修心 #智慧",
-  "EP18": "心裡那個最重要的我，到底是誰？\n神對話 EP18，佛祖告訴我們：那個我是念頭堆出來的，念頭一換，它就不見了。\n\n本集重點：\n・委屈是真的，但不必說它是我的\n・放下這個我，才看見更多人的辛苦\n・沒有我，才看得見你\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，放下哪一個念頭，會讓你最自在？留言告訴我。\n\n#神對話 #無我 #慈悲 #修心 #智慧",
-  "EP19": "傷害我的人，也要平等看待嗎？\n神對話 EP19，佛祖告訴我們：平等心不是讓傷害繼續，而是不因怨恨而起惡念。\n\n本集重點：\n・喜歡與討厭，都是念頭在搖擺\n・每個人都想平安，想被善待\n・對每一個人先存一分善意，心就不被分別綁住\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難平等看待的是哪一種人？留言告訴我。\n\n#神對話 #平等心 #慈悲 #修心 #智慧",
-  "EP20": "學了這麼多，最後要怎麼走？\n神對話 EP20，佛祖告訴我們：菩薩道是把慈悲與智慧，落在每一天的生活裡。\n\n本集重點：\n・從一念開始，看清它，放下它，再用善意回應\n・每一念都是一步，一步步走，就走成了菩薩道\n・一人帶一人，善念會一代一代傳下去\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最想帶給身邊的人什麼？留言告訴我。\n\n#神對話 #菩薩道 #慈悲 #修心 #智慧",
-  "LONG": "念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc&si=RwdGEei64us6UBag\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#神對話 #一念之間 #引果 #業力 #輪迴",
+  "EP01": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n念頭一冒出來，就拉著人走，怎麼辦？\n神對話 EP01，佛祖告訴我們：引果，是當下突然冒出來的念頭與行為。念頭本身不是罪，不跟著它走，新的因果就停住了。\n\n本集重點：\n・念頭本身不是罪\n・先覺察，再選擇怎麼回應\n・能放下嗔念，就能停住新的因果\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易被哪一種念頭拉著走？留言告訴我。\n\n#神對話 #引果 #覺察 #放下 #修行",
+  "EP02": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n以為前世做過的事，今生都要還嗎？\n神對話 EP02，佛祖告訴我們：業力像一條走慣了的路，但路從來不只一條。善念與善行一次次做下去，就能慢慢換掉舊的習氣。\n\n本集重點：\n・業力不是判決書\n・善念善行，慢慢蓋過舊習氣\n・每天做一件利他的小事\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最想換掉的一個習慣是什麼？留言告訴我。\n\n#神對話 #業力 #修行 #慈悲 #覺察",
+  "EP03": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n許了願，為什麼有時候會落空？\n神對話 EP03，佛祖告訴我們：願果，是此生心念與行為結出的果。發願助人的慈悲心，才是那顆種子。\n\n本集重點：\n・許願不是許了就等\n・願要帶著慈悲，才能圓滿\n・每天做一件利他的小事，願就會慢慢長出枝葉\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n留言告訴我，你心裡的那個願，是為了自己，還是為了別人？\n\n#神對話 #願果 #慈悲 #許願 #修行",
+  "EP04": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡放不下的事，真的會一直跟著我們嗎？\n神對話 EP04，佛祖告訴我們：輪迴，是心在六道之間來回打轉。放下執念，心就輕了，才能跳出輪迴。\n\n本集重點：\n・放下，不是忘記\n・先看見，再慢慢鬆開\n・不再為同一件事，加上新的怨\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你心裡最難放下的一件事，是什麼？留言告訴我。\n\n#神對話 #輪迴 #放下 #慈悲 #修行",
+  "EP05": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n放下了，念頭卻還是一直跑出來，該怎麼辦？\n神對話 EP05，佛祖告訴我們：覺察不是把念頭壓住，而是先認出它、看見它，再慢慢回到呼吸。\n\n本集重點：\n・念頭跑出來，不代表你失敗了\n・先認出它，它就不再那麼用力\n・不急著反應，先呼吸一次\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你在生活裡，最常覺察到的一種情緒是什麼？留言告訴我。\n\n#神對話 #覺察 #放下 #慈悲 #修行",
+  "EP06": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n委屈了，是不是就該忍？\n神對話 EP06，佛祖告訴我們：慈悲不是忍讓，是看見對方也有他的苦。慈悲，先從自己開始。\n\n本集重點：\n・慈悲不是忍讓\n・原諒是心裡放下，慈悲是願對方也離苦\n・界線可以保留，慈悲也可以有\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，慈悲和忍讓最大的不同是什麼？留言告訴我。\n\n#神對話 #慈悲 #放下 #覺察 #修行",
+  "EP07": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n守規矩，是不是就要把自己綁住？\n神對話 EP07，佛祖告訴我們：戒不是繩子，是提醒。提醒自己，哪一步會走向傷害。\n\n本集重點：\n・戒是提醒，不是綁住\n・守住戒，心才會安定\n・先守住不說傷人的話\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最難守住的一條界線是什麼？留言告訴我。\n\n#神對話 #持戒 #慈悲 #修行 #覺察",
+  "EP08": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n給出去之後，心裡還會想著回報嗎？\n神對話 EP08，佛祖告訴我們：布施有三種，重點是不求回報。看見需要，就願意給。\n\n本集重點：\n・財布施、法布施、無畏布施\n・布施不求回報，心裡要空\n・從一句好話、一次傾聽開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易做到的布施是什麼？留言告訴我。\n\n#神對話 #布施 #慈悲 #修行 #覺察",
+  "EP09": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n被人說了難聽的話，你是硬忍，還是跟著反擊？\n神對話 EP09，佛祖告訴我們：忍辱不是忍讓，是心不被風吹動。先看清楚，再決定要不要回應。\n\n本集重點：\n・忍辱不是硬忍，也不是吞下委屈\n・風來了，知道它是風，但不跟著飄走\n・該說的清楚地說，說的時候心要靜\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，被刺痛的時候，你最難做到的是什麼？留言告訴我。\n\n#神對話 #忍辱 #慈悲 #修行 #覺察",
+  "EP10": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n你覺得自己做事常常半途而廢嗎？\n神對話 EP10，佛祖告訴我們：精進不是拚命，是跌倒後還願意再起來。\n\n本集重點：\n・精進不是硬撐，是不間斷地走在對的路上\n・累了先休息，再回來\n・先做一件小事，就是今天的精進\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難堅持的一件事是什麼？留言告訴我。\n\n#神對話 #精進 #慈悲 #修行 #覺察",
+  "EP11": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n坐下來，念頭還是一直跑出來嗎？\n神對話 EP11，佛祖告訴我們：禪定不是讓心空無一物，而是讓心安住在一處。\n\n本集重點：\n・念頭來了不必急著趕走，看見它，再回來安住\n・心安住在哪裡，哪裡就清楚起來\n・一次次回來，就是禪定\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，靜下來的時候，你的心會安住在哪裡？留言告訴我。\n\n#神對話 #禪定 #慈悲 #修行 #覺察",
+  "EP12": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n修了行，怎麼還會陷在輪迴裡？\n神對話 EP12，佛祖告訴我們：修行的根本在修心，不在表面的形式。\n\n本集重點：\n・口業不改，善行也會被抵消\n・靜下心來，念頭自然沉澱\n・事業若以利益眾生為心，就是志業\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最需要先修的是哪一件事？留言告訴我。\n\n#神對話 #六道輪迴 #口業 #志業 #修心 #慈悲",
+  "EP13": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n志業之後，還要看清念頭嗎？\n神對話 EP13，佛祖告訴我們：般若是智慧，看清念頭從哪裡來、要往哪裡去。\n\n本集重點：\n・念頭來了，先看它只是一陣風\n・看清因果，不執著，智慧自然生起\n・看清，放下，就是般若\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難看清的是哪一種念頭？留言告訴我。\n\n#神對話 #般若 #智慧 #修心 #慈悲",
+  "EP14": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看清之後，就能解脫嗎？\n神對話 EP14，佛祖告訴我們：解脫不是逃離，而是心不再被念頭綁住。\n\n本集重點：\n・念頭來了，不必強迫它停\n・覺察每一天，習慣慢慢鬆開\n・放下執著，不跟著念頭走，就是解脫的起點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，什麼時候最難讓念頭停下來？留言告訴我。\n\n#神對話 #解脫 #覺察 #修心 #慈悲",
+  "EP15": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n解脫之後，就結束了嗎？\n神對話 EP15，佛祖告訴我們：心自在之後，更要發願，讓一切眾生都離苦。\n\n本集重點：\n・菩提心是願一切眾生離苦\n・慈悲是情，菩提心是智\n・把自在分享出去，從身邊的人開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，修行之後最想分享的是什麼？留言告訴我。\n\n#神對話 #菩提心 #慈悲 #修心 #智慧",
+  "EP16": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n幫助別人，要怎麼說才對？\n神對話 EP16，佛祖告訴我們：方便是依對方的根器，變通方法，不變的是慈悲。\n\n本集重點：\n・每個人的根器不同，方法也要不同\n・先聽他說，再慢慢說\n・方便不離慈悲，智慧引路\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，幫助別人時，最難的是什麼？留言告訴我。\n\n#神對話 #方便 #慈悲 #修心 #智慧",
+  "EP17": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看見別人好，為什麼心裡會不舒服？\n神對話 EP17，佛祖告訴我們：覺察嫉妒的念頭，為對方歡喜，就是隨喜。\n\n本集重點：\n・嫉妒的念頭來了，先覺察，不跟著走\n・為別人的好感到歡喜，善念會互相感染\n・隨喜之心，就是慈悲的回響\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最近看見別人好，心裡第一個念頭是什麼？留言告訴我。\n\n#神對話 #隨喜 #慈悲 #修心 #智慧",
+  "EP18": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡那個最重要的我，到底是誰？\n神對話 EP18，佛祖告訴我們：那個我是念頭堆出來的，念頭一換，它就不見了。\n\n本集重點：\n・委屈是真的，但不必說它是我的\n・放下這個我，才看見更多人的辛苦\n・沒有我，才看得見你\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，放下哪一個念頭，會讓你最自在？留言告訴我。\n\n#神對話 #無我 #慈悲 #修心 #智慧",
+  "EP19": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n傷害我的人，也要平等看待嗎？\n神對話 EP19，佛祖告訴我們：平等心不是讓傷害繼續，而是不因怨恨而起惡念。\n\n本集重點：\n・喜歡與討厭，都是念頭在搖擺\n・每個人都想平安，想被善待\n・對每一個人先存一分善意，心就不被分別綁住\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難平等看待的是哪一種人？留言告訴我。\n\n#神對話 #平等心 #慈悲 #修心 #智慧",
+  "EP20": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n學了這麼多，最後要怎麼走？\n神對話 EP20，佛祖告訴我們：菩薩道是把慈悲與智慧，落在每一天的生活裡。\n\n本集重點：\n・從一念開始，看清它，放下它，再用善意回應\n・每一念都是一步，一步步走，就走成了菩薩道\n・一人帶一人，善念會一代一代傳下去\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最想帶給身邊的人什麼？留言告訴我。\n\n#神對話 #菩薩道 #慈悲 #修心 #智慧",
+  "EP21": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n一切都會消失，為什麼還要愛？\n神對話 EP21，佛祖告訴我們：無常不是懲罰，而是一切都在變，所以要好好珍惜當下。\n\n本集重點：\n・無常，是一切都在變，不是誰在罰你\n・正因為會變，才要好好愛，愛不是抓住\n・看清抓緊的念頭，手就會鬆一點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最怕失去什麼？留言告訴我。\n\n#神對話 #無常 #珍惜 #放下 #修心",
+  "EP22": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n做了好事，功德要留給誰？\n神對話 EP22，佛祖告訴我們：功德不會消失，把它迴向給眾生，心才真正自在。\n\n本集重點：\n・功德放在自己身上，心就會計較\n・迴向給需要的人，也給讓你生氣的人\n・給出去的，反而讓心圓滿\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你想把功德給誰？留言告訴我。\n\n#神對話 #迴向 #功德 #慈悲 #修心",
+  "LONG": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n\n念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#神對話 #一念之間 #引果 #業力 #輪迴"
 };
 // 影片屬於哪一集：一念之間是 LONG；其他依標題開頭的集數（EP01…EP20）
 function titleKey_(vid, title) {
@@ -857,6 +930,14 @@ function titleFitTags_(arr) {
   }
   return out;
 }
+// 沒有規劃的影片：保留原標記，依標題的 #井號 補上（最多看前 10 個井號詞），並加上「神對話」「修行」「心靈成長」
+function titleMergeTags_(orig, title) {
+  const out = orig.slice();
+  const add = (t) => { if (t && out.indexOf(t) < 0) out.push(t); };
+  ['神對話', '修行', '心靈成長'].forEach(add);
+  (String(title).match(/#[^\s#]+/g) || []).slice(0, 10).forEach(h => add(h.slice(1)));
+  return out;
+}
 function titleSameTags_(a, b) { return JSON.stringify(a || []) === JSON.stringify(b || []); }
 // 算出這次要改的影片（預覽與套用共用；套用時會重新算一次，跟預覽時一樣才改）
 // mode：both＝標題＋說明；title＝只改標題；desc＝只改說明；tags＝只改標記；all＝標題＋說明＋標記
@@ -879,7 +960,12 @@ function titleBuildItems_(mode) {
     if (mode === 'title') toDesc = s.description || '';                       // 只改標題
     if (mode === 'desc') to = s.title;                                        // 只改說明
     if (mode === 'tags') { to = s.title; toDesc = s.description || ''; }      // 只改標記
-    if (mode === 'tags' || mode === 'all') { if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]); }
+    // 標記：有劇本規劃的集數用規劃好的關鍵字；其他上架影片（沒有規劃）在「更改全部」「只改標記」時，
+    // 保留原有標記，再從標題的 #井號 補上（不會刪掉原標記）
+    if (mode === 'tags' || mode === 'all') {
+      if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]);
+      else toTags = titleFitTags_(titleMergeTags_(s.tags || [], s.title || ''));
+    }
     if (mode === 'title' || mode === 'desc' || mode === 'both') { /* 標記不動 */ }
     // 說明比較前先統一換行與行尾空白，避免 YouTube 讀回時格式微調，就一直被當成「要改」
     const titleChg = to !== s.title, descChg = titleNormDesc_(toDesc) !== titleNormDesc_(s.description || ''), tagsChg = !titleSameTags_(toTags, s.tags);
@@ -956,8 +1042,8 @@ function titleApply_() {
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
-    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部標題和說明」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
-    if (!pend.snaps) return { text: '✏️ 預覽格式已更新，請重新打「更改全部標題和說明」產生預覽再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend || Date.now() - pend.at > 60 * 60 * 1000) return { text: '✏️ 預覽已經過期了（超過 1 小時），請重新打「更改全部」產生預覽。', buttons: [[TITLE_BTN, MENU_BTN]] };
+    if (!pend.snaps) return { text: '✏️ 預覽格式已更新，請重新打「更改全部」產生預覽再按確認。', buttons: [[TITLE_BTN, MENU_BTN]] };
     // 逐支比對：只有「預覽時看到的內容」與「現在的內容」一樣的影片才會改；有變動的那支跳過並寫出差在哪，其他照改
     const now = titleBuildItems_(pend.mode);
     const items = [], skipped = [];
@@ -1008,7 +1094,7 @@ function titleApply_() {
       sh.getRange(start + i, 5).setValue(st);
     });
     return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
-      buttons: [[CHAN_BTN, TITLE_RESTORE, MENU_BTN]] };
+      buttons: [[CHAN_BTN, MENU_BTN]] };
   });
 }
 // 還原：把最近一次批次的內容寫回每支影片最初的樣子（原說明或原標記是空的就不動那一項）
@@ -1053,14 +1139,14 @@ function channelHub_() {
   const live = !!pend && Date.now() - pend.at < 60 * 60 * 1000;
   const note = live ? '有待確認的更改：' + pend.n + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
   const menu = [
-    ['✏️ 更改全部標題和說明', '標題與說明一起改，先看預覽再確認'],
+    ['✏️ 更改全部', '標題、說明、標記一起改，先看預覽再確認'],
     ['🏷️ 只改標題', '只改影片標題，說明保持不變'],
     ['📝 只改說明', '只改影片說明，標題保持不變'],
     ['🔖 只改標記', '只改影片標記（觀眾看不到的搜尋關鍵字）'],
     ['📺 頻道數據', '訂閱、觀看與各集表現'],
     ['💡 改善建議', '依數據給出改善方向'],
     ['🧪 頻道診斷', '檢查分析數據為什麼沒有出來'],
-    ['↩️ 還原標題', '把最近一次的改動寫回去'],
+    ['⏰ 每日更新', '每天早上 9:15 自動更新數據，9:30 併入神對話訊息傳給你'],
   ];
   const rows = menu.map(m => ({ type: 'box', layout: 'vertical', paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF', borderWidth: '1px', borderColor: CHCARD_.LINE, spacing: 'xs', contents: [
     { type: 'text', text: m[0], size: 'sm', weight: 'bold', color: CHCARD_.INK, wrap: true },
@@ -1069,17 +1155,17 @@ function channelHub_() {
     [{ type: 'text', text: note, size: 'xxs', color: live ? CHCARD_.GOLD : CHCARD_.SOFT, wrap: true, margin: 'xs' }].concat(rows) }];
   const btn = (label, text, primary) => ({ type: 'button', style: primary ? 'primary' : 'secondary', color: primary ? '#A07C34' : undefined, height: 'sm', action: { type: 'message', label: label, text: text } });
   const buttons = [
-    btn('✏️ 標題＋說明', '更改全部標題和說明', true),
-    btn('🏷️ 只改標題', '只改標題', false),
-    btn('📝 只改說明', '只改說明', false),
-    btn('🔖 只改標記', '只改標記', false),
+    btn('✏️ 更改全部', '更改全部', true),
+    btn('🏷️ 只改標題（單項）', '只改標題', false),
+    btn('📝 只改說明（單項）', '只改說明', false),
+    btn('🔖 只改標記（單項）', '只改標記', false),
     btn('📺 頻道數據', CHAN_BTN, false),
-    btn('↩️ 還原標題', TITLE_RESTORE, false),
+    btn('📜 傳送神對話劇本', SHEN_SCRIPT_CMD, false),
   ];
-  return { text: '📺 頻道管理\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
-    flex: chanBubble_(chanHead_('小乖 · CHANNEL', '頻道管理', '改標題、改說明、查數據，都先預覽再確認'), content, buttons),
-    alt: '📺 頻道管理',
-    buttons: [['✏️ 更改全部標題和說明', '🏷️ 只改標題', '📝 只改說明'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_RESTORE, MENU_BTN]] };
+  return { text: '📺 YT頻道\n' + note + '\n\n' + menu.map(m => m[0] + '：' + m[1]).join('\n'),
+    flex: chanPair_(chanHead_('小乖 · CHANNEL', 'YT頻道', '改標題、改說明、查數據，都先預覽再確認'), content, buttons.concat([chanDailyBtn_()])),
+    alt: '📺 YT頻道',
+    buttons: [['更改全部'], ['只改標題', '只改說明', '只改標記'], [CHAN_BTN, CHAN_ADV_BTN, CHAN_DIAG_BTN], [SHEN_SCRIPT_CMD, chanDailyTxt_()], [MENU_BTN]] };
 }
 // 只為了讓使用者在編輯器執行一次，跳出「管理 YouTube 帳號」的授權（改標題與說明要用到這個權限）
 function 授權YouTube改標題() {
@@ -1089,9 +1175,19 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-const CHAN_VERSION = 'title-8｜2026-11-16｜套用改為逐支比對：內容沒變的照改，只跳過真的有變動的那支，說明比對忽略換行與行尾空白';
+// 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
+const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
+// LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
+const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
+const SHEN_SCRIPT_CMD = '傳送神對話劇本';
+const CHAN_VERSION = 'title-9｜2026-11-23｜「更改全部」涵蓋頻道所有上架影片，沒有規劃的影片補上標題的井號標記';
+// 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
+function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
+function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
 function chanSec_(s) { return s == null || isNaN(s) ? '—' : Math.round(s) + ' 秒'; }
 // 頻道診斷：列出程式版本、授權帳號看得到的頻道、分析介面的原始回應，讓使用者不用猜原因
+// 診斷卡片只顯示目前版本（例如 shen-page-1｜2026-11-17），前一版的歷史留在程式碼裡
+function chanVerShort_() { return CHAN_VERSION.split('｜').slice(0, 2).join('｜'); }
 function chanDiag_() {
   let ok = false, views = null, hint = '', raw = '';
   try {
@@ -1106,7 +1202,7 @@ function chanDiag_() {
   } catch (e) { raw = String(e.message || e).slice(0, 120); hint = chanAnaHint_(raw); }
   const head = ok ? '分析數據連線正常 ✅' : '分析數據還沒有出來';
   const detail = ok ? '頻道總觀看：' + chanNum_(views) + ' 次\n想看各集的數據，按「📺 頻道數據」。' : hint;
-  const text = '🧪 頻道診斷\n' + head + '\n\n' + detail + (raw && !ok ? '\n\n（原始訊息：' + raw + '）' : '') + '\n\n程式版本：' + CHAN_VERSION;
+  const text = '🧪 頻道診斷\n' + head + '\n\n' + detail + (raw && !ok ? '\n\n（原始訊息：' + raw + '）' : '') + '\n\n程式版本：' + chanVerShort_();
   return { text: text, flex: chanDiagFlex_(ok, head, detail, ok ? '' : raw), alt: '🧪 頻道診斷', buttons: [[CHAN_BTN, CHAN_ADV_BTN], [TITLE_BTN, MENU_BTN]] };
 }
 // 診斷卡片：白話結論；只有出錯時才顯示原始訊息（小字）；可以回到頻道管理
@@ -1116,45 +1212,68 @@ function chanDiagFlex_(ok, head, detail, raw) {
     { type: 'text', text: detail, size: 'sm', color: CHCARD_.INK, wrap: true, margin: 'md' },
   ];
   if (raw && !ok) body.push({ type: 'text', text: '原始訊息：' + raw, size: 'xxs', color: CHCARD_.SOFT, wrap: true, margin: 'lg' });
+  body.push(verLine_());
   const buttons = [
     { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💡 改善建議', text: CHAN_ADV_BTN } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到頻道管理', text: TITLE_BTN } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔙 回到YT頻道', text: TITLE_BTN } },
   ];
-  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + CHAN_VERSION), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
+  return chanBubble_(chanHead_('小乖 · DIAGNOSIS', '頻道診斷', '程式版本：' + chanVerShort_()), [{ type: 'box', layout: 'vertical', paddingAll: '22px', contents: body }], buttons);
 }
-// 每日頻道數據：每天早上 9 點自動更新、寫進試算表，並傳到小乖對話（LINE 與 Telegram）
+// 每日頻道數據：每天早上 9:15 自動更新、寫進試算表；9:30 與神對話每日迭代合併成一則，傳到小乖對話（LINE 與 Telegram）
 const CHAN_DAILY_FN = 'chanDailyJob';
 function chanDailyTriggers_() { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === CHAN_DAILY_FN); }
+const CHAN_DAILY_ON_TXT = '⏰ 每日更新：已開啟', CHAN_DAILY_OFF_TXT = '⏰ 每日更新：已關閉';
+function chanDailyOn_() { return chanDailyTriggers_().length > 0; }
+function chanDailyTxt_() { return chanDailyOn_() ? CHAN_DAILY_ON_TXT : CHAN_DAILY_OFF_TXT; }
+// 每日更新的開關按鈕：顯示目前狀態，按一下就切換（已開啟 → 關閉；已關閉 → 開啟）
+function chanDailyBtn_() {
+  const on = chanDailyOn_(), t = on ? CHAN_DAILY_ON_TXT : CHAN_DAILY_OFF_TXT;
+  return { type: 'button', style: on ? 'primary' : 'secondary', color: on ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: t, text: t } };
+}
+// 內容與按鈕分成兩張卡片：兩欄的按鈕在 LINE 上文字太長會被縮成「...」，所以按鈕改成每顆整排、文字完整顯示
+function chanPair_(head, content, buttons) {
+  const info = chanBubble_(head, content, []);
+  delete info.footer;   // 內容卡片不放按鈕
+  // 按鈕接在標題下面（不用 footer），避免 LINE 把按鈕推到卡片底部、中間留一大段空白
+  const acts = { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG } },
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
+      chanHead_('小乖 · ACTIONS', '操作', '按一下就執行，不會改動內容卡片'),
+      { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) },
+      { type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingBottom: '10px', contents: [verLine_()] } ] } };
+  return { type: 'carousel', contents: [info, acts] };
+}
 function chanDailyCmd_(flat) {
   const turnOn = /開$/.test(flat), turnOff = /關$/.test(flat);
   if (turnOn) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
-    ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(0).inTimezone('Asia/Taipei').create();
+    ScriptApp.newTrigger(CHAN_DAILY_FN).timeBased().everyDays(1).atHour(9).nearMinute(15).inTimezone('Asia/Taipei').create();
     setProp_('CHAN_DAILY', 'on');
-    return { text: '📺 每日頻道數據：開著\n時間：每天早上 9:00 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，並傳到小乖對話。', buttons: [[CHAN_BTN, MENU_BTN]] };
+    return { text: '📺 每日頻道數據：已開啟\n時間：每天早上 9:15 左右（Apps Script 前後 15 分鐘內）\n會更新數據、寫進試算表「頻道數據紀錄」，9:30 左右與神對話每日迭代合併，傳到小乖對話。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
   if (turnOff) {
     chanDailyTriggers_().forEach(x => ScriptApp.deleteTrigger(x));
     setProp_('CHAN_DAILY', 'off');
-    return { text: '📺 每日頻道數據：關掉了', buttons: MENU };
+    return { text: '📺 每日頻道數據：已關閉', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
   }
-  const running = chanDailyTriggers_().length > 0;
-  return { text: '📺 每日頻道數據：' + (running ? '開著（每天早上 9:00 左右）' : '關著') + '\n打「頻道每日 開」開啟，「頻道每日 關」關掉。', buttons: [[CHAN_BTN, MENU_BTN]] };
+  const running = chanDailyOn_();
+  return { text: '📺 每日頻道數據：' + (running ? '已開啟（每天早上 9:15 左右）' : '已關閉') + '\n按下面的按鈕就能切換。', buttons: [[chanDailyTxt_(), CHAN_BTN, MENU_BTN]] };
 }
 // 由時間觸發器執行：更新數據、寫進紀錄，再把結果傳給使用者
 function chanDailyJob() {
-  const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
-  let text;
+  let text, d = null;
   try {
-    const d = chanFetch_();
+    d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
     text = '☀️ 早安，今日頻道數據（自動更新）\n\n' + chanText_(d) + '\n\n（已寫進試算表「頻道數據紀錄」）';
   } catch (e) {
     text = '☀️ 今天的頻道數據沒有更新成功：' + chanErr_(e);
   }
-  if (owner) push_(owner, text);
-  if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, text);
+  const kwLine = chanDailyKeywords_();
+  if (kwLine) text += '\n\n' + kwLine;
+  text += '\n\n📜 神對話劇本（最新版）：' + SHEN_PAGE_URL + '\n' + verTag_();
+  // 9:15 先不傳：9:30 由 shenDailyPush（ShenDaily.gs）把這段和神對話每日迭代合併成一則訊息傳出
+  setProp_('CHAN_DAILY_MSG', JSON.stringify({ d: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd'), t: text, st: d ? chanStats_(d) : null }));
 }
 // 按了沒反應最常見的原因是中途出錯，LINE 這邊只會看到已讀；這裡一律回一句話，讓使用者知道發生什麼事
 function chanSafe_(fn) {
@@ -1217,6 +1336,139 @@ function chanAnalytics_(ids) {
   if (!data.rows || !data.rows.length) throw new Error('ANALYTICS_EMPTY 分析介面回傳 0 列（請確認授權的是頻道擁有者帳號，或稍後再試）');
   data.rows.forEach(r => { out[r[0]] = { avgSec: Number(r[2]), avgPct: Number(r[3]) }; });
   return out;
+}
+// 搜尋字詞紀錄的分頁名稱（chanSearchWrite_ 累積寫入）
+const CHAN_SEARCH_SHEET = '搜尋字詞紀錄';
+// 查詢 YouTube Analytics 報表：opts.terms=true 時查搜尋字詞（維度 insightTrafficSourceDetail + 篩選 YT_SEARCH），false 時只查流量來源類型（診斷用）
+// opts.max：maxResults 的值（字串）或 null；opts.sort：是否帶 sort=-views
+function chanSearchQuery_(startDate, endDate, opts) {
+  const params = { ids: 'channel==MINE', startDate: startDate, endDate: endDate, metrics: 'views' };
+  if (opts.sort) params.sort = '-views';
+  if (opts.terms) {
+    params.dimensions = 'insightTrafficSourceDetail';
+    params.filters = 'insightTrafficSourceType==YT_SEARCH';
+  } else {
+    params.dimensions = 'insightTrafficSourceType';
+  }
+  if (opts.max) params.maxResults = String(opts.max);
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
+}
+// 與劇本內容相關的字詞：搜尋字詞只保留包含這些字的（略過音樂、人名、新聞等無關詞）
+const SEARCH_KEEP_ =['神對話', '與神對話', '修行', '菩提', '無我', '斷捨離', '地藏', '念頭', '放下', '慈悲', '布施', '忍辱', '善知識', '輪迴', '業力', '因果', '覺察', '禪定', '般若', '解脫', '發願', '隨喜', '平等', '菩薩', '方便', '利他', '持戒', '精進', '善念', '冥想', '感恩', '阿彌陀', '阿弥陀', '念佛', '心經', '佛法', '佛陀', '佛祖'];
+const CHAN_KEYWORD_SHEET = '劇本關鍵字';
+function chanSearchRelevant_(rows) {
+  return rows.filter(r => SEARCH_KEEP_.some(k => String(r[0]).indexOf(k) >= 0));
+}
+// 抓取搜尋字詞（同一支查詢依序試四種寫法）；失敗就丟出錯誤
+function chanSearchFetch_() {
+  const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  const tries = [
+    { terms: true, max: '25', sort: true },
+    { terms: true, max: '10', sort: true },
+    { terms: true, max: '25', sort: false },
+    { terms: true, max: null, sort: true },
+  ];
+  const log = [];
+  for (const o of tries) {
+    const r = chanSearchQuery_('2005-01-01', today, o);
+    if (r.code === 200) return (r.data.rows || []).slice().sort((a, b) => Number(b[1]) - Number(a[1]));
+    log.push('maxResults ' + (o.max || '無') + '、sort ' + (o.sort ? '-views' : '無') + '：HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || ''));
+  }
+  throw new Error('ANALYTICS 搜尋字詞查詢全部失敗：' + log.join('；'));
+}
+// 把這次的搜尋字詞寫進「搜尋字詞紀錄」（累積），並更新「劇本關鍵字」（只留相關字詞，每次覆蓋為最新數據）
+function chanSearchWrite_(rows) {
+  const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  const ss = ss_();
+  let sh = ss.getSheetByName(CHAN_SEARCH_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CHAN_SEARCH_SHEET);
+    sh.appendRow(['紀錄時間', '搜尋字詞', '觀看次數']);
+    sh.setFrozenRows(1);
+  }
+  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, 3).setValues(rows.map(r => [now, r[0], Number(r[1])]));
+  let kw = ss.getSheetByName(CHAN_KEYWORD_SHEET);
+  if (!kw) {
+    kw = ss.insertSheet(CHAN_KEYWORD_SHEET);
+    kw.setFrozenRows(1);
+  }
+  kw.clearContents();
+  const rel = chanSearchRelevant_(rows);
+  const out = [['更新時間', '搜尋字詞', '觀看次數']].concat(rel.map(r => [now, r[0], Number(r[1])]));
+  kw.getRange(1, 1, out.length, 3).setValues(out);
+  return rel;
+}
+// 手動執行（編輯器選 chanSearchTerms → 執行）：抓搜尋字詞，寫進「搜尋字詞紀錄」與「劇本關鍵字」，前 30 名印在執行紀錄裡。不會改動 YouTube 上的任何內容。
+function chanSearchTerms() {
+  const rows = chanSearchFetch_();
+  if (!rows.length) throw new Error('SEARCH_EMPTY 沒有搜尋字詞資料');
+  const rel = chanSearchWrite_(rows);
+  const top = rows.slice(0, 30).map((r, i) => (i + 1) + '. ' + r[0] + '（' + r[1] + ' 次）').join('\n');
+  const msg = '搜尋字詞（共 ' + rows.length + ' 個，與劇本相關 ' + rel.length + ' 個，已寫進「' + CHAN_SEARCH_SHEET + '」與「' + CHAN_KEYWORD_SHEET + '」）：\n' + top;
+  console.log(msg);
+  return msg;
+}
+// 每天 9:15 由 chanDailyJob 呼叫：更新搜尋字詞並回傳與劇本相關的前五名（一行文字）；失敗不影響頻道數據
+function chanDailyKeywords_() {
+  try {
+    const rows = chanSearchFetch_();
+    const rel = chanSearchWrite_(rows);
+    const top = rel.slice(0, 5);
+    return top.length ? '🔎 與劇本相關的搜尋字詞（YouTube 搜尋進來）：' + top.map(r => r[0] + ' ' + r[1] + ' 次').join('、') : '';
+  } catch (e) {
+    console.error('搜尋字詞更新失敗：' + e);
+    return '';
+  }
+}
+// 只讀取：查流量來源類型的明細（例如 EXT_URL 的網域、YT_OTHER_PAGE 的頁面），寫進「流量來源明細」分頁並印出前 25 名。不會改動 YouTube 上的任何內容。
+const CHAN_TRAFFIC_SHEET = '流量來源明細';
+function chanTrafficQuery_(type) {
+  const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  const params = { ids: 'channel==MINE', startDate: '2005-01-01', endDate: today, metrics: 'views',
+    dimensions: 'insightTrafficSourceDetail', filters: 'insightTrafficSourceType==' + type, sort: '-views', maxResults: '25' };
+  const qs = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = UrlFetchApp.fetch('https://youtubeanalytics.googleapis.com/v2/reports?' + qs, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+  });
+  return { code: res.getResponseCode(), data: JSON.parse(res.getContentText() || '{}') };
+}
+function chanTrafficDetail() {
+  const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  const out = [];
+  const lines = [];
+  ['EXT_URL', 'YT_OTHER_PAGE'].forEach(type => {
+    const r = chanTrafficQuery_(type);
+    if (r.code !== 200) {
+      const err = 'HTTP ' + r.code + ' ' + ((r.data.error && r.data.error.message) || '');
+      console.log(type + ' 明細查詢失敗：' + err);
+      lines.push('【' + type + '】查詢失敗：' + err);
+      return;
+    }
+    const rows = r.data.rows || [];
+    console.log(type + ' 明細：' + rows.length + ' 列');
+    lines.push('【' + type + '】共 ' + rows.length + ' 列');
+    rows.forEach(x => {
+      out.push([now, type, x[0], Number(x[1])]);
+      lines.push('  ' + x[0] + '（' + x[1] + ' 次）');
+    });
+  });
+  if (out.length) {
+    const ss = ss_();
+    let sh = ss.getSheetByName(CHAN_TRAFFIC_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(CHAN_TRAFFIC_SHEET);
+      sh.appendRow(['紀錄時間', '來源類型', '明細', '觀看次數']);
+      sh.setFrozenRows(1);
+    }
+    sh.getRange(sh.getLastRow() + 1, 1, out.length, 4).setValues(out);
+  }
+  const msg = lines.join('\n');
+  console.log(msg);
+  return msg;
 }
 // 每次查詢都把各集數據累積到使用者的試算表「頻道數據紀錄」分頁，方便之後比較神對話各集的表現
 const CHAN_LOG_SHEET = '頻道數據紀錄';
@@ -1308,10 +1560,30 @@ function chanHead_(label, title, sub) {
       { type: 'text', text: sub, size: 'xs', color: '#7D6F5B', wrap: true, margin: 'md' },
     ] };
 }
+// 按鈕文字靠左：LINE 的按鈕文字一律置中，所以卡片上的按鈕改用可點的方塊，文字靠左排
+// 按鈕配色分三種：①「更改全部」金色實心（主要）②單項更新象牙底金字（次要）③取消、還原等不可逆動作深酒紅（危險）；其餘維持白底
+function chanBtnTone_(b) {
+  const t = String(b.action.text || ''), lab = String(b.action.label || '');
+  if (t === '更改全部' || t === '更改全部標題和說明') return { bg: '#A07C34', border: '#C9A56A', ink: '#FFFFFF' };
+  if (/^只改(標題|說明|標記)$/.test(t)) return { bg: '#F5EEDF', border: '#A07C34', ink: '#6B4E1F' };
+  if (/取消|還原|刪除|清空/.test(t + lab)) return { bg: '#9E3B32', border: '#7A2A24', ink: '#FFFFFF' };
+  return null;
+}
+function chanBtnLeft_(b) {
+  if (!b || b.type !== 'button' || !b.action) return b;
+  const primary = b.style === 'primary';
+  const tone = chanBtnTone_(b);
+  const bg = tone ? tone.bg : (primary ? (b.color || '#A07C34') : '#FFFFFF');
+  const border = tone ? tone.border : (primary ? '#C9A56A' : CHCARD_.LINE);
+  const ink = tone ? tone.ink : (primary ? '#FFFFFF' : CHCARD_.INK);
+  return { type: 'box', layout: 'vertical', paddingAll: '13px', cornerRadius: '12px', borderWidth: '1px',
+    borderColor: border, backgroundColor: bg, action: b.action,
+    contents: [{ type: 'text', text: b.action.label, size: 'sm', weight: 'bold', align: 'start', wrap: true, color: ink }] };
+}
 function chanBubble_(head, content, buttons) {
   return { type: 'bubble', size: 'mega', styles: { body: { backgroundColor: CHCARD_.BG }, footer: { backgroundColor: CHCARD_.BG } },
-    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content) },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons } };
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [head].concat(content).concat([{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', paddingBottom: '10px', contents: [verLine_()] }]) },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '16px', contents: buttons.map(chanBtnLeft_) } };
 }
 function chanStat_(label, value) {
   return { type: 'box', layout: 'vertical', flex: 1, paddingAll: '12px', cornerRadius: '12px', backgroundColor: '#FFFFFF',
@@ -1355,16 +1627,17 @@ function chanDataFlex_(d) {
   }
   // 按鈕區整齊排列：兩欄一組、等寬、每顆都有圖示
   const pb = (label, text, primary) => ({ type: 'button', style: primary ? 'primary' : 'secondary', color: primary ? '#A07C34' : undefined, height: 'sm', flex: 1, action: { type: 'message', label: label, text: text } });
-  const row = arr => ({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: arr });
+  const row = arr => arr;   // 一行一個：每組按鈕展開成單獨一行（LINE 上兩欄會縮成「...」）
   const pb_uri_ = uri => ({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🔗 開啟頻道', uri: uri } });
   const buttons = [
     row([pb('💡 改善建議', CHAN_ADV_BTN, true), pb('🧪 頻道診斷', CHAN_DIAG_BTN, false)]),
-    pb('✏️ 更改全部標題和說明', '更改全部標題和說明', false),
+    pb('✏️ 更改全部', '更改全部', false),
     row([pb('🏷️ 只改標題', '只改標題', false), pb('📝 只改說明', '只改說明', false)]),
-    row([pb('🔖 只改標記', '只改標記', false), pb('↩️ 還原標題', TITLE_RESTORE, false)]),
+    row([pb('🔖 只改標記', '只改標記', false)]),
     pb_uri_(d.url),
   ];
-  return chanBubble_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons);
+  const pbShen = { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '📜 傳送神對話劇本', text: SHEN_SCRIPT_CMD } };
+  return chanPair_(chanHead_('小乖 · CHANNEL', d.title, 'YouTube 頻道數據'), content, buttons.flat().concat([chanDailyBtn_(), pbShen]));
 }
 // 改善建議：GPT 回的「1. 結論」「2. …」切成一點一張小卡；切不出來就整段放進卡片，不會掉字
 function chanPoints_(text) {
@@ -1395,25 +1668,110 @@ function chanAdviceFlex_(d, text) {
   const buttons = [{ type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '📺 頻道數據', text: CHAN_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🧪 頻道診斷', text: CHAN_DIAG_BTN } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '開啟頻道', uri: d.url } }];
-  return chanBubble_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons);
+  return chanPair_(chanHead_('小乖 · ADVICE', '頻道改善建議', d.title + '・依最近的數據整理'), content, buttons.concat([chanDailyBtn_()]));
 }
 function chanData_() {
   try {
     const d = chanFetch_();
     try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
-    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [TITLE_BTN, MENU_BTN]] };
+    return { text: chanText_(d), flex: chanDataFlex_(d), alt: '📺 ' + d.title + ' 頻道數據', buttons: [[CHAN_ADV_BTN, CHAN_DIAG_BTN], [chanDailyTxt_(), TITLE_BTN, MENU_BTN]] };
   } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
+}
+// 改善建議：每次按下都重新抓最新數據（含分析），和「頻道數據紀錄」的歷史比較，並參考上次的建議；結果存進「改善建議紀錄」分頁
+const CHAN_ADV_LOG = '改善建議紀錄';
+const CHAN_ADV_MIN_AGE_MS = 24 * 3600 * 1000;   // 上架未滿一天的影片不納入分析（使用者規則）
+function chanDateMs_(ymd) { const t = Date.parse(String(ymd || '') + 'T00:00:00+08:00'); return isNaN(t) ? 0 : t; }
+function chanMedian_(arr) {
+  const a = arr.filter(x => x != null && !isNaN(x)).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return Math.round((a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) * 10) / 10;
+}
+// 歷史：從「頻道數據紀錄」讀出每支影片的紀錄次數、最近一次，以及第一次有分析數據的那次
+function chanHistory_(ids) {
+  const out = {};
+  const sh = ss_().getSheetByName(CHAN_LOG_SHEET);
+  if (!sh || sh.getLastRow() < 2 || !ids.length) return out;
+  const want = {};
+  ids.forEach(id => { want[id] = true; });
+  sh.getRange(2, 1, sh.getLastRow() - 1, 9).getValues().forEach(r => {
+    const id = String(r[1]);
+    if (!want[id]) return;
+    const rec = { at: r[0] instanceof Date ? Utilities.formatDate(r[0], 'Asia/Taipei', 'yyyy-MM-dd HH:mm') : String(r[0]),
+      views: Number(r[4]) || 0, avgWatchSec: r[7] === '' ? null : Math.round(Number(r[7])), avgViewedPct: r[8] === '' ? null : Number(r[8]) };
+    const h = out[id] || (out[id] = { snapshots: 0, firstWithAnalytics: null, latest: null });
+    h.snapshots++;
+    h.latest = rec;
+    if (rec.avgViewedPct != null && !h.firstWithAnalytics) h.firstWithAnalytics = rec;
+  });
+  return out;
+}
+// 上次的改善建議（最近三次）：讓下一次能檢查上次的做法有沒有反映在數據上
+function chanAdvHistory_() {
+  const sh = ss_().getSheetByName(CHAN_ADV_LOG);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const n = Math.min(3, sh.getLastRow() - 1);
+  return sh.getRange(sh.getLastRow() - n + 1, 1, n, 2).getValues().map(r => ({
+    at: r[0] instanceof Date ? Utilities.formatDate(r[0], 'Asia/Taipei', 'yyyy-MM-dd HH:mm') : String(r[0]),
+    advice: String(r[1]).slice(0, 900) }));
+}
+function chanAdvLog_(text) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(CHAN_ADV_LOG);
+  if (!sh) {
+    sh = ss.insertSheet(CHAN_ADV_LOG);
+    sh.appendRow(['紀錄時間', '改善建議']);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(2, 600);
+  }
+  sh.appendRow([Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'), String(text)]);
 }
 function chanAdvice_() {
   if (!prop_('OPENAI_API_KEY')) return { text: '還沒設定 OpenAI 金鑰，沒辦法寫改善建議。', buttons: MENU };
   let d;
   try { d = chanFetch_(); } catch (e) { return { text: chanErr_(e), buttons: MENU }; }
-  const sys = '你是 YouTube 頻道顧問。根據下面的頻道數據（JSON），用繁體中文（台灣用語）給出 4 到 6 點具體的改善建議。每支影片都有上架時間 at（台北時間，含星期與幾點），建議要一併分析上架時間與觀看數的關係，例如哪個星期或時段的影片表現較好、適合在什麼時候上架。每點用「1.」「2.」這樣的編號開頭，第一行先寫結論，之後換行寫依據（引用數據裡的影片、時間或數字）。不要編造數據裡沒有的資訊；數據不足的地方直接說明。';
+  try { chanLog_(d); } catch (e) { console.error('寫入頻道數據紀錄失敗：' + e); }
+  const now = Date.now();
+  const isOld = v => now - chanDateMs_(v.date) >= CHAN_ADV_MIN_AGE_MS;
+  const young = d.videos.filter(v => !isOld(v)).map(v => v.title);
+  const noData = d.videos.filter(v => isOld(v) && v.avgPct == null).map(v => v.title);
+  const ready = d.videos.filter(v => isOld(v) && v.avgPct != null);
+  const medPct = chanMedian_(ready.map(v => v.avgPct));
+  const medViews = chanMedian_(ready.map(v => v.views));
+  const hist = chanHistory_(ready.map(v => v.id));
+  const flags = {
+    觀看高但留存普通: ready.filter(v => v.views >= medViews && v.avgPct < medPct).map(v => v.title),
+    留存高但觀看低: ready.filter(v => v.views < medViews && v.avgPct >= medPct).map(v => v.title),
+  };
+  const basis = '📊 依 ' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm') + ' 抓到的最新數據，分析 ' + ready.length + ' 支影片'
+    + '（上架未滿一天的 ' + young.length + ' 支不納入）' + (ready.length < 5 ? '。樣本還少，結論只供參考' : '');
+  const payload = {
+    asOf: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+    channel: d.title, subscribers: d.subs, channelTotalViews: d.views,
+    sampleSize: ready.length, excludedTooNew: young, noAnalyticsYet: noData,
+    medianAvgViewedPct: medPct, medianViews: medViews, flags: flags,
+    videos: ready.map(v => ({ title: v.title, publishedAt: v.at, views: v.views, likes: v.likes, comments: v.comments,
+      avgWatchSec: v.avgSec == null ? null : Math.round(v.avgSec), avgViewedPct: Math.round(v.avgPct * 10) / 10,
+      logHistory: hist[v.id] || null })),
+    previousAdvice: chanAdvHistory_(),
+  };
+  const sys = [
+    '你是 YouTube 頻道顧問，服務對象是彥彬（短影片「神對話」系列）。下面的 JSON 是頻道的最新數據，請只根據裡面的數字與事實分析，用繁體中文（台灣用語）回覆。',
+    '規則：',
+    '1. 只分析 videos。excludedTooNew 是上架未滿一天的影片，不納入；noAnalyticsYet 是分析數據還沒出來的影片，也不納入。sampleSize 少於 5 時要明說樣本太少，結論只是方向，不要下肯定的結論。',
+    '2. 第一行先寫一句結論，之後用「1.」「2.」…給 4 到 6 點具體建議，每點換行寫依據（引用影片標題與數字）。',
+    '3. avgViewedPct（平均看了幾％）要跟 medianAvgViewedPct 比；views 要跟 medianViews 比。flags 列出「觀看高但留存普通」與「留存高但觀看低」的影片，優先針對這些給建議（例如：觀看高但留存低，可能是標題或封面吸引點擊，但開場或中段沒有留住人）。',
+    '4. 若 logHistory 有記錄，比較 firstWithAnalytics 到 latest 的觀看與留存變化，說明哪些有進步或退步；歷史不足就直接說還無法比較。',
+    '5. 若 previousAdvice 有上次的建議，先檢查上次的做法有沒有反映在數據上（有進步就說，沒有就老實說），再提新的建議；不要重複上次一樣的話。',
+    '6. 建議要具體可執行（標題寫法、開場前幾秒、結尾循環、發布時段等）。不要編造 JSON 裡沒有的數據，不要保證成效。',
+  ].join('\n');
   let text;
-  try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(d) }], false, null, { maxTokens: 1500 }); }
+  try { text = callOpenAI_(sys, [{ role: 'user', content: JSON.stringify(payload) }], false, null, { maxTokens: 1800 }); }
   catch (e) { return { text: '改善建議沒有寫成功：' + e.message, buttons: MENU }; }
+  try { chanAdvLog_(text); } catch (e) { console.error('寫入改善建議紀錄失敗：' + e); }
+  const out = basis + '\n\n' + text;
   // 頻道數據卡在上、改善建議卡在下，一次滑過兩張
-  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + text, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
+  return { text: '💡 頻道改善建議（' + d.title + '）\n\n' + out, flex: chanAdviceFlex_(d, text), alt: '💡 ' + d.title + ' 頻道改善建議', buttons: [[CHAN_BTN, MENU_BTN]] };
 }
 
 // 把貼上來的「頻道改善建議」四段（標題、內容、結尾引導、留言）當成軍師的題目：寫出升級後的短影片腳本，並給分步提升方案
@@ -1473,7 +1831,7 @@ function answer_(text) {
   if (/^語音快捷指令$/.test(text.replace(/\s+/g, ''))) return { text: '🎙️ 語音快捷指令\n到對話頁按「🎙️ 語音快捷指令」，照一步一步的說明做，就能一鍵複製網址。\n做好後到「設定 → 輔助使用 → 語音快捷指令」綁定「嘿 小乖」。', buttons: QUICK };
   if (text === '更多說明') return { text: HELP_MORE, buttons: MENU };
   if (/^(選單|功能選單|功能|主選單|menu)$/i.test(text.replace(/\s+/g, ''))) return menuCard_();
-  if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
+  if (/^(對話頁|對話頁面|對話介面|小乖對話|語音頁|🐾小乖|🐾對話頁)$/.test(String(text).replace(/\s+/g, ''))) return talkLink_();
   if (/^(🔎)?(見證庫|見證庫網頁|見證網頁)$/.test(String(text).replace(/\s+/g, ''))) return wallLink_();
   const vm = String(text).replace(/\s+/g, '').match(/^(?:語音回覆|語音對話|用語音回)(開|關|開啟|關閉|自動)?$/);
   if (vm) return voiceSwitch_(vm[1] || '');
