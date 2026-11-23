@@ -82,7 +82,7 @@ function shenCardItems_(body) {
   return out.length ? out : [{ num: '', text: s, lead: true }];
 }
 
-// 圖卡共用的版面外框：{ W, H, build(slideId) }，交給 layoutPng_ 畫成 PNG（字級加大，手機上好讀）
+// 圖卡共用的版面外框：{ W, H, build(slideId) }，交給 layoutPng_ 畫成 PNG。內容置中、字級盡量放大（手機上好讀）
 function shenCardPage_(W, H, draw) {
   const build = pg => {
     const req = [];
@@ -105,72 +105,68 @@ function shenCardPage_(W, H, draw) {
       req.push({ updateTextStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'fontFamily,fontSize,bold,foregroundColor', style: {
         fontFamily: o.font, fontSize: { magnitude: o.size, unit: 'PT' }, bold: !!o.bold,
         foregroundColor: { opaqueColor: { rgbColor: rgb_(o.color) } } } } });
-      req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: o.align || 'START' } } });
+      req.push({ updateParagraphStyle: { objectId: id, textRange: { type: 'ALL' }, fields: 'alignment', style: { alignment: o.align || 'CENTER' } } });
       req.push({ updateShapeProperties: { objectId: id, fields: 'contentAlignment', shapeProperties: { contentAlignment: o.middle ? 'MIDDLE' : 'TOP' } } });
     };
     req.push({ updatePageProperties: { objectId: pg, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_(SC_.BG) } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
-    // 外框：金色細線＋內側一道淡框
-    rect(24, 24, W - 48, H - 48, SC_.CARD, SC_.GOLD);
-    rect(34, 34, W - 68, H - 68, null, SC_.FRAME);
+    // 外框：金色細線＋內側一道淡框（貼近邊緣，讓內容有最大可用空間）
+    rect(14, 14, W - 28, H - 28, SC_.CARD, SC_.GOLD);
+    rect(22, 22, W - 44, H - 44, null, SC_.FRAME);
     draw({ rect: rect, text: text });
     return req;
   };
   return { W: W, H: H, build: build };
 }
 
-// 第一張：頻道數據（訂閱數、最近影片平均觀看、平均看了%）
+// 第一張：今日頻道數據（訂閱數、最近影片平均觀看、平均看了%），內容置中
 function shenStatsCardLayout_(st, dateLine) {
-  const W = 720, H = 600;
+  const W = 720, H = 720;
   const s = st || { subs: '—', avg: '—', pct: '—' };
   const stats = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
   return shenCardPage_(W, H, d => {
-    d.text(0, 62, W, 34, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 22, bold: true, color: SC_.BRAND, align: 'CENTER' });
-    d.text(0, 100, W, 80, '今日頻道數據', { font: 'Noto Serif TC', size: 56, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
-    d.text(0, 186, W, 36, dateLine, { font: 'Noto Sans TC', size: 26, color: SC_.SOFT, align: 'CENTER' });
-    d.rect(96, 240, W - 192, 1, SC_.GOLD, null);
-    d.text(64, 256, 592, 44, '頻道數據', { font: 'Noto Serif TC', size: 30, bold: true, color: SC_.GOLD_D });
+    d.text(40, 56, W - 80, 36, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 24, bold: true, color: SC_.BRAND });
+    d.text(40, 96, W - 80, 100, '今日頻道數據', { font: 'Noto Serif TC', size: 70, bold: true, color: SC_.INK, middle: true });
+    d.text(40, 200, W - 80, 44, dateLine, { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
+    d.rect(60, 262, W - 120, 1, SC_.GOLD, null);
     stats.forEach((b, i) => {
-      const x = 64 + i * 202;
-      d.rect(x, 312, 188, 200, SC_.BOX, SC_.FRAME);
-      d.text(x, 330, 188, 84, b[0], { font: 'Noto Serif TC', size: 52, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
-      d.text(x, 422, 188, 70, b[1], { font: 'Noto Sans TC', size: 24, color: SC_.SOFT, align: 'CENTER' });
+      const x = 52 + i * 212;
+      d.rect(x, 300, 200, 300, SC_.BOX, SC_.FRAME);
+      d.text(x, 340, 200, 110, b[0], { font: 'Noto Serif TC', size: 64, bold: true, color: SC_.INK, middle: true });
+      d.text(x + 8, 470, 184, 100, b[1], { font: 'Noto Sans TC', size: 28, color: SC_.SOFT });
     });
-    d.text(64, 540, 592, 34, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 20, color: SC_.MUTE, align: 'CENTER' });
+    d.text(40, 630, W - 80, 40, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
   });
 }
 
-// 第二張：神對話每日迭代（結論、改善建議、不確定、劇本關鍵字）
+// 第二張：神對話每日迭代（結論、改善建議、不確定、劇本關鍵字），內容置中、字級最大化
 function shenIterCardLayout_(items, dateLine) {
-  const W = 720, TOP = 262;
-  // 字級：內文 30pt、寬約 548 至 592pt，一行保守估 17 到 19 字，行高 44pt
+  const W = 720, TOP = 290, PAD = 40;
+  // 內文寬約 600pt：34pt 字一行約 16 字（保守估），行高 50pt；註腳 28pt 一行約 19 字
   const hs = items.map(it => {
     const n = Array.from(it.text).length;
-    if (it.num) return Math.max(70, Math.ceil(n / 17) * 44 + 26);
-    if (it.muted) return Math.max(50, Math.ceil(n / 23) * 36 + 22);
-    return Math.max(64, Math.ceil(n / 19) * 44 + 24);
+    if (it.muted) return Math.max(56, Math.ceil(n / 19) * 42 + 22);
+    return Math.max(70, Math.ceil(n / 16) * 50 + 26);
   });
   const offs = [];
   hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
-  const footY = TOP + hs.reduce((a, b) => a + b, 0) + 30;
-  const H = footY + 90;
+  const footY = TOP + hs.reduce((a, b) => a + b, 0) + 24;
+  const H = footY + 80;
   return shenCardPage_(W, H, d => {
-    d.text(0, 62, W, 34, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 22, bold: true, color: SC_.BRAND, align: 'CENTER' });
-    d.text(0, 100, W, 80, '神對話每日迭代', { font: 'Noto Serif TC', size: 56, bold: true, color: SC_.INK, align: 'CENTER', middle: true });
-    d.text(0, 186, W, 36, dateLine, { font: 'Noto Sans TC', size: 26, color: SC_.SOFT, align: 'CENTER' });
-    d.rect(96, 240, W - 192, 1, SC_.GOLD, null);
+    d.text(40, 56, W - 80, 36, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 24, bold: true, color: SC_.BRAND });
+    d.text(40, 96, W - 80, 100, '神對話每日迭代', { font: 'Noto Serif TC', size: 70, bold: true, color: SC_.INK, middle: true });
+    d.text(40, 200, W - 80, 44, dateLine, { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
+    d.rect(60, 262, W - 120, 1, SC_.GOLD, null);
     items.forEach((it, i) => {
       const y = TOP + offs[i], h = hs[i];
-      if (it.num) {
-        d.text(64, y + 8, 40, 44, it.num, { font: 'Noto Serif TC', size: 34, bold: true, color: SC_.GOLD_D });
-        d.text(108, y + 8, 548, h - 8, it.text, { font: 'Noto Sans TC', size: 30, color: SC_.INK, lineHeight: 44 });
-      } else if (it.muted) {
-        d.text(64, y + 8, 592, h - 8, it.text, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
+      if (it.muted) {
+        d.text(PAD, y + 8, W - PAD * 2, h - 8, it.text, { font: 'Noto Sans TC', size: 28, color: SC_.MUTE });
       } else {
-        d.text(64, y + 8, 592, h - 8, it.text, { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.INK });
+        const body = it.num ? it.num + '　' + it.text : it.text;
+        d.text(PAD, y + 8, W - PAD * 2, h - 8, body, { font: 'Noto Sans TC', size: 34, bold: !it.num, color: SC_.INK });
       }
-      d.rect(64, y + h - 1, 592, 1, SC_.RULE, null);
+      d.rect(60, y + h - 1, W - 120, 1, SC_.RULE, null);
     });
-    d.text(0, footY, W, 34, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 22, color: SC_.MUTE, align: 'CENTER' });
+    d.text(40, footY, W - 80, 40, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
   });
 }
 
