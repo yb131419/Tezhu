@@ -148,26 +148,36 @@ function shenStatsCardLayout_(st, dateLine, leads) {
   });
 }
 
-// 第二張：神對話每日改善建議（①–⑤、不確定、劇本關鍵字），每條留足空間、置中
+// 第二張：神對話每日改善建議。上半是改善建議（①–⑤）與不確定，下半「劇本關鍵字」獨立成框，各區分開、置中
 function shenIterCardLayout_(items, dateLine) {
-  const W = 720, TOP = 300, PAD = 44;
-  // 內文 38pt 寬約 600pt，一行保守估 14 字；註腳 32pt 一行約 16 字；行高 56pt；每條上下留白
-  const hs = items.map(it => {
+  const W = 720, LABEL_Y = 300, TOP = 350, PAD = 44, SEC_GAP = 36;
+  const isKw = it => it.muted && String(it.text).indexOf('劇本關鍵字') === 0;
+  const main = items.filter(it => !isKw(it));
+  const kw = items.filter(isKw);
+  // 估高：38pt 一行約 17 字、行高 56；註腳 32pt 一行約 19 字、行高 46
+  const hOf = it => {
     const n = Array.from(it.text).length;
     if (it.muted) return Math.max(70, Math.ceil(n / 19) * 46 + 30);
     return Math.max(100, Math.ceil(n / 17) * 56 + 40);
-  });
-  const offs = [];
-  hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
-  const footY = TOP + hs.reduce((a, b) => a + b, 0) + 30;
+  };
+  const hs = main.map(hOf);
+  const mainEnd = TOP + hs.reduce((a, b) => a + b, 0);
+  const m = kw.length ? String(kw[0].text).match(/^(劇本關鍵字[^：]*)：([\s\S]*)$/) : null;
+  const kwHead = m ? m[1] : '劇本關鍵字';
+  const kwBody = m ? m[2] : kw.map(it => it.text).join('\n');
+  const KW_TOP = mainEnd + SEC_GAP + 20;
+  const kwH = kw.length ? Math.max(130, Math.ceil(Array.from(kwBody).length / 19) * 46 + 116) : 0;
+  const footY = (kw.length ? KW_TOP + kwH : mainEnd) + 40;
   const H = footY + 90;
   return shenCardPage_(W, H, d => {
     d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 28, bold: true, color: SC_.BRAND });
     d.text(40, 94, W - 80, 120, '神對話每日改善建議', { font: 'Noto Serif TC', size: 66, bold: true, color: SC_.INK, middle: true });
     d.text(40, 216, W - 80, 52, dateLine, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
     d.rect(60, 282, W - 120, 1, SC_.GOLD, null);
-    items.forEach((it, i) => {
-      const y = TOP + offs[i], h = hs[i];
+    d.text(PAD, LABEL_Y, W - PAD * 2, 40, '改善建議', { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND });
+    let y = TOP;
+    main.forEach((it, i) => {
+      const h = hs[i];
       if (it.muted) {
         d.text(PAD, y + 12, W - PAD * 2, h - 12, it.text, { font: 'Noto Sans TC', size: 32, color: SC_.MUTE });
       } else {
@@ -175,7 +185,14 @@ function shenIterCardLayout_(items, dateLine) {
         d.text(PAD, y + 14, W - PAD * 2, h - 14, body, { font: 'Noto Sans TC', size: 38, bold: !it.num, color: SC_.INK });
       }
       d.rect(60, y + h - 1, W - 120, 1, SC_.RULE, null);
+      y += h;
     });
+    if (kw.length) {
+      // 關鍵字獨立成框：標題在框內上方，內容置中
+      d.rect(60, KW_TOP, W - 120, kwH, SC_.BOX, SC_.FRAME);
+      d.text(PAD, KW_TOP + 18, W - PAD * 2, 40, kwHead, { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND });
+      d.text(PAD + 20, KW_TOP + 62, W - PAD * 2 - 40, kwH - 74, kwBody, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
+    }
     d.text(40, footY, W - 80, 44, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
   });
 }
