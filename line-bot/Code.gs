@@ -930,6 +930,14 @@ function titleFitTags_(arr) {
   }
   return out;
 }
+// 沒有規劃的影片：保留原標記，依標題的 #井號 補上（最多看前 10 個井號詞），並加上「神對話」「修行」「心靈成長」
+function titleMergeTags_(orig, title) {
+  const out = orig.slice();
+  const add = (t) => { if (t && out.indexOf(t) < 0) out.push(t); };
+  ['神對話', '修行', '心靈成長'].forEach(add);
+  (String(title).match(/#[^\s#]+/g) || []).slice(0, 10).forEach(h => add(h.slice(1)));
+  return out;
+}
 function titleSameTags_(a, b) { return JSON.stringify(a || []) === JSON.stringify(b || []); }
 // 算出這次要改的影片（預覽與套用共用；套用時會重新算一次，跟預覽時一樣才改）
 // mode：both＝標題＋說明；title＝只改標題；desc＝只改說明；tags＝只改標記；all＝標題＋說明＋標記
@@ -952,7 +960,12 @@ function titleBuildItems_(mode) {
     if (mode === 'title') toDesc = s.description || '';                       // 只改標題
     if (mode === 'desc') to = s.title;                                        // 只改說明
     if (mode === 'tags') { to = s.title; toDesc = s.description || ''; }      // 只改標記
-    if (mode === 'tags' || mode === 'all') { if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]); }
+    // 標記：有劇本規劃的集數用規劃好的關鍵字；其他上架影片（沒有規劃）在「更改全部」「只改標記」時，
+    // 保留原有標記，再從標題的 #井號 補上（不會刪掉原標記）
+    if (mode === 'tags' || mode === 'all') {
+      if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]);
+      else toTags = titleFitTags_(titleMergeTags_(s.tags || [], s.title || ''));
+    }
     if (mode === 'title' || mode === 'desc' || mode === 'both') { /* 標記不動 */ }
     // 說明比較前先統一換行與行尾空白，避免 YouTube 讀回時格式微調，就一直被當成「要改」
     const titleChg = to !== s.title, descChg = titleNormDesc_(toDesc) !== titleNormDesc_(s.description || ''), tagsChg = !titleSameTags_(toTags, s.tags);
@@ -1167,7 +1180,7 @@ const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 // LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'version-tag-2｜2026-11-22｜補回搜尋字詞查詢函式與分頁名稱，修正每日關鍵字更新失敗';
+const CHAN_VERSION = 'title-9｜2026-11-23｜「更改全部」涵蓋頻道所有上架影片，沒有規劃的影片補上標題的井號標記';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
 function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
 function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
