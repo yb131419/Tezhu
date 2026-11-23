@@ -825,10 +825,10 @@ const TITLE_EP_PLAN_ = {
   // 未上架的新集：標題與劇本一致（2026-11-19 改標題），上架後的改標題批次也會用這個標題
   'EP21': 'EP21｜愛消失，你放得下？ #神對話 #無常 #珍惜 #放下',
   'EP22': 'EP22｜做好事，不想被記？ #神對話 #迴向 #功德 #慈悲',
-  'EP23': 'EP23｜老師罵你，你還敬他？ #神對話 #與神對話 #善知識 #修行 #智慧',
-  'EP24': 'EP24｜他不回，你猜幾次？ #神對話 #與神對話 #念頭 #放下 #無我 #修心',
-  'EP25': 'EP25｜幫了人，卻被嫌？ #神對話 #與神對話 #菩提心 #布施 #慈悲 #善念',
-  'EP26': 'EP26｜誤會你，你要辯嗎？ #神對話 #與神對話 #無我 #忍辱 #念頭 #修心',
+  'EP23': 'EP23｜老師罵你，你還敬他？ #神對話 #善知識 #修行 #智慧',
+  'EP24': 'EP24｜他不回，你猜幾次？ #神對話 #念頭 #放下 #無我 #修心',
+  'EP25': 'EP25｜幫了人，卻被嫌？ #神對話 #菩提心 #布施 #慈悲 #善念',
+  'EP26': 'EP26｜誤會你，你要辯嗎？ #神對話 #無我 #忍辱 #念頭 #修心',
 };
 const TITLE_KEEP_ = [];   // 目前沒有需要強制保留標題的影片
 // 新影片說明：來自劇本（神對話系列／Ep01–Ep20 劇本的「影片說明」，一念之間來自「YouTube 說明 一念之間 第一集」）
@@ -1181,7 +1181,7 @@ const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
 // LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'title-10｜2026-11-23｜沒有規劃的影片不補神對話，神對話與與神對話只留神對話';
+const CHAN_VERSION = 'title-11｜2026-11-23｜全等更改：EP23–26 標題的「#與神對話」改為「#神對話」，標題與標記一致';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
 function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
 function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
