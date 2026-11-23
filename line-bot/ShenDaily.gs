@@ -118,55 +118,65 @@ function shenCardPage_(W, H, draw) {
   return { W: W, H: H, build: build };
 }
 
-// 第一張：今日頻道數據（訂閱數、最近影片平均觀看、平均看了%），內容置中
-function shenStatsCardLayout_(st, dateLine) {
-  const W = 720, H = 720;
+// 第一張：今日頻道數據（三個數字方塊放大填滿）＋ 結論文字，內容置中
+function shenStatsCardLayout_(st, dateLine, leads) {
+  const W = 720, BOX_TOP = 300, BOX_H = 300, LEAD_TOP = BOX_TOP + BOX_H + 50, PAD = 44;
   const s = st || { subs: '—', avg: '—', pct: '—' };
   const stats = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
+  const hs = (leads || []).map(it => Math.max(70, Math.ceil(Array.from(it.text).length / 15) * 56 + 30));
+  const offs = [];
+  hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
+  const footY = LEAD_TOP + hs.reduce((a, b) => a + b, 0) + 30;
+  const H = footY + 90;
   return shenCardPage_(W, H, d => {
-    d.text(40, 56, W - 80, 36, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 24, bold: true, color: SC_.BRAND });
-    d.text(40, 96, W - 80, 100, '今日頻道數據', { font: 'Noto Serif TC', size: 70, bold: true, color: SC_.INK, middle: true });
-    d.text(40, 200, W - 80, 44, dateLine, { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
-    d.rect(60, 262, W - 120, 1, SC_.GOLD, null);
+    d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 28, bold: true, color: SC_.BRAND });
+    d.text(40, 94, W - 80, 120, '今日頻道數據', { font: 'Noto Serif TC', size: 66, bold: true, color: SC_.INK, middle: true });
+    d.text(40, 216, W - 80, 52, dateLine, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
+    d.rect(60, 282, W - 120, 1, SC_.GOLD, null);
     stats.forEach((b, i) => {
       const x = 52 + i * 212;
-      d.rect(x, 300, 200, 300, SC_.BOX, SC_.FRAME);
-      d.text(x, 340, 200, 110, b[0], { font: 'Noto Serif TC', size: 64, bold: true, color: SC_.INK, middle: true });
-      d.text(x + 8, 470, 184, 100, b[1], { font: 'Noto Sans TC', size: 28, color: SC_.SOFT });
+      d.rect(x, BOX_TOP, 200, BOX_H, SC_.BOX, SC_.FRAME);
+      d.text(x, BOX_TOP + 36, 200, 130, b[0], { font: 'Noto Serif TC', size: 64, bold: true, color: SC_.INK, middle: true });
+      d.text(x + 6, BOX_TOP + 178, 188, 100, b[1], { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
     });
-    d.text(40, 630, W - 80, 40, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
+    d.rect(60, LEAD_TOP - 22, W - 120, 1, SC_.GOLD, null);
+    (leads || []).forEach((it, i) => {
+      const y = LEAD_TOP + offs[i], h = hs[i];
+      d.text(PAD, y + 8, W - PAD * 2, h - 8, it.text, { font: 'Noto Sans TC', size: 38, bold: true, color: SC_.INK });
+    });
+    d.text(40, footY, W - 80, 44, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
   });
 }
 
-// 第二張：神對話每日迭代（結論、改善建議、不確定、劇本關鍵字），內容置中、字級最大化
+// 第二張：神對話每日改善建議（①–⑤、不確定、劇本關鍵字），每條留足空間、置中
 function shenIterCardLayout_(items, dateLine) {
-  const W = 720, TOP = 290, PAD = 40;
-  // 內文寬約 600pt：34pt 字一行約 16 字（保守估），行高 50pt；註腳 28pt 一行約 19 字
+  const W = 720, TOP = 300, PAD = 44;
+  // 內文 38pt 寬約 600pt，一行保守估 14 字；註腳 32pt 一行約 16 字；行高 56pt；每條上下留白
   const hs = items.map(it => {
     const n = Array.from(it.text).length;
-    if (it.muted) return Math.max(56, Math.ceil(n / 19) * 42 + 22);
-    return Math.max(70, Math.ceil(n / 16) * 50 + 26);
+    if (it.muted) return Math.max(70, Math.ceil(n / 19) * 46 + 30);
+    return Math.max(100, Math.ceil(n / 17) * 56 + 40);
   });
   const offs = [];
   hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
-  const footY = TOP + hs.reduce((a, b) => a + b, 0) + 24;
-  const H = footY + 80;
+  const footY = TOP + hs.reduce((a, b) => a + b, 0) + 30;
+  const H = footY + 90;
   return shenCardPage_(W, H, d => {
-    d.text(40, 56, W - 80, 36, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 24, bold: true, color: SC_.BRAND });
-    d.text(40, 96, W - 80, 100, '神對話每日迭代', { font: 'Noto Serif TC', size: 70, bold: true, color: SC_.INK, middle: true });
-    d.text(40, 200, W - 80, 44, dateLine, { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
-    d.rect(60, 262, W - 120, 1, SC_.GOLD, null);
+    d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 28, bold: true, color: SC_.BRAND });
+    d.text(40, 94, W - 80, 120, '神對話每日改善建議', { font: 'Noto Serif TC', size: 66, bold: true, color: SC_.INK, middle: true });
+    d.text(40, 216, W - 80, 52, dateLine, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
+    d.rect(60, 282, W - 120, 1, SC_.GOLD, null);
     items.forEach((it, i) => {
       const y = TOP + offs[i], h = hs[i];
       if (it.muted) {
-        d.text(PAD, y + 8, W - PAD * 2, h - 8, it.text, { font: 'Noto Sans TC', size: 28, color: SC_.MUTE });
+        d.text(PAD, y + 12, W - PAD * 2, h - 12, it.text, { font: 'Noto Sans TC', size: 32, color: SC_.MUTE });
       } else {
         const body = it.num ? it.num + '　' + it.text : it.text;
-        d.text(PAD, y + 8, W - PAD * 2, h - 8, body, { font: 'Noto Sans TC', size: 34, bold: !it.num, color: SC_.INK });
+        d.text(PAD, y + 14, W - PAD * 2, h - 14, body, { font: 'Noto Sans TC', size: 38, bold: !it.num, color: SC_.INK });
       }
       d.rect(60, y + h - 1, W - 120, 1, SC_.RULE, null);
     });
-    d.text(40, footY, W - 80, 40, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
+    d.text(40, footY, W - 80, 44, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
   });
 }
 
@@ -223,8 +233,11 @@ function shenDailyPush() {
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
     const itemList = items.length ? items : [{ num: '', text: '今天還沒有新的神對話迭代建議。', lead: true }];
     // 兩張圖分開傳：第一張頻道數據，第二張神對話每日迭代（字級加大）
-    const pngStats = layoutPng_(shenStatsCardLayout_(chanSt, dateLine), '每日回報_頻道_' + today + '.png');
-    const pngIter = layoutPng_(shenIterCardLayout_(itemList, dateLine), '每日回報_神對話_' + today + '.png');
+    // 結論放在第一張（頻道數據下方），改善建議放在第二張，兩張都留足空間
+    const leads = itemList.filter(it => it.lead);
+    const rest = itemList.filter(it => !it.lead);
+    const pngStats = layoutPng_(shenStatsCardLayout_(chanSt, dateLine, leads), '每日回報_頻道_' + today + '.png');
+    const pngIter = layoutPng_(shenIterCardLayout_(rest.length ? rest : [{ num: '', text: '本批沒有其他改善建議。', muted: true }], dateLine), '每日回報_神對話_' + today + '.png');
     const pngs = [pngStats, pngIter].filter(Boolean);
     if (pngs.length) {
       const urls = pngs.map(p => shenCardUrl_(p));
