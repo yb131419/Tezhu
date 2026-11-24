@@ -1,14 +1,17 @@
-/* ============ 每日合併推送：神對話每日迭代 + 頻道數據，做成一張精緻圖卡傳到小乖對話（LINE 與 Telegram） ============
+/* ============ 每日合併推送：神對話每日迭代 + 頻道數據，做成 3:4 直式圖卡傳到小乖對話（LINE 與 Telegram） ============
    9:15：頻道數據更新（chanDailyJob 寫進試算表，並把數字與文字暫存在 CHAN_DAILY_MSG，不直接傳）。
    排程 9:15：把當天的神對話摘要寫進試算表「神對話每日摘要」分頁（A 日期、B 摘要、C 劇本網址（推送時一律改用 SHEN_SCRIPT_URL，不讀 C 欄），D 推送時間，D 空白代表還沒傳）。
-   9:30 左右：shenDailyPush 把頻道數據與還沒傳的摘要畫成一張圖卡（Google 簡報轉 PNG，跟試算報表同一套做法），傳到 LINE 與 Telegram；
-   圖卡畫不出來時改傳純文字，不會漏掉內容。 */
+   9:30 左右：shenDailyPush 把頻道數據與還沒傳的摘要排成 3:4 圖卡（900 × 1200，Google 簡報轉 PNG，跟試算報表同一套做法），傳到 LINE 與 Telegram；
+   內容多時自動拆成第 1／2／3 頁，不截斷。圖卡畫不出來時改傳純文字，不會漏掉內容。 */
 const SHEN_DAILY_SHEET = '神對話每日摘要';
 const SHEN_CARD_FOLDER = '每日回報圖卡';
 // 配色沿用小乖的象牙白香檳金（和試算報表、對話頁一致）
 const SC_ = { BG: '#F4EFE6', CARD: '#FBF8F2', BOX: '#FFFDF8', GOLD: '#C9A56A', GOLD_D: '#8E6D3A', FRAME: '#E3D3B0',
   INK: '#2A2118', SOFT: '#7A6A55', MUTE: '#9A8A70', RULE: '#E6DCC8', BRAND: '#A8834A' };
 const SC_NUMS = ['一', '二', '三', '四', '五', '六'];
+// 3:4 直式圖卡尺寸（PT）與版面常數
+const SC_PW = 900, SC_PH = 1200, SC_PAD = 72;
+const SC_BODY = 30, SC_MUTE = 26, SC_LABEL = 28;
 
 // 只需要執行一次（在編輯器選「shenDailyOn」按執行）：建立分頁與標題列，並設定每天 9:30 的時間觸發器
 function shenDailyOn() {
@@ -21,21 +24,24 @@ function shenDailyOn() {
   }
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'shenDailyPush').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('shenDailyPush').timeBased().everyDays(1).atHour(9).nearMinute(30).inTimezone('Asia/Taipei').create();
-  return '神對話每日摘要：已設定，每天 9:30 左右與頻道數據合併，做成圖卡傳出。';
+  return '神對話每日摘要：已設定，每天 9:30 左右與頻道數據合併，做成 3:4 圖卡傳出。';
 }
 
 // 頻道數據裡要放進圖卡的數字（chanDailyJob 會一起存進 CHAN_DAILY_MSG 的 st 欄位）
+// 平均看了％超過 100 時照原樣顯示，並標記 pctWarn，圖卡上會註明「待確認」
 function chanStats_(d) {
   const v = d.videos || [];
   const pv = v.filter(x => x.avgPct != null);
+  const pctNum = pv.length ? Math.round(pv.reduce((s, x) => s + x.avgPct, 0) / pv.length) : null;
   return {
     subs: chanNum_(d.subs),
     avg: v.length ? chanNum_(Math.round(v.reduce((s, x) => s + x.views, 0) / v.length)) : '—',
-    pct: pv.length ? Math.round(pv.reduce((s, x) => s + x.avgPct, 0) / pv.length) + '%' : '—',
+    pct: pctNum == null ? '—' : pctNum + '%',
+    pctWarn: pctNum != null && pctNum > 100,
   };
 }
 
-// 去掉條列符號與編號；不截斷內容（每一條會依字數自動加高，整段都會顯示）
+// 去掉條列符號與編號；不截斷內容
 function scClip_(s) {
   return String(s).replace(/^[\s・•\-*]+/, '').replace(/^\d+[.、)]\s*/, '').trim();
 }
@@ -61,7 +67,7 @@ function shenChunks_(text, max) {
   return out;
 }
 
-// 把迭代摘要拆成卡片的幾列：開頭結論、①②… 各一列、最後「不確定」一列（小字）
+// 把迭代摘要拆成幾列：開頭結論（lead）、①②… 各一列（num）、最後「不確定」一列（muted）
 function shenCardItems_(body) {
   const s = String(body || '').replace(/\r/g, '').replace(/\n+/g, ' ').trim();
   if (!s) return [];
@@ -71,7 +77,7 @@ function shenCardItems_(body) {
   const tail = ui >= 0 ? s.slice(ui).trim() : '';
   const main = ui >= 0 ? s.slice(0, ui) : s;
   const ci = main.search(/[①②③④⑤⑥⑦⑧⑨]/);
-  const lead = (ci >= 0 ? main.slice(0, ci) : main).replace(/改善建議[：:]?\s*$/, '').trim();
+  const lead = (ci >= 0 ? main.slice(0, ci) : main).replace(/(頻道)?改善建議[：:]?\s*$/, '').trim();
   const rest = ci >= 0 ? main.slice(ci) : '';
   if (lead) out.push({ num: '', text: lead, lead: true });
   rest.split(/(?=[①②③④⑤⑥⑦⑧⑨])/).forEach(seg => {
@@ -82,7 +88,13 @@ function shenCardItems_(body) {
   return out.length ? out : [{ num: '', text: s, lead: true }];
 }
 
-// 圖卡共用的版面外框：{ W, H, build(slideId) }，交給 layoutPng_ 畫成 PNG。內容置中、字級盡量放大（手機上好讀）
+// 把一段結論依句號拆成幾句，讓手機上一句一行好讀
+function scSentences_(t) {
+  // 句末標點後面接右引號、括號時不拆（例如「……？」）
+  return String(t).split(/(?<=[。！？])(?![」』）])/).map(x => x.trim()).filter(Boolean);
+}
+
+// 圖卡共用的版面外框：{ W, H, build(slideId) }，交給 layoutPng_ 畫成 PNG。
 function shenCardPage_(W, H, draw) {
   const build = pg => {
     const req = [];
@@ -109,7 +121,7 @@ function shenCardPage_(W, H, draw) {
       req.push({ updateShapeProperties: { objectId: id, fields: 'contentAlignment', shapeProperties: { contentAlignment: o.middle ? 'MIDDLE' : 'TOP' } } });
     };
     req.push({ updatePageProperties: { objectId: pg, pageProperties: { pageBackgroundFill: { solidFill: { color: { rgbColor: rgb_(SC_.BG) } } } }, fields: 'pageBackgroundFill.solidFill.color' } });
-    // 外框：金色細線＋內側一道淡框（貼近邊緣，讓內容有最大可用空間）
+    // 外框：金色細線＋內側一道淡框
     rect(14, 14, W - 28, H - 28, SC_.CARD, SC_.GOLD);
     rect(22, 22, W - 44, H - 44, null, SC_.FRAME);
     draw({ rect: rect, text: text });
@@ -118,83 +130,81 @@ function shenCardPage_(W, H, draw) {
   return { W: W, H: H, build: build };
 }
 
-// 第一張：今日頻道數據（三個數字方塊放大填滿）＋ 結論文字，內容置中
-function shenStatsCardLayout_(st, dateLine, leads) {
-  const W = 720, BOX_TOP = 300, BOX_H = 300, LEAD_TOP = BOX_TOP + BOX_H + 50, PAD = 44;
-  const s = st || { subs: '—', avg: '—', pct: '—' };
-  const stats = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
-  const hs = (leads || []).map(it => Math.max(70, Math.ceil(Array.from(it.text).length / 15) * 56 + 30));
-  const offs = [];
-  hs.reduce((acc, h) => { offs.push(acc); return acc + h; }, 0);
-  const footY = LEAD_TOP + hs.reduce((a, b) => a + b, 0) + 30;
-  const H = footY + 90;
-  return shenCardPage_(W, H, d => {
-    d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 28, bold: true, color: SC_.BRAND });
-    d.text(40, 94, W - 80, 120, '今日頻道數據', { font: 'Noto Serif TC', size: 66, bold: true, color: SC_.INK, middle: true });
-    d.text(40, 216, W - 80, 52, dateLine, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
-    d.rect(60, 282, W - 120, 1, SC_.GOLD, null);
-    stats.forEach((b, i) => {
-      const x = 52 + i * 212;
-      d.rect(x, BOX_TOP, 200, BOX_H, SC_.BOX, SC_.FRAME);
-      d.text(x, BOX_TOP + 36, 200, 130, b[0], { font: 'Noto Serif TC', size: 64, bold: true, color: SC_.INK, middle: true });
-      d.text(x + 6, BOX_TOP + 178, 188, 100, b[1], { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
-    });
-    d.rect(60, LEAD_TOP - 22, W - 120, 1, SC_.GOLD, null);
-    (leads || []).forEach((it, i) => {
-      const y = LEAD_TOP + offs[i], h = hs[i];
-      d.text(PAD, y + 8, W - PAD * 2, h - 8, it.text, { font: 'Noto Sans TC', size: 38, bold: true, color: SC_.INK });
-    });
-    d.text(40, footY, W - 80, 44, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
-  });
+// 內文區塊的高度估算（CJK 約一字一個字級寬）；回傳 { lines, h }
+function scLines_(text, size, width) {
+  const cpl = Math.max(6, Math.floor(width / size));
+  return String(text).split('\n').reduce((n, seg) => n + Math.max(1, Math.ceil(Array.from(seg).length / cpl)), 0);
 }
 
-// 第二張：神對話每日改善建議。最上面是「劇本關鍵字」框，下面是改善建議（①–⑤）與不確定，各區分開、置中
-function shenIterCardLayout_(items, dateLine) {
-  const W = 720, KW_Y = 300, SEC_GAP = 36, PAD = 44;
-  const isKw = it => it.muted && String(it.text).indexOf('劇本關鍵字') === 0;
-  const main = items.filter(it => !isKw(it));
-  const kw = items.filter(isKw);
-  const m = kw.length ? String(kw[0].text).match(/^(劇本關鍵字[^：]*)：([\s\S]*)$/) : null;
-  const kwHead = m ? m[1] : '劇本關鍵字';
-  const kwBody = m ? m[2] : kw.map(it => it.text).join('\n');
-  const kwH = kw.length ? Math.max(130, Math.ceil(Array.from(kwBody).length / 19) * 46 + 116) : 0;
-  const LABEL_Y = kw.length ? KW_Y + kwH + SEC_GAP : 300;
-  const TOP = LABEL_Y + 50;
-  // 估高：38pt 一行約 17 字、行高 56；註腳 32pt 一行約 19 字、行高 46
-  const hOf = it => {
-    const n = Array.from(it.text).length;
-    if (it.muted) return Math.max(70, Math.ceil(n / 19) * 46 + 30);
-    return Math.max(100, Math.ceil(n / 17) * 56 + 40);
-  };
-  const hs = main.map(hOf);
-  const mainEnd = TOP + hs.reduce((a, b) => a + b, 0);
-  const footY = mainEnd + 40;
-  const H = footY + 90;
-  return shenCardPage_(W, H, d => {
-    d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報', { font: 'Noto Sans TC', size: 28, bold: true, color: SC_.BRAND });
-    d.text(40, 94, W - 80, 120, '神對話每日改善建議', { font: 'Noto Serif TC', size: 66, bold: true, color: SC_.INK, middle: true });
-    d.text(40, 216, W - 80, 52, dateLine, { font: 'Noto Sans TC', size: 32, color: SC_.SOFT });
-    d.rect(60, 282, W - 120, 1, SC_.GOLD, null);
-    if (kw.length) {
-      // 劇本關鍵字置頂：框內標題與內容置中
-      d.rect(60, KW_Y, W - 120, kwH, SC_.BOX, SC_.FRAME);
-      d.text(PAD, KW_Y + 18, W - PAD * 2, 40, kwHead, { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND });
-      d.text(PAD + 20, KW_Y + 62, W - PAD * 2 - 40, kwH - 74, kwBody, { font: 'Noto Sans TC', size: 32, bold: true, color: SC_.INK });
-    }
-    d.text(PAD, LABEL_Y, W - PAD * 2, 40, '改善建議', { font: 'Noto Sans TC', size: 30, bold: true, color: SC_.BRAND, align: 'START' });
-    let y = TOP;
-    main.forEach((it, i) => {
-      const h = hs[i];
-      if (it.muted) {
-        d.text(PAD, y + 12, W - PAD * 2, h - 12, it.text, { font: 'Noto Sans TC', size: 32, color: SC_.MUTE, align: 'START' });
-      } else {
-        const body = it.num ? it.num + '　' + it.text : it.text;
-        d.text(PAD, y + 14, W - PAD * 2, h - 14, body, { font: 'Noto Sans TC', size: 38, bold: !it.num, color: SC_.INK, align: 'START' });
-      }
-      d.rect(60, y + h - 1, W - 120, 1, SC_.RULE, null);
-      y += h;
+// 把各區（今日重點／熱門歸納／頻道改善建議／待確認）攤平成一列列區塊，每個區塊帶高度
+function scBlocksFromSections_(sections) {
+  const blocks = [];
+  sections.forEach((sec, si) => {
+    sec.items.forEach((it, ii) => {
+      const size = it.muted ? SC_MUTE : SC_BODY;
+      const width = SC_PW - SC_PAD * 2 - (it.num ? 64 : 0);
+      const textH = scLines_(it.text, size, width) * Math.round(size * 1.5) + 10;
+      const head = ii === 0 ? 52 + (si > 0 ? 36 : 0) : 0;
+      blocks.push({ label: ii === 0 ? sec.label : null, gap: ii === 0 && si > 0, num: it.num || '',
+        text: it.text, size: size, muted: !!it.muted, textH: textH, h: head + textH });
     });
-    d.text(40, footY, W - 80, 44, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 24, color: SC_.MUTE });
+  });
+  return blocks;
+}
+
+// 依高度把區塊分頁：第 1 頁有數字方塊（較高），之後每頁版面較寬
+function scPages_(stats, sections, dateLine) {
+  const blocks = scBlocksFromSections_(sections);
+  const pages = [];
+  let cur = [];
+  let used = 0;
+  const avail = p => SC_PH - 130 - (p === 0 && stats ? 600 : 300);
+  blocks.forEach(b => {
+    if (cur.length && used + b.h > avail(pages.length)) { pages.push(cur); cur = []; used = 0; }
+    cur.push(b);
+    used += b.h;
+  });
+  if (cur.length || !pages.length) pages.push(cur);
+  return pages.map((bl, i) => ({ blocks: bl, stats: i === 0 ? stats : null, index: i + 1, total: pages.length, dateLine: dateLine }));
+}
+
+// 一頁 3:4 圖卡：頂部品牌列＋標題＋日期；第 1 頁有三個數字方塊；內容依區分行排列；底部劇本網址
+function scPageLayout_(page) {
+  const W = SC_PW, H = SC_PH;
+  return shenCardPage_(W, H, d => {
+    const pg = page.total > 1 ? '　' + page.index + ' / ' + page.total : '';
+    d.text(40, 50, W - 80, 40, 'XIAOGUAI · 小乖每日回報' + pg, { font: 'Noto Sans TC', size: 26, bold: true, color: SC_.BRAND });
+    d.text(40, 100, W - 80, 110, '每日回報', { font: 'Noto Serif TC', size: 72, bold: true, color: SC_.INK, middle: true });
+    d.text(40, 212, W - 80, 50, page.dateLine, { font: 'Noto Sans TC', size: 30, color: SC_.SOFT });
+    d.rect(SC_PAD, 276, W - SC_PAD * 2, 1, SC_.GOLD, null);
+    let y = 306;
+    if (page.stats) {
+      const s = page.stats;
+      const cells = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, s.pctWarn ? '平均看了（待確認）' : '平均看了']];
+      cells.forEach((c, i) => {
+        const x = SC_PAD + i * 258;
+        d.rect(x, 306, 240, 240, SC_.BOX, SC_.FRAME);
+        d.text(x, 336, 240, 110, c[0], { font: 'Noto Serif TC', size: 58, bold: true, color: SC_.INK, middle: true });
+        d.text(x + 8, 452, 224, 76, c[1], { font: 'Noto Sans TC', size: 26, color: c[1].indexOf('待確認') >= 0 ? SC_.BRAND : SC_.SOFT });
+      });
+      y = 606;
+    }
+    page.blocks.forEach(b => {
+      if (b.gap) y += 36;
+      if (b.label) {
+        d.text(SC_PAD, y, W - SC_PAD * 2, 44, b.label, { font: 'Noto Sans TC', size: SC_LABEL, bold: true, color: SC_.BRAND, align: 'START' });
+        y += 52;
+      }
+      if (b.num) {
+        d.text(SC_PAD, y, 64, b.textH, b.num, { font: 'Noto Sans TC', size: b.size, bold: true, color: SC_.BRAND, align: 'START' });
+        d.text(SC_PAD + 64, y, W - SC_PAD * 2 - 64, b.textH, b.text, { font: 'Noto Sans TC', size: b.size, color: SC_.INK, align: 'START' });
+      } else {
+        d.text(SC_PAD, y, W - SC_PAD * 2, b.textH, b.text, { font: 'Noto Sans TC', size: b.size,
+          color: b.muted ? SC_.MUTE : SC_.INK, align: 'START' });
+      }
+      y += b.textH;
+    });
+    d.text(40, H - 110, W - 80, 40, '劇本網址　' + SHEN_PAGE_URL, { font: 'Noto Sans TC', size: 22, color: SC_.MUTE });
   });
 }
 
@@ -221,7 +231,7 @@ function shenKeywordLine_() {
   return '劇本關鍵字（' + when + '）：' + rows.map(r => String(r[1]).trim() + ' ' + Number(r[2]) + ' 次').join('、');
 }
 
-// 由時間觸發器執行（9:30）：頻道數據（今天的）＋還沒傳的摘要，畫成一張圖卡，傳到 LINE 與 Telegram
+// 由時間觸發器執行（9:30）：頻道數據（今天的）＋還沒傳的摘要，排成 3:4 圖卡，傳到 LINE 與 Telegram
 function shenDailyPush() {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
   const cm = JSON.parse(prop_('CHAN_DAILY_MSG') || 'null');
@@ -244,23 +254,37 @@ function shenDailyPush() {
   const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   try {
-    // 圖卡：摘要每一行一條（全部顯示，不截斷），沒有摘要就寫一句提示
+    // 把摘要拆成幾區：今日重點、熱門歸納（劇本關鍵字）、頻道改善建議（①–⑨）、待確認（不確定）
     const items = [];
     pending.forEach(p => shenCardItems_(p.body).forEach(it => items.push(it)));
-    if (kwLine) items.push({ num: '', text: kwLine, muted: true });
+    const leads = items.filter(it => it.lead);
+    const kw = items.filter(it => it.muted && String(it.text).indexOf('劇本關鍵字') === 0);
+    const nums = items.filter(it => it.num);
+    const tails = items.filter(it => it.muted && String(it.text).indexOf('劇本關鍵字') !== 0);
+    if (kwLine && !kw.length) kw.push({ num: '', text: kwLine, muted: true });
+    const sections = [];
+    if (leads.length) sections.push({ label: '今日重點', items: leads.reduce((a, it) => a.concat(scSentences_(it.text).map(t => ({ num: '・', text: t }))), []) });
+    if (kw.length) {
+      const body = String(kw[0].text).replace(/^劇本關鍵字[^：]*：/, '');
+      sections.push({ label: '熱門歸納', items: body.split('、').map(t => t.trim()).filter(Boolean).map(t => ({ num: '・', text: t })) });
+    }
+    if (nums.length) sections.push({ label: '頻道改善建議', items: nums.map(it => ({ num: it.num, text: it.text })) });
+    if (tails.length) sections.push({ label: '待確認', items: tails.map(it => ({ text: it.text, muted: true })) });
+    if (!sections.length) sections.push({ label: '今日重點', items: [{ text: '今天還沒有新的神對話迭代建議。' }] });
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
-    const itemList = items.length ? items : [{ num: '', text: '今天還沒有新的神對話迭代建議。', lead: true }];
-    // 兩張圖分開傳：第一張頻道數據，第二張神對話每日迭代（字級加大）
-    // 結論放在第一張（頻道數據下方），改善建議放在第二張，兩張都留足空間
-    const leads = itemList.filter(it => it.lead);
-    const rest = itemList.filter(it => !it.lead);
-    const pngStats = layoutPng_(shenStatsCardLayout_(chanSt, dateLine, leads), '每日回報_頻道_' + today + '.png');
-    const pngIter = layoutPng_(shenIterCardLayout_(rest.length ? rest : [{ num: '', text: '本批沒有其他改善建議。', muted: true }], dateLine), '每日回報_神對話_' + today + '.png');
-    const pngs = [pngStats, pngIter].filter(Boolean);
-    if (pngs.length) {
+    const pages = scPages_(chanSt, sections, dateLine);
+    const pngs = pages.map((p, i) => layoutPng_(scPageLayout_(p), '每日回報_' + today + '_' + (i + 1) + '.png')).filter(Boolean);
+    if (pngs.length === pages.length) {
       const urls = pngs.map(p => shenCardUrl_(p));
-      if (owner) lineApi_('push', { to: owner, messages: withQuick_(urls.map(u => ({ type: 'image', originalContentUrl: u, previewImageUrl: u }))
-        .concat([{ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL }])) });
+      const imgs = urls.map(u => ({ type: 'image', originalContentUrl: u, previewImageUrl: u }));
+      // LINE 每次最多 5 則訊息，超過就分批推送
+      if (owner) {
+        for (let i = 0; i < imgs.length; i += 5) {
+          const batch = imgs.slice(i, i + 5);
+          if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL });
+          lineApi_('push', { to: owner, messages: i === 0 ? withQuick_(batch) : batch });
+        }
+      }
       if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) pngs.forEach(p => tgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: p }));
     } else {
       // 圖卡畫不出來：照舊傳純文字，內容不漏
