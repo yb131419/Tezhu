@@ -238,33 +238,66 @@ function shenPushFail_(sh, pending, stamp, reason) {
   if (sh) pending.forEach(p => sh.getRange(p.row, 5).setValue('推送失敗 ' + stamp + '：' + reason));
 }
 
-// 由時間觸發器執行（9:30）：頻道數據（今天的）＋還沒傳的摘要，排成 3:4 圖卡，傳到 LINE 與 Telegram
-function shenDailyPush() {
+// Telegram 直接呼叫 API 並檢查回應碼（失敗就丟錯，讓上層記錄原因）
+function shenTgSend_(chatId, payload) {
+  const token = prop_('TELEGRAM_BOT_TOKEN');
+  const isPhoto = !!payload.png;
+  const url = 'https://api.telegram.org/bot' + token + (isPhoto ? '/sendPhoto' : '/sendMessage');
+  const body = isPhoto
+    ? { chat_id: String(chatId), photo: payload.png, caption: String(payload.text || '').slice(0, 1000) }
+    : { chat_id: String(chatId), text: String(payload.text) };
+  const res = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, payload: body });
+  const code = res.getResponseCode();
+  const txt = res.getContentText().slice(0, 200);
+  console.log('Telegram ' + (isPhoto ? 'sendPhoto' : 'sendMessage') + ' 回應：' + code + ' ' + txt);
+  if (code !== 200) throw new Error('Telegram HTTP ' + code + '：' + txt);
+  return code;
+}
+
+// LINE：lineApi_ 會回傳 HTTP 狀態碼，非 200 就丟錯
+function shenLinePush_(to, messages) {
+  const code = lineApi_('push', { to: to, messages: messages });
+  console.log('LINE push 回應碼：' + code);
+  if (code !== 200) throw new Error('LINE HTTP ' + code);
+  return code;
+}
+
+// 由時間觸發器執行（9:30）：只推送還沒送出的內容
+function shenDailyPush() { shenDailyRun_(false); }
+
+// 手動重送（在編輯器選 shenDailyResend 按執行）：不看推送時間，把最新一筆摘要重新送出（頻道數據已在 9:30 送過就不會再附）
+function shenDailyResend() { return shenDailyRun_(true); }
+
+function shenDailyRun_(resend) {
   const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
   const stamp = () => Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
   const cm = JSON.parse(prop_('CHAN_DAILY_MSG') || 'null');
-  const chanText = cm && cm.d === today ? cm.t : '';
-  const chanSt = cm && cm.d === today ? cm.st : null;
+  const chanText = !resend && cm && cm.d === today ? cm.t : '';
+  const chanSt = !resend && cm && cm.d === today ? cm.st : null;
   const sh = ss_().getSheetByName(SHEN_DAILY_SHEET);
   const pending = [];
   if (sh && sh.getLastRow() >= 2) {
-    sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach((r, i) => {
-      const body = String(r[1] || '').trim();
-      if (body && !String(r[3] || '').trim()) pending.push({ row: i + 2, date: r[0], body: body, url: SHEN_PAGE_URL });
-    });
+    const all = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().map((r, i) => ({
+      row: i + 2, date: r[0], body: String(r[1] || '').trim(), url: SHEN_PAGE_URL, sent: String(r[3] || '').trim() }))
+      .filter(p => p.body);
+    if (resend) { if (all.length) pending.push(all[all.length - 1]); }
+    else all.forEach(p => { if (!p.sent) pending.push(p); });
   }
-  console.log('shenDailyPush 開始：' + today + '，頻道數據' + (chanText ? '有' : '無') + '，待推送摘要 ' + pending.length + ' 筆');
-  if (!chanText && !pending.length) { console.log('沒有待推送的內容，結束。'); return; }
+  console.log('shenDailyRun_ 開始（' + (resend ? '手動重送' : '排程') + '）：' + today + '，頻道數據' + (chanText ? '有' : '無') + '，待推送摘要 ' + pending.length + ' 筆');
+  if (!chanText && !pending.length) {
+    console.log('沒有可送出的內容：排程已把今天的摘要標示為已推送，頻道數據也已清除。若要重送摘要，請執行 shenDailyResend。');
+    return 'nothing_to_send';
+  }
   const kwLine = shenKeywordLine_();
   const parts = [];
   if (chanText) parts.push(chanText);
-  pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + (p.url ? '\n\n📜 劇本網址：' + p.url : '')));
+  pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + '\n\n📜 劇本網址：' + p.url));
   if (kwLine) parts.push('🔎 ' + kwLine);
   const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   const tgOn = !!(tgOwner && prop_('TELEGRAM_BOT_TOKEN'));
   console.log('推送目標：LINE ' + (owner ? '已設定' : '未設定（OWNER_USER_ID 空白）') + '，Telegram ' + (tgOn ? '已設定' : '未設定（TG_OWNER_CHAT_ID 或 TELEGRAM_BOT_TOKEN 空白）'));
-  if (!owner && !tgOn) { shenPushFail_(sh, pending, stamp(), '推送目標都沒有設定'); return; }
+  if (!owner && !tgOn) { shenPushFail_(sh, pending, stamp(), '推送目標都沒有設定'); return 'no_target'; }
 
   const errs = [];
   // 沒設定的管道不算失敗；設定了但沒有成功送出，才算失敗
@@ -300,15 +333,14 @@ function shenDailyPush() {
           for (let i = 0; i < imgs.length; i += 5) {
             const batch = imgs.slice(i, i + 5);
             if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL });
-            const r = lineApi_('push', { to: owner, messages: i === 0 ? withQuick_(batch) : batch });
-            console.log('LINE 圖卡推送回應（第 ' + (Math.floor(i / 5) + 1) + ' 批）：' + JSON.stringify(r).slice(0, 300));
+            shenLinePush_(owner, i === 0 ? withQuick_(batch) : batch);
           }
           lineOk = true;
         } catch (e) { errs.push('LINE 圖卡：' + e); }
       }
       if (tgOn) {
         try {
-          pngs.forEach(p => tgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: p }));
+          pngs.forEach(p => shenTgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: p }));
           tgOk = true;
         } catch (e) { errs.push('Telegram 圖卡：' + e); }
       }
@@ -316,20 +348,23 @@ function shenDailyPush() {
       // 圖卡畫不出來：照舊傳純文字，內容不漏
       console.error('每日回報圖卡沒產生，改傳文字。' + (REPORT_ERR_ || ''));
       if (owner) {
-        try { shenChunks_(msg, 4800).forEach(t => push_(owner, t)); lineOk = true; } catch (e) { errs.push('LINE 文字：' + e); }
+        try { shenChunks_(msg, 4800).forEach(t => shenLinePush_(owner, withQuick_([{ type: 'text', text: t }]))); lineOk = true; }
+        catch (e) { errs.push('LINE 文字：' + e); }
       }
       if (tgOn) {
-        try { shenChunks_(msg, 3800).forEach(t => tgSend_(tgOwner, t)); tgOk = true; } catch (e) { errs.push('Telegram 文字：' + e); }
+        try { shenChunks_(msg, 3800).forEach(t => shenTgSend_(tgOwner, { text: t })); tgOk = true; }
+        catch (e) { errs.push('Telegram 文字：' + e); }
       }
     }
   } catch (e) { errs.push('產生圖卡：' + e); }
 
   if (!lineOk || !tgOk || errs.length) {
     shenPushFail_(sh, pending, stamp(), errs.join('；') || '未知錯誤');
-    return; // 不寫推送時間、保留頻道數據，之後可手動再執行重試
+    return 'failed: ' + errs.join('；');
   }
   console.log('推送完成：LINE ' + (owner ? 'OK' : '未啟用') + '，Telegram ' + (tgOn ? 'OK' : '未啟用'));
   const now = stamp();
   pending.forEach(p => { sh.getRange(p.row, 4).setValue(now); sh.getRange(p.row, 5).setValue(''); });
   if (chanText) setProp_('CHAN_DAILY_MSG', '');
+  return 'ok';
 }
