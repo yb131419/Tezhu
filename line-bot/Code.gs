@@ -818,6 +818,7 @@ const TITLE_PLAN_ = [
   ['NR81_n8Qw7U', 'EP03｜許了願，落空了？ #與神對話 #許願 #願力 #修心'],
   ['fmlQBwqg6zk', 'EP02｜前世的錯，要還嗎？ #與神對話 #業力 #因果 #修心'],
   ['0BYMpfpwBtU', '一念之間｜第一集｜一念怎麼開始？ #與神對話 #一念之間 #業力 #輪迴'],
+  ['1tJwHJKjMVA', 'EP27｜你最怕失去什麼？ #與神對話 #放下 #執著 #修心'],
 ];
 // 清單沒有影片 ID 時，依標題的集數對應（頻道上找不到 ID 的集數，例如 EP01）
 const TITLE_EP_PLAN_ = {
@@ -1094,7 +1095,7 @@ function titleApply_() {
       } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
       sh.getRange(start + i, 5).setValue(st);
     });
-    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
+    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : ''),
       buttons: [[CHAN_BTN, MENU_BTN]] };
   });
 }
