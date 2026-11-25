@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="robots" content="noindex,nofollow">
-<title>私人助理小乖</title>
+<title>彥彬｜特助小乖</title>
 <style>
 :root{--bg:#15120E;--card:#1E1A14;--gold:#C9A56A;--gold2:#F1DFB4;--ink:#F3EBDD;--soft:#A89B84;--line:rgba(220,195,148,.22)}
 @media (prefers-color-scheme: light){:root:not([data-theme=dark]){--bg:#F6F1E7;--card:#FFFDF8;--gold:#9A7440;--gold2:#6B4F25;--ink:#2A2418;--soft:#7A6C55;--line:rgba(120,95,55,.25)}}
@@ -23,7 +23,7 @@ button.go:disabled{opacity:.5;cursor:default}
 </head>
 <body>
 <div class="box">
-  <p class="mark">私人助理小乖</p>
+  <p class="mark">彥彬｜特助小乖</p>
   <p class="sub" id="intro">請輸入同步密碼，才能進入小乖主頁。</p>
   <form id="gate" autocomplete="off">
     <input class="field hide" id="url" type="url" placeholder="小乖網址（…/exec）">
@@ -38,7 +38,7 @@ button.go:disabled{opacity:.5;cursor:default}
   var STORE_KEY = "xiaoguai_v1";      // 小乖主頁原本的設定（網址、同步密碼）
   var GATE_KEY  = "xg_gate_v1";       // 當天解鎖記錄：日期＋主頁內容
   var TIMEOUT_MS = 25000;             // 超過這個時間沒回應就停止等待
-  var STAMP = "v 912d137 · 2026/11/19 15:04";                    // 版本標示（由 tools/stamp_gate.py 自動更新）
+  var STAMP = "v d35a2f9 · 2026/11/25 14:27";                    // 版本標示（由 tools/stamp_gate.py 自動更新）
   var $ = function(id){ return document.getElementById(id); };
 
   function today(){ var d = new Date(); return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate(); }
