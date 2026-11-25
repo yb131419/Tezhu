@@ -209,7 +209,7 @@ out_path = sys.argv[2] if len(sys.argv) > 2 else 'ShenScripts.html'
 open(out_path, 'w', encoding='utf-8').write(html)
 print('sections items:', count, 'bytes:', len(html.encode()))
 
-# 同一次執行同時產生 shen-latest.json，給小乖對話頁（Talk.html）顯示最新集數與更新日期
+# 同一次執行同時產生 shen-latest.json（目前沒有頁面讀取它，保留是因為排程 shen-page.yml 會一併提交它；確認不再需要後可一起移除）
 vert = next((s for s in sections if '直式' in s['title'] and s['items']), None)
 latest = vert['items'][0]['summary'].replace('.md', '') if vert else ''
 updated = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y/%m/%d')

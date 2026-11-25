@@ -332,7 +332,7 @@ const TALK_BTN_OLD_ = '🐾 對話頁';   // 舊按鈕文字（舊的鍵盤還�
 function isTalkBtn_(t) { return t === TALK_BTN || t === TALK_BTN_OLD_; }
 const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁的 ☰ 選單（#menu）
 function talkMenuUrl_() { return talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1#menu'; }
-const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
+const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Assistant.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
@@ -382,7 +382,7 @@ function talk(key, q, image, voice, audio64, audioType, spoken) {
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
 let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
-const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
+const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Assistant.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
@@ -533,7 +533,7 @@ function doPost(e) {
     catch (err) { console.error(err); return json_({ heard: '' }); }
   }
 
-  // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
+  // 前端「小乖對話」網頁（Assistant.html 的對話分頁）：回 JSON { say, show, buttons }
   if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
     try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType, body.spoken)); }
     catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
@@ -790,7 +790,7 @@ function chanReply_(t) {
   return null;
 }
 /* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「全部套用」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
-const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
+const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題';
 const TITLE_SHEET = '標題更改紀錄';
 const TITLE_HEAD_ = ['批次', '影片ID', '原標題', '新標題', '結果', '原說明', '新說明', '原標記', '新標記'];
 const TAG_PLAN_ = {"EP01": ["神對話", "引果", "念頭", "覺察", "放下", "嗔念", "修行", "心靈成長"], "EP02": ["神對話", "業力", "因果", "善念", "修行", "心靈成長", "人生感悟"], "EP03": ["神對話", "許願", "願果", "因果", "慈悲", "修行", "心靈成長"], "EP04": ["神對話", "輪迴", "放下", "選擇", "修行", "心靈成長", "人生感悟"], "EP05": ["神對話", "覺察", "放下", "呼吸", "修行", "心靈成長"], "EP06": ["神對話", "慈悲", "忍讓", "原諒", "修行", "心靈成長", "人際關係"], "EP07": ["神對話", "持戒", "戒律", "界線", "修行", "心靈成長"], "EP08": ["神對話", "布施", "不求回報", "慈悲", "修行", "心靈成長"], "EP09": ["神對話", "忍辱", "情緒管理", "覺察", "修行", "心靈成長"], "EP10": ["神對話", "精進", "堅持", "自我成長", "修行", "心靈成長"], "EP11": ["神對話", "禪定", "安住", "打坐", "覺察", "修行", "心靈成長"], "EP12": ["神對話", "六道輪迴", "口業", "志業", "修心", "修行", "心靈成長"], "EP13": ["神對話", "般若", "智慧", "看清", "放下", "修行", "心靈成長"], "EP14": ["神對話", "解脫", "覺察", "放下", "修行", "心靈成長"], "EP15": ["神對話", "菩提心", "慈悲", "發願", "修行", "心靈成長"], "EP16": ["神對話", "方便", "慈悲", "智慧", "幫助他人", "修行"], "EP17": ["神對話", "隨喜", "善念", "讚歎", "慈悲", "修行", "心靈成長"], "EP18": ["神對話", "無我", "放下", "自在", "智慧", "修行", "心靈成長"], "EP19": ["神對話", "平等心", "慈悲", "智慧", "修心", "修行", "心靈成長"], "EP20": ["神對話", "菩薩道", "慈悲", "利他", "修行", "心靈成長"], "EP23": ["神對話", "善知識", "修行", "智慧"], "EP24": ["神對話", "念頭", "放下", "無我", "修心"], "EP25": ["神對話", "菩提心", "布施", "慈悲", "善念"], "EP26": ["神對話", "無我", "忍辱", "念頭", "修心"], "LONG": ["神對話", "一念之間", "引果", "業力", "願果", "輪迴", "修行", "心靈成長"]};   // 標記（搜尋關鍵字）：依各集主題整理，不是 YouTube 的熱門搜尋數據
@@ -1177,9 +1177,7 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-// 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
-const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
-// LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
+// 神對話劇本（最新版）的網址：LINE／Telegram 傳出、每日更新與「傳送神對話劇本」一律用神劇本頁（免登入、會自動更新）
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
 const CHAN_VERSION = 'title-11｜2026-11-23｜全等更改：EP23–26 標題的「#與神對話」改為「#神對話」，標題與標記一致';
@@ -4274,7 +4272,7 @@ function findCases_(words) {
 
 // 你的專案（給語音和文字問）：這裡是寫死的清單，小乖只讀不寫；要增減請改這個陣列再部署
 const PROJECTS_ = [
-  { name: 'Tezhu', title: '小乖', repo: 'yb131419/Tezhu', sum: '小乖的程式與網頁：Assistant.html（主頁）、Talk.html（對話頁）、line-bot/（LINE、Telegram、Apps Script）。' },
+  { name: 'Tezhu', title: '小乖', repo: 'yb131419/Tezhu', sum: '小乖的程式與網頁：Assistant.html（主頁，含對話與行程）、line-bot/（LINE、Telegram、Apps Script）。' },
 ];
 
 // 「專案」列出全部；「專案 名稱」看一個（名稱或中文都可以）
@@ -6490,7 +6488,7 @@ function merge_(a, b) {
 }
 
 /* ============ 行程網頁（Schedule.html）：手機上查看、新增、修改、刪除 ============ */
-const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Talk.html#sched';
+const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Assistant.html#sched';
 function eventApi_(b) {
   if (b.action === 'evList') return { ok: true, events: readAll_().events.slice().sort(evCmp_) };
   const now = Date.now();
