@@ -784,15 +784,15 @@ function chanReply_(t) {
   if (/^(更改全部|全部更改|更改全部標題說明|更改全部標題和說明|更改全部說明標題|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));   // 更改全部＝標題＋說明＋標記三項一起
   if (/^(更改全部說明|更改說明|說明更改|只改說明)$/.test(cmd)) return chanSafe_(() => titlePreview_('desc'));
   if (/^(頻道|頻道管理|YT頻道)$/i.test(cmd)) return chanSafe_(channelHub_);
-  if (/^(全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
-  if (/^取消更改標題$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
+  if (/^(確認修改|全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
+  if (/^(不要修改|取消更改標題)$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明都不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
   if (/^還原標題$/.test(cmd)) return chanSafe_(titleRestore_);
   const sd = cmd.match(/^說明(EP\d{2}|一念之間)$/i);
   if (sd) return chanSafe_(() => titleShowDesc_(sd[1] === '一念之間' ? 'LONG' : sd[1].toUpperCase()));
   return null;
 }
-/* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「全部套用」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
-const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題';
+/* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「確認修改」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
+const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '確認修改', TITLE_CANCEL = '不要修改';
 const TITLE_SHEET = '標題更改紀錄';
 const TITLE_HEAD_ = ['批次', '影片ID', '原標題', '新標題', '結果', '原說明', '新說明', '原標記', '新標記'];
 const TAG_PLAN_ = {"EP01": ["神對話", "引果", "念頭", "覺察", "放下", "嗔念", "修行", "心靈成長"], "EP02": ["神對話", "業力", "因果", "善念", "修行", "心靈成長", "人生感悟"], "EP03": ["神對話", "許願", "願果", "因果", "慈悲", "修行", "心靈成長"], "EP04": ["神對話", "輪迴", "放下", "選擇", "修行", "心靈成長", "人生感悟"], "EP05": ["神對話", "覺察", "放下", "呼吸", "修行", "心靈成長"], "EP06": ["神對話", "慈悲", "忍讓", "原諒", "修行", "心靈成長", "人際關係"], "EP07": ["神對話", "持戒", "戒律", "界線", "修行", "心靈成長"], "EP08": ["神對話", "布施", "不求回報", "慈悲", "修行", "心靈成長"], "EP09": ["神對話", "忍辱", "情緒管理", "覺察", "修行", "心靈成長"], "EP10": ["神對話", "精進", "堅持", "自我成長", "修行", "心靈成長"], "EP11": ["神對話", "禪定", "安住", "打坐", "覺察", "修行", "心靈成長"], "EP12": ["神對話", "六道輪迴", "口業", "志業", "修心", "修行", "心靈成長"], "EP13": ["神對話", "般若", "智慧", "看清", "放下", "修行", "心靈成長"], "EP14": ["神對話", "解脫", "覺察", "放下", "修行", "心靈成長"], "EP15": ["神對話", "菩提心", "慈悲", "發願", "修行", "心靈成長"], "EP16": ["神對話", "方便", "慈悲", "智慧", "幫助他人", "修行"], "EP17": ["神對話", "隨喜", "善念", "讚歎", "慈悲", "修行", "心靈成長"], "EP18": ["神對話", "無我", "放下", "自在", "智慧", "修行", "心靈成長"], "EP19": ["神對話", "平等心", "慈悲", "智慧", "修心", "修行", "心靈成長"], "EP20": ["神對話", "菩薩道", "慈悲", "利他", "修行", "心靈成長"], "EP23": ["神對話", "善知識", "修行", "智慧"], "EP24": ["神對話", "念頭", "放下", "無我", "修心"], "EP25": ["神對話", "菩提心", "布施", "慈悲", "善念"], "EP26": ["神對話", "無我", "忍辱", "念頭", "修心"], "LONG": ["神對話", "一念之間", "引果", "業力", "願果", "輪迴", "修行", "心靈成長"]};   // 標記（搜尋關鍵字）：依各集主題整理，不是 YouTube 的熱門搜尋數據
@@ -1006,7 +1006,7 @@ function titlePreview_(mode) {
   if (!items.length) return { text: '✏️ ' + label + '都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
   setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, n: items.length, snaps: titleSnapMap_(items) }));
   const tN = items.filter(x => x.titleChg).length, dN = items.filter(x => x.descChg).length, gN = items.filter(x => x.tagsChg).length;
-  const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
+  const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按確認修改之前請再看一眼新標題。' : '';
   const lines = items.map(x => {
     const parts = [];
     parts.push(x.titleChg ? x.from + '\n　→ ' + x.to : '（標題不變）' + x.from);
@@ -1035,14 +1035,14 @@ function titleFlex_(items, label) {
   });
   const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: rows }];
   const buttons = [
-    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '✅ 全部套用', text: TITLE_APPLY } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '先不改', text: TITLE_CANCEL } },
+    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '確認修改', text: TITLE_APPLY } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '不要修改', text: TITLE_CANCEL } },
   ];
-  return chanBubble_(chanHead_('小乖 · TITLES', '預覽：' + label, items.length + ' 支影片要更新，按「全部套用」才會改'), content, buttons);
+  return chanBubble_(chanHead_('小乖 · TITLES', '預覽：' + label, items.length + ' 支影片要更新，按「確認修改」才會改'), content, buttons);
 }
 // 全部套用：內容跟預覽一樣才改；備份的原內容一律是這支影片最初的樣子，之後再改也不會被中間版本蓋掉
 function titleApply_() {
-  if (VOICE_IN_) return '更改只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
+  if (VOICE_IN_) return '更改只能按卡片上的「確認修改」按鈕，不能用語音直接改。';
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
@@ -1137,11 +1137,11 @@ function titleShowDesc_(key) {
   if (!d) return { text: '這一集還沒有新的影片說明。', buttons: [[TITLE_BTN, MENU_BTN]] };
   return { text: '📝 ' + (key === 'LONG' ? '一念之間' : key) + ' 新的影片說明\n\n' + d, buttons: [[TITLE_BTN, MENU_BTN]] };
 }
-// 頻道管理卡片：三種改法、頻道數據與還原都在這裡；輸入「頻道」或按選單叫出來
+// 頻道管理卡片：三種改法與頻道數據都在這裡（還原用文字「還原標題」）；輸入「頻道」或按選單叫出來
 function channelHub_() {
   const pend = igState_('TITLE_PENDING');
   const live = !!pend && Date.now() - pend.at < 60 * 60 * 1000;
-  const note = live ? '有待確認的更改：' + pend.n + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
+  const note = live ? '有待確認的更改：' + pend.n + ' 支（按「確認修改」才會改）' : '目前沒有待確認的更改';
   const menu = [
     ['✏️ 更改全部', '標題、說明、標記一起改，先看預覽再確認'],
     ['🏷️ 只改標題', '只改影片標題，說明保持不變'],
@@ -1182,7 +1182,7 @@ function 授權YouTube改標題() {
 // 神對話劇本（最新版）的網址：LINE／Telegram 傳出、每日更新與「傳送神對話劇本」一律用神劇本頁（免登入、會自動更新）
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'title-11｜2026-11-23｜全等更改：EP23–26 標題的「#與神對話」改為「#神對話」，標題與標記一致';
+const CHAN_VERSION = 'title-12｜2026-11-25｜修改確認統一為「確認修改／不要修改」，卡片說明與過期文字更新';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
 function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
 function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
