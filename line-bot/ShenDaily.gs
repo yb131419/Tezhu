@@ -1,6 +1,6 @@
 /* ============ 每日合併推送：神對話每日迭代 + 頻道數據，做成 3:4 直式圖卡傳到小乖對話（LINE 與 Telegram） ============
    9:15：頻道數據更新（chanDailyJob 寫進試算表，並把數字與文字暫存在 CHAN_DAILY_MSG，不直接傳）。
-   排程 9:15：把當天的神對話摘要寫進試算表「神對話每日摘要」分頁（A 日期、B 摘要、C 劇本網址（推送時一律改用 SHEN_PAGE_URL，不讀 C 欄），D 推送時間，E 推送錯誤）。
+   排程 9:15：把當天的神對話摘要寫進試算表「神對話每日摘要」分頁（A 日期、B 摘要、C 劇本網址（推送時一律改用 SHEN_SCRIPT_URL，不讀 C 欄），D 推送時間，E 推送錯誤）。
    9:30 左右：shenDailyPush 把頻道數據與還沒傳的摘要排成 3:4 圖卡（900 × 1200，Google 簡報轉 PNG，跟試算報表同一套做法），傳到 LINE 與 Telegram；
    內容多時自動拆成第 1／2／3 頁，不截斷。圖卡畫不出來時改傳純文字，不會漏掉內容。
    只有確實送出（沒有例外）才寫入 D 欄推送時間，並清掉頻道數據暫存；送不出去時寫入 E 欄原因、保留頻道數據，手動再執行就會重試。 */
@@ -181,12 +181,12 @@ function scPageLayout_(page) {
     let y = 306;
     if (page.stats) {
       const s = page.stats;
-      const cells = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, s.pctWarn ? '平均看了（待確認）' : '平均看了']];
+      const cells = [[s.subs, '訂閱數'], [s.avg, '最近影片平均觀看'], [s.pct, '平均看了']];
       cells.forEach((c, i) => {
         const x = SC_PAD + i * 258;
         d.rect(x, 306, 240, 240, SC_.BOX, SC_.FRAME);
         d.text(x, 336, 240, 110, c[0], { font: 'Noto Serif TC', size: 58, bold: true, color: SC_.INK, middle: true });
-        d.text(x + 8, 452, 224, 76, c[1], { font: 'Noto Sans TC', size: 26, color: c[1].indexOf('待確認') >= 0 ? SC_.BRAND : SC_.SOFT });
+        d.text(x + 8, 452, 224, 76, c[1], { font: 'Noto Sans TC', size: 26, color: SC_.SOFT });
       });
       y = 606;
     }
