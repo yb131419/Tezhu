@@ -1340,3 +1340,6 @@ function tradeBackfill_(days, write) {
   }
   return head;
 }
+
+// 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
+function gasStampTrade_() { return '8196393'; }

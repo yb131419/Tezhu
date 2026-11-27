@@ -120,3 +120,6 @@ function notifyOwner_(msg) {
     if (tgOwner && prop_('TELEGRAM_BOT_TOKEN')) tgSend_(tgOwner, msg.slice(0, 4000));
   } catch (e) { console.error('價目表同步推播失敗：' + e); }
 }
+
+// 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
+function gasStampPriceSync_() { return 'e255b7a'; }

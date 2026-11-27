@@ -289,10 +289,12 @@ function shenDailyRun_(resend) {
     return 'nothing_to_send';
   }
   const kwLine = shenKeywordLine_();
+  const gasNote = gasUpdateNote_();
   const parts = [];
   if (chanText) parts.push(chanText);
   pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + '\n\n📜 劇本網址：' + p.url));
   if (kwLine) parts.push('🔎 ' + kwLine);
+  if (gasNote) parts.push(gasNote);
   const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
   const tgOn = !!(tgOwner && prop_('TELEGRAM_BOT_TOKEN'));
@@ -330,7 +332,7 @@ function shenDailyRun_(resend) {
           // LINE 每次最多 5 則訊息，超過就分批推送
           for (let i = 0; i < imgs.length; i += 5) {
             const batch = imgs.slice(i, i + 5);
-            if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL });
+            if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL + (gasNote ? '\n\n' + gasNote : '') });
             shenLinePush_(owner, i === 0 ? withQuick_(batch) : batch);
           }
           lineOk = true;
@@ -339,6 +341,7 @@ function shenDailyRun_(resend) {
       if (tgOn) {
         try {
           pngs.forEach(p => shenTgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: p }));
+          if (gasNote) shenTgSend_(tgOwner, { text: gasNote });
           tgOk = true;
         } catch (e) { errs.push('Telegram 圖卡：' + e); }
       }
@@ -366,3 +369,46 @@ function shenDailyRun_(resend) {
   if (chanText) setProp_('CHAN_DAILY_MSG', '');
   return 'ok';
 }
+
+// ============ GAS 版本檢查（2026-11-27）：每日回報時比對 GitHub 上最新的 GS 檔 ============
+// 每個 GS 檔最後都有 gasStampXxx_()，回傳該檔內容的短碼（tools/stamp_gas.py 產生，內容沒變短碼就不變）。
+// 跟 GitHub main 上的短碼不一樣，就在每日回報加一則「需要更改 GAS」，附檔名、要貼的分頁、行數、開頭文字與固定 commit 的連結。
+// Trade.gs、PriceSync.gs 只有在這個專案裡有用到（找得到該檔的函式）時才檢查。
+const GAS_REPO_ = 'yb131419/Tezhu';
+function gasFiles_() {
+  return [
+    { file: 'Code.gs', mine: typeof gasStampCode_ === 'function' ? gasStampCode_() : '', on: true },
+    { file: 'ShenDaily.gs', mine: typeof gasStampShenDaily_ === 'function' ? gasStampShenDaily_() : '', on: true },
+    { file: 'Trade.gs', mine: typeof gasStampTrade_ === 'function' ? gasStampTrade_() : '', on: typeof tradeIsQuota_ === 'function' },
+    { file: 'PriceSync.gs', mine: typeof gasStampPriceSync_ === 'function' ? gasStampPriceSync_() : '', on: typeof priceSyncRun === 'function' },
+  ];
+}
+// 回傳提醒文字；都是最新版、或連不上 GitHub 時回傳空字串（不影響每日回報）
+function gasUpdateNote_() {
+  try {
+    let sha = 'main';
+    const r = UrlFetchApp.fetch('https://api.github.com/repos/' + GAS_REPO_ + '/commits/main',
+      { muteHttpExceptions: true, headers: { Accept: 'application/vnd.github+json' } });
+    if (r.getResponseCode() === 200) sha = JSON.parse(r.getContentText()).sha || 'main';
+    const need = [];
+    gasFiles_().filter(f => f.on).forEach(f => {
+      const url = 'https://raw.githubusercontent.com/' + GAS_REPO_ + '/' + sha + '/line-bot/' + f.file;
+      const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      if (res.getResponseCode() !== 200) return;
+      const src = res.getContentText();
+      const m = src.match(/function gasStamp\w+_\(\) \{ return '([0-9a-f]+)'; \}/);
+      if (!m || m[1] === f.mine) return;
+      const lines = src.split('\n');
+      const n = src.slice(-1) === '\n' ? lines.length - 1 : lines.length;
+      const head = (lines.find(l => l.trim()) || '').trim().slice(0, 30);
+      need.push('・' + f.file + ' → 整份貼到「' + f.file + '」分頁（共 ' + n + ' 行，開頭「' + head + '」）\n' + url);
+    });
+    console.log('GAS 版本檢查：' + (need.length ? need.length + ' 個檔案要更新' : '都是最新版'));
+    return need.length ? '⚠️ 需要更改 GAS（GitHub 上有新版）\n' + need.join('\n') + '\n貼好後記得部署新版本。' : '';
+  } catch (e) { console.error('GAS 版本檢查失敗：' + e); return ''; }
+}
+// 手動檢查（在編輯器選 gasCheck 按執行）
+function gasCheck() { const t = gasUpdateNote_() || 'GAS 都是最新版，不用更改。'; console.log(t); return t; }
+
+// 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
+function gasStampShenDaily_() { return '6e16409'; }
