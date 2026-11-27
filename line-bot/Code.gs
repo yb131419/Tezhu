@@ -256,9 +256,11 @@ function doGet(e) {
   }
   // 「小乖對話」頁面：手機打開 Webhook 網址再加 &page=talk，加到主畫面就像 App
   if (p.page === 'talk') {
-    // 網址可以不帶密碼：頁面第一次會請你輸入，記在這支手機上
-    const k = p.key && p.key === prop_('SYNC_KEY') ? p.key : '';
-    return HtmlService.createHtmlOutput(TALK_HTML.replace('__KEY__', JSON.stringify(k)))
+    // 舊的橘棕對話頁已停用：轉到小乖主頁（Assistant.html，對話分頁）；密碼仍在主頁輸入
+    const to = TALK_PAGE;
+    return HtmlService.createHtmlOutput('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>try{window.top.location.replace(' + JSON.stringify(to) + ');}catch(e){}</script></head>' +
+      '<body style="margin:0;background:#15120E;color:#F3EBDD;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">' +
+      '<a href="' + to + '" target="_top" style="color:#C9A56A;font-size:18px;text-decoration:none;border:1px solid #C9A56A;border-radius:12px;padding:14px 22px">開啟小乖</a></body></html>')
       .setTitle('小乖').addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
       .setFaviconUrl('https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png');
   }
@@ -332,7 +334,7 @@ const TALK_BTN_OLD_ = '🐾 對話頁';   // 舊按鈕文字（舊的鍵盤還�
 function isTalkBtn_(t) { return t === TALK_BTN || t === TALK_BTN_OLD_; }
 const TRADE_QUICK_BTN = '📈 下單', SCHED_QUICK_BTN = '📅 行程';   // 快速回覆的智能下單、行程：直接打開對話頁的 ☰ 選單（#menu）
 function talkMenuUrl_() { return talkUrl_() + (talkUrl_().indexOf('?') >= 0 ? '&' : '?') + 'openExternalBrowser=1#menu'; }
-const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Talk.html#sched（行程面板）
+const SCHED_BTN = '📅 行程頁';   // 「行程」回覆的第一個快速回覆：直接打開 Assistant.html#sched（行程面板）
 function lineQuick_(t) {
   if (t === PHOTO_BTNS[0]) return { type: 'action', action: { type: 'cameraRoll', label: t } };
   if (t === PHOTO_BTNS[1]) return { type: 'action', action: { type: 'camera', label: t } };
@@ -351,7 +353,7 @@ function wallUrl_() { const t = talkUrl_(), i = t.indexOf('?'); return WALL_PAGE
 function wallLink_() { return '🔎 見證庫網頁：\n' + wallUrl_() + '\n\n① 打關鍵字或點分類找見證\n② 點縮圖看影片／圖片\n③ 按「分享到 LINE」選要傳給誰\n\n常用的按 ⭐ 會排在最前面。第一次打開要輸入同步密碼。'; }
 
 // 「小乖對話」頁面用 google.script.run 呼叫這個（名字不能加底線，頁面才叫得到）；回 { say: 念的, show: 畫面顯示的 }
-// 對話頁（TALK_HTML，google.script.run）先只轉文字，再用 talk(..., spoken) 送出去執行
+// 小乖主頁的對話分頁（google.script.run）先只轉文字，再用 talk(..., spoken) 送出去執行
 function talkHeard(key, audio64, audioType) {
   if (!prop_('SYNC_KEY') || key !== prop_('SYNC_KEY')) throw new Error('同步密碼不對');
   return { heard: transcribeAudio_(audio64, audioType) };
@@ -382,7 +384,7 @@ function talk(key, q, image, voice, audio64, audioType, spoken) {
 }
 let ASK_SHOW_ = '', ASK_BTNS_ = [], ASK_IMG_ = '', ASK_IMGS_ = [], TALK_MODE_ = false, VOICE_ONLY_ = false;
 let VOICE_IN_ = false;   // 這句話是用講的來的（語音、捷徑）：交易的買賣、確認只能在卡片按鈕上做，語音不直接下單（Trade.gs 會擋）
-const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Talk.html';
+const TALK_PAGE = 'https://yb131419.github.io/Tezhu/Assistant.html';
 // 回覆帶的按鈕（例如試算問「現金／刷卡」）給對話頁當快速回覆；一般選單就不用
 function askButtons_(ans) {
   const b = quick_(ans && typeof ans === 'object' && ans.buttons);
@@ -533,7 +535,7 @@ function doPost(e) {
     catch (err) { console.error(err); return json_({ heard: '' }); }
   }
 
-  // 前端「小乖對話」網頁（Talk.html）：回 JSON { say, show, buttons }
+  // 前端「小乖對話」網頁（Assistant.html 的對話分頁）：回 JSON { say, show, buttons }
   if (body.action === 'talk') {   // 出錯也要回 JSON，對話頁才看得到原因（不然只會顯示「連線有問題」）
     try { return json_(talk(String(body.key || ''), body.ask, body.image, body.voice, body.audio, body.audioType, body.spoken)); }
     catch (err) { console.error(err); const m = '小乖出了點問題：' + (err && err.message || err); return json_({ say: m, show: m, buttons: [], audio: '', heard: '', img: '' }); }
@@ -782,15 +784,15 @@ function chanReply_(t) {
   if (/^(更改全部|全部更改|更改全部標題說明|更改全部標題和說明|更改全部說明標題|更改全部標題說明標記|更改全部標題說明和標記)$/.test(cmd)) return chanSafe_(() => titlePreview_('all'));   // 更改全部＝標題＋說明＋標記三項一起
   if (/^(更改全部說明|更改說明|說明更改|只改說明)$/.test(cmd)) return chanSafe_(() => titlePreview_('desc'));
   if (/^(頻道|頻道管理|YT頻道)$/i.test(cmd)) return chanSafe_(channelHub_);
-  if (/^(全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
-  if (/^取消更改標題$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明先不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
+  if (/^(確認修改|全部套用|全部套用標題|全部套用說明)$/.test(cmd)) return chanSafe_(titleApply_);
+  if (/^(不要修改|取消更改標題)$/.test(cmd)) { setProp_('TITLE_PENDING', ''); return { text: '好，標題和說明都不改。', buttons: [[CHAN_BTN, MENU_BTN]] }; }
   if (/^還原標題$/.test(cmd)) return chanSafe_(titleRestore_);
   const sd = cmd.match(/^說明(EP\d{2}|一念之間)$/i);
   if (sd) return chanSafe_(() => titleShowDesc_(sd[1] === '一念之間' ? 'LONG' : sd[1].toUpperCase()));
   return null;
 }
-/* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「全部套用」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
-const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '✅ 全部套用', TITLE_CANCEL = '取消更改標題', TITLE_RESTORE = '↩️ 還原標題';
+/* ============ 批次更改 YouTube 影片標題與影片說明：先出預覽卡片，按「確認修改」才會改；改前先備份原標題與原說明，可一鍵還原 ============ */
+const TITLE_BTN = '📺 頻道管理', TITLE_APPLY = '確認修改', TITLE_CANCEL = '不要修改';
 const TITLE_SHEET = '標題更改紀錄';
 const TITLE_HEAD_ = ['批次', '影片ID', '原標題', '新標題', '結果', '原說明', '新說明', '原標記', '新標記'];
 const TAG_PLAN_ = {"EP01": ["神對話", "引果", "念頭", "覺察", "放下", "嗔念", "修行", "心靈成長"], "EP02": ["神對話", "業力", "因果", "善念", "修行", "心靈成長", "人生感悟"], "EP03": ["神對話", "許願", "願果", "因果", "慈悲", "修行", "心靈成長"], "EP04": ["神對話", "輪迴", "放下", "選擇", "修行", "心靈成長", "人生感悟"], "EP05": ["神對話", "覺察", "放下", "呼吸", "修行", "心靈成長"], "EP06": ["神對話", "慈悲", "忍讓", "原諒", "修行", "心靈成長", "人際關係"], "EP07": ["神對話", "持戒", "戒律", "界線", "修行", "心靈成長"], "EP08": ["神對話", "布施", "不求回報", "慈悲", "修行", "心靈成長"], "EP09": ["神對話", "忍辱", "情緒管理", "覺察", "修行", "心靈成長"], "EP10": ["神對話", "精進", "堅持", "自我成長", "修行", "心靈成長"], "EP11": ["神對話", "禪定", "安住", "打坐", "覺察", "修行", "心靈成長"], "EP12": ["神對話", "六道輪迴", "口業", "志業", "修心", "修行", "心靈成長"], "EP13": ["神對話", "般若", "智慧", "看清", "放下", "修行", "心靈成長"], "EP14": ["神對話", "解脫", "覺察", "放下", "修行", "心靈成長"], "EP15": ["神對話", "菩提心", "慈悲", "發願", "修行", "心靈成長"], "EP16": ["神對話", "方便", "慈悲", "智慧", "幫助他人", "修行"], "EP17": ["神對話", "隨喜", "善念", "讚歎", "慈悲", "修行", "心靈成長"], "EP18": ["神對話", "無我", "放下", "自在", "智慧", "修行", "心靈成長"], "EP19": ["神對話", "平等心", "慈悲", "智慧", "修心", "修行", "心靈成長"], "EP20": ["神對話", "菩薩道", "慈悲", "利他", "修行", "心靈成長"], "EP23": ["神對話", "善知識", "修行", "智慧"], "EP24": ["神對話", "念頭", "放下", "無我", "修心"], "EP25": ["神對話", "菩提心", "布施", "慈悲", "善念"], "EP26": ["神對話", "無我", "忍辱", "念頭", "修心"], "LONG": ["神對話", "一念之間", "引果", "業力", "願果", "輪迴", "修行", "心靈成長"]};   // 標記（搜尋關鍵字）：依各集主題整理，不是 YouTube 的熱門搜尋數據
@@ -798,65 +800,66 @@ const TITLE_LONG_ID_ = '0BYMpfpwBtU';   // 一念之間第一集（長影片，�
 const TITLE_EP18_ID_ = 'D5ZXjv7SQ1A';   // EP18：觀看最高，預覽時提醒改動有風險
 // 新標題（主文字最多七個字，標點不計）：影片 ID 對應頻道上的影片
 const TITLE_PLAN_ = [
-  ['VSzo0ZPetiU', 'EP20｜你最想先給誰？ #神對話 #菩薩道 #慈悲'],
-  ['LPNdqIIMHiM', 'EP19｜傷你的人，也平等？ #神對話 #平等心 #慈悲 #智慧 #修心'],
-  ['D5ZXjv7SQ1A', 'EP18｜哪個念頭自在？ #神對話 #無我 #放下 #自在 #智慧'],
-  ['3OtihBMOxSQ', 'EP17｜別人好，你難受嗎？ #神對話 #隨喜 #善念 #慈悲'],
-  ['1SMAOEdXnF8', 'EP16｜幫人，要怎麼說？ #神對話 #方便 #慈悲 #智慧'],
-  ['WyrrSYcLV3M', 'EP15｜解脫了，還要發願？ #神對話 #菩提心 #慈悲 #修心'],
-  ['wTMHG8dX574', 'EP14｜看清了，就能解脫？ #神對話 #解脫 #覺察 #修心'],
-  ['RdrfGqT-lho', 'EP13｜懂了，還是放不下？ #神對話 #般若 #智慧 #修心'],
-  ['6TCStCM9Byo', 'EP12｜修了行，還在輪迴？ #神對話 #六道輪迴 #修心 #慈悲'],
-  ['ERjFddrX_2M', 'EP11｜念頭吵到睡不著？ #神對話 #禪定 #修行 #覺察'],
-  ['sQ1VNRuutGE', 'EP10｜做到一半，想放棄？ #神對話 #精進 #修行 #覺察'],
-  ['GJJHD9enCWg', 'EP09｜被罵，你還忍嗎？ #神對話 #忍辱 #修行 #覺察'],
-  ['olr9xtTKs9w', 'EP08｜給了，還想要回報？ #神對話 #布施 #修行 #慈悲'],
-  ['HVubQ7jPCzw', 'EP07｜守規矩，綁住你？ #神對話 #持戒 #修行 #慈悲'],
-  ['-fCpj5Cs7fU', 'EP06｜委屈了，要忍嗎？ #神對話 #慈悲 #忍讓 #修心'],
-  ['x76o0MEKLKc', 'EP05｜放下了，念頭還來？ #神對話 #放下 #修心 #覺察'],
-  ['g8AdLdwuEF4', 'EP04｜放不下，還要輪迴？ #神對話 #輪迴 #選擇 #修心'],
-  ['NR81_n8Qw7U', 'EP03｜許了願，落空了？ #神對話 #許願 #願力 #修心'],
-  ['fmlQBwqg6zk', 'EP02｜前世的錯，要還嗎？ #神對話 #業力 #因果 #修心'],
-  ['0BYMpfpwBtU', '一念之間｜第一集｜一念怎麼開始？ #神對話 #一念之間 #業力 #輪迴'],
+  ['VSzo0ZPetiU', 'EP20｜你最想先給誰？ #與神對話 #菩薩道 #慈悲'],
+  ['LPNdqIIMHiM', 'EP19｜傷你的人，也平等？ #與神對話 #平等心 #慈悲 #智慧 #修心'],
+  ['D5ZXjv7SQ1A', 'EP18｜哪個念頭自在？ #與神對話 #無我 #放下 #自在 #智慧'],
+  ['3OtihBMOxSQ', 'EP17｜別人好，你難受嗎？ #與神對話 #隨喜 #善念 #慈悲'],
+  ['1SMAOEdXnF8', 'EP16｜幫人，要怎麼說？ #與神對話 #方便 #慈悲 #智慧'],
+  ['WyrrSYcLV3M', 'EP15｜解脫了，還要發願？ #與神對話 #菩提心 #慈悲 #修心'],
+  ['wTMHG8dX574', 'EP14｜看清了，就能解脫？ #與神對話 #解脫 #覺察 #修心'],
+  ['RdrfGqT-lho', 'EP13｜懂了，還是放不下？ #與神對話 #般若 #智慧 #修心'],
+  ['6TCStCM9Byo', 'EP12｜修了行，還在輪迴？ #與神對話 #六道輪迴 #修心 #慈悲'],
+  ['ERjFddrX_2M', 'EP11｜念頭吵到睡不著？ #與神對話 #禪定 #修行 #覺察'],
+  ['sQ1VNRuutGE', 'EP10｜做到一半，想放棄？ #與神對話 #精進 #修行 #覺察'],
+  ['GJJHD9enCWg', 'EP09｜被罵，你還忍嗎？ #與神對話 #忍辱 #修行 #覺察'],
+  ['olr9xtTKs9w', 'EP08｜給了，還想要回報？ #與神對話 #布施 #修行 #慈悲'],
+  ['HVubQ7jPCzw', 'EP07｜守規矩，綁住你？ #與神對話 #持戒 #修行 #慈悲'],
+  ['-fCpj5Cs7fU', 'EP06｜委屈了，要忍嗎？ #與神對話 #慈悲 #忍讓 #修心'],
+  ['x76o0MEKLKc', 'EP05｜放下了，念頭還來？ #與神對話 #放下 #修心 #覺察'],
+  ['g8AdLdwuEF4', 'EP04｜放不下，還要輪迴？ #與神對話 #輪迴 #選擇 #修心'],
+  ['NR81_n8Qw7U', 'EP03｜許了願，落空了？ #與神對話 #許願 #願力 #修心'],
+  ['fmlQBwqg6zk', 'EP02｜前世的錯，要還嗎？ #與神對話 #業力 #因果 #修心'],
+  ['0BYMpfpwBtU', '一念之間｜第一集｜一念怎麼開始？ #與神對話 #一念之間 #業力 #輪迴'],
+  ['1tJwHJKjMVA', 'EP27｜你最怕失去什麼？ #與神對話 #放下 #執著 #修心'],
 ];
 // 清單沒有影片 ID 時，依標題的集數對應（頻道上找不到 ID 的集數，例如 EP01）
 const TITLE_EP_PLAN_ = {
-  'EP01': 'EP01｜火氣上來，你停嗎？ #神對話 #引果 #覺察 #放下',
+  'EP01': 'EP01｜火氣上來，你停嗎？ #與神對話 #引果 #覺察 #放下',
   // 未上架的新集：標題與劇本一致（2026-11-19 改標題），上架後的改標題批次也會用這個標題
-  'EP21': 'EP21｜愛消失，你放得下？ #神對話 #無常 #珍惜 #放下',
-  'EP22': 'EP22｜做好事，不想被記？ #神對話 #迴向 #功德 #慈悲',
-  'EP23': 'EP23｜老師罵你，你還敬他？ #神對話 #善知識 #修行 #智慧',
-  'EP24': 'EP24｜他不回，你猜幾次？ #神對話 #念頭 #放下 #無我 #修心',
-  'EP25': 'EP25｜幫了人，卻被嫌？ #神對話 #菩提心 #布施 #慈悲 #善念',
-  'EP26': 'EP26｜誤會你，你要辯嗎？ #神對話 #無我 #忍辱 #念頭 #修心',
+  'EP21': 'EP21｜愛消失，你放得下？ #與神對話 #無常 #珍惜 #放下',
+  'EP22': 'EP22｜做好事，不想被記？ #與神對話 #迴向 #功德 #慈悲',
+  'EP23': 'EP23｜老師罵你，還敬他？ #與神對話 #善知識 #修行 #智慧',
+  'EP24': 'EP24｜他不回，你猜幾次？ #與神對話 #念頭 #放下 #無我 #修心',
+  'EP25': 'EP25｜幫了人，卻被嫌？ #與神對話 #菩提心 #布施 #慈悲 #善念',
+  'EP26': 'EP26｜誤會你，你要辯嗎？ #與神對話 #無我 #忍辱 #念頭 #修心',
 };
 const TITLE_KEEP_ = [];   // 目前沒有需要強制保留標題的影片
 // 新影片說明：來自劇本（神對話系列／Ep01–Ep20 劇本的「影片說明」，一念之間來自「YouTube 說明 一念之間 第一集」）
 // 只有說明：EP21–EP23 尚未發布，不在清單內
 const DESC_PLAN_ = {
-  "EP01": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n念頭一冒出來，就拉著人走，怎麼辦？\n神對話 EP01，佛祖告訴我們：引果，是當下突然冒出來的念頭與行為。念頭本身不是罪，不跟著它走，新的因果就停住了。\n\n本集重點：\n・念頭本身不是罪\n・先覺察，再選擇怎麼回應\n・能放下嗔念，就能停住新的因果\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易被哪一種念頭拉著走？留言告訴我。\n\n#神對話 #引果 #覺察 #放下 #修行",
-  "EP02": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n以為前世做過的事，今生都要還嗎？\n神對話 EP02，佛祖告訴我們：業力像一條走慣了的路，但路從來不只一條。善念與善行一次次做下去，就能慢慢換掉舊的習氣。\n\n本集重點：\n・業力不是判決書\n・善念善行，慢慢蓋過舊習氣\n・每天做一件利他的小事\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最想換掉的一個習慣是什麼？留言告訴我。\n\n#神對話 #業力 #修行 #慈悲 #覺察",
-  "EP03": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n許了願，為什麼有時候會落空？\n神對話 EP03，佛祖告訴我們：願果，是此生心念與行為結出的果。發願助人的慈悲心，才是那顆種子。\n\n本集重點：\n・許願不是許了就等\n・願要帶著慈悲，才能圓滿\n・每天做一件利他的小事，願就會慢慢長出枝葉\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n留言告訴我，你心裡的那個願，是為了自己，還是為了別人？\n\n#神對話 #願果 #慈悲 #許願 #修行",
-  "EP04": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡放不下的事，真的會一直跟著我們嗎？\n神對話 EP04，佛祖告訴我們：輪迴，是心在六道之間來回打轉。放下執念，心就輕了，才能跳出輪迴。\n\n本集重點：\n・放下，不是忘記\n・先看見，再慢慢鬆開\n・不再為同一件事，加上新的怨\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你心裡最難放下的一件事，是什麼？留言告訴我。\n\n#神對話 #輪迴 #放下 #慈悲 #修行",
-  "EP05": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n放下了，念頭卻還是一直跑出來，該怎麼辦？\n神對話 EP05，佛祖告訴我們：覺察不是把念頭壓住，而是先認出它、看見它，再慢慢回到呼吸。\n\n本集重點：\n・念頭跑出來，不代表你失敗了\n・先認出它，它就不再那麼用力\n・不急著反應，先呼吸一次\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你在生活裡，最常覺察到的一種情緒是什麼？留言告訴我。\n\n#神對話 #覺察 #放下 #慈悲 #修行",
-  "EP06": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n委屈了，是不是就該忍？\n神對話 EP06，佛祖告訴我們：慈悲不是忍讓，是看見對方也有他的苦。慈悲，先從自己開始。\n\n本集重點：\n・慈悲不是忍讓\n・原諒是心裡放下，慈悲是願對方也離苦\n・界線可以保留，慈悲也可以有\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，慈悲和忍讓最大的不同是什麼？留言告訴我。\n\n#神對話 #慈悲 #放下 #覺察 #修行",
-  "EP07": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n守規矩，是不是就要把自己綁住？\n神對話 EP07，佛祖告訴我們：戒不是繩子，是提醒。提醒自己，哪一步會走向傷害。\n\n本集重點：\n・戒是提醒，不是綁住\n・守住戒，心才會安定\n・先守住不說傷人的話\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最難守住的一條界線是什麼？留言告訴我。\n\n#神對話 #持戒 #慈悲 #修行 #覺察",
-  "EP08": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n給出去之後，心裡還會想著回報嗎？\n神對話 EP08，佛祖告訴我們：布施有三種，重點是不求回報。看見需要，就願意給。\n\n本集重點：\n・財布施、法布施、無畏布施\n・布施不求回報，心裡要空\n・從一句好話、一次傾聽開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易做到的布施是什麼？留言告訴我。\n\n#神對話 #布施 #慈悲 #修行 #覺察",
-  "EP09": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n被人說了難聽的話，你是硬忍，還是跟著反擊？\n神對話 EP09，佛祖告訴我們：忍辱不是忍讓，是心不被風吹動。先看清楚，再決定要不要回應。\n\n本集重點：\n・忍辱不是硬忍，也不是吞下委屈\n・風來了，知道它是風，但不跟著飄走\n・該說的清楚地說，說的時候心要靜\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，被刺痛的時候，你最難做到的是什麼？留言告訴我。\n\n#神對話 #忍辱 #慈悲 #修行 #覺察",
-  "EP10": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n你覺得自己做事常常半途而廢嗎？\n神對話 EP10，佛祖告訴我們：精進不是拚命，是跌倒後還願意再起來。\n\n本集重點：\n・精進不是硬撐，是不間斷地走在對的路上\n・累了先休息，再回來\n・先做一件小事，就是今天的精進\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難堅持的一件事是什麼？留言告訴我。\n\n#神對話 #精進 #慈悲 #修行 #覺察",
-  "EP11": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n坐下來，念頭還是一直跑出來嗎？\n神對話 EP11，佛祖告訴我們：禪定不是讓心空無一物，而是讓心安住在一處。\n\n本集重點：\n・念頭來了不必急著趕走，看見它，再回來安住\n・心安住在哪裡，哪裡就清楚起來\n・一次次回來，就是禪定\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，靜下來的時候，你的心會安住在哪裡？留言告訴我。\n\n#神對話 #禪定 #慈悲 #修行 #覺察",
-  "EP12": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n修了行，怎麼還會陷在輪迴裡？\n神對話 EP12，佛祖告訴我們：修行的根本在修心，不在表面的形式。\n\n本集重點：\n・口業不改，善行也會被抵消\n・靜下心來，念頭自然沉澱\n・事業若以利益眾生為心，就是志業\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最需要先修的是哪一件事？留言告訴我。\n\n#神對話 #六道輪迴 #口業 #志業 #修心 #慈悲",
-  "EP13": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n志業之後，還要看清念頭嗎？\n神對話 EP13，佛祖告訴我們：般若是智慧，看清念頭從哪裡來、要往哪裡去。\n\n本集重點：\n・念頭來了，先看它只是一陣風\n・看清因果，不執著，智慧自然生起\n・看清，放下，就是般若\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難看清的是哪一種念頭？留言告訴我。\n\n#神對話 #般若 #智慧 #修心 #慈悲",
-  "EP14": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看清之後，就能解脫嗎？\n神對話 EP14，佛祖告訴我們：解脫不是逃離，而是心不再被念頭綁住。\n\n本集重點：\n・念頭來了，不必強迫它停\n・覺察每一天，習慣慢慢鬆開\n・放下執著，不跟著念頭走，就是解脫的起點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，什麼時候最難讓念頭停下來？留言告訴我。\n\n#神對話 #解脫 #覺察 #修心 #慈悲",
-  "EP15": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n解脫之後，就結束了嗎？\n神對話 EP15，佛祖告訴我們：心自在之後，更要發願，讓一切眾生都離苦。\n\n本集重點：\n・菩提心是願一切眾生離苦\n・慈悲是情，菩提心是智\n・把自在分享出去，從身邊的人開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，修行之後最想分享的是什麼？留言告訴我。\n\n#神對話 #菩提心 #慈悲 #修心 #智慧",
-  "EP16": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n幫助別人，要怎麼說才對？\n神對話 EP16，佛祖告訴我們：方便是依對方的根器，變通方法，不變的是慈悲。\n\n本集重點：\n・每個人的根器不同，方法也要不同\n・先聽他說，再慢慢說\n・方便不離慈悲，智慧引路\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，幫助別人時，最難的是什麼？留言告訴我。\n\n#神對話 #方便 #慈悲 #修心 #智慧",
-  "EP17": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看見別人好，為什麼心裡會不舒服？\n神對話 EP17，佛祖告訴我們：覺察嫉妒的念頭，為對方歡喜，就是隨喜。\n\n本集重點：\n・嫉妒的念頭來了，先覺察，不跟著走\n・為別人的好感到歡喜，善念會互相感染\n・隨喜之心，就是慈悲的回響\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最近看見別人好，心裡第一個念頭是什麼？留言告訴我。\n\n#神對話 #隨喜 #慈悲 #修心 #智慧",
-  "EP18": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡那個最重要的我，到底是誰？\n神對話 EP18，佛祖告訴我們：那個我是念頭堆出來的，念頭一換，它就不見了。\n\n本集重點：\n・委屈是真的，但不必說它是我的\n・放下這個我，才看見更多人的辛苦\n・沒有我，才看得見你\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，放下哪一個念頭，會讓你最自在？留言告訴我。\n\n#神對話 #無我 #慈悲 #修心 #智慧",
-  "EP19": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n傷害我的人，也要平等看待嗎？\n神對話 EP19，佛祖告訴我們：平等心不是讓傷害繼續，而是不因怨恨而起惡念。\n\n本集重點：\n・喜歡與討厭，都是念頭在搖擺\n・每個人都想平安，想被善待\n・對每一個人先存一分善意，心就不被分別綁住\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難平等看待的是哪一種人？留言告訴我。\n\n#神對話 #平等心 #慈悲 #修心 #智慧",
-  "EP20": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n學了這麼多，最後要怎麼走？\n神對話 EP20，佛祖告訴我們：菩薩道是把慈悲與智慧，落在每一天的生活裡。\n\n本集重點：\n・從一念開始，看清它，放下它，再用善意回應\n・每一念都是一步，一步步走，就走成了菩薩道\n・一人帶一人，善念會一代一代傳下去\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最想帶給身邊的人什麼？留言告訴我。\n\n#神對話 #菩薩道 #慈悲 #修心 #智慧",
-  "EP21": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n一切都會消失，為什麼還要愛？\n神對話 EP21，佛祖告訴我們：無常不是懲罰，而是一切都在變，所以要好好珍惜當下。\n\n本集重點：\n・無常，是一切都在變，不是誰在罰你\n・正因為會變，才要好好愛，愛不是抓住\n・看清抓緊的念頭，手就會鬆一點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最怕失去什麼？留言告訴我。\n\n#神對話 #無常 #珍惜 #放下 #修心",
-  "EP22": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n做了好事，功德要留給誰？\n神對話 EP22，佛祖告訴我們：功德不會消失，把它迴向給眾生，心才真正自在。\n\n本集重點：\n・功德放在自己身上，心就會計較\n・迴向給需要的人，也給讓你生氣的人\n・給出去的，反而讓心圓滿\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你想把功德給誰？留言告訴我。\n\n#神對話 #迴向 #功德 #慈悲 #修心",
-  "LONG": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n\n念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#神對話 #一念之間 #引果 #業力 #輪迴"
+  "EP01": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n念頭一冒出來，就拉著人走，怎麼辦？\n神對話 EP01，佛祖告訴我們：引果，是當下突然冒出來的念頭與行為。念頭本身不是罪，不跟著它走，新的因果就停住了。\n\n本集重點：\n・念頭本身不是罪\n・先覺察，再選擇怎麼回應\n・能放下嗔念，就能停住新的因果\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易被哪一種念頭拉著走？留言告訴我。\n\n#與神對話 #引果 #覺察 #放下 #修行",
+  "EP02": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n以為前世做過的事，今生都要還嗎？\n神對話 EP02，佛祖告訴我們：業力像一條走慣了的路，但路從來不只一條。善念與善行一次次做下去，就能慢慢換掉舊的習氣。\n\n本集重點：\n・業力不是判決書\n・善念善行，慢慢蓋過舊習氣\n・每天做一件利他的小事\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最想換掉的一個習慣是什麼？留言告訴我。\n\n#與神對話 #業力 #修行 #慈悲 #覺察",
+  "EP03": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n許了願，為什麼有時候會落空？\n神對話 EP03，佛祖告訴我們：願果，是此生心念與行為結出的果。發願助人的慈悲心，才是那顆種子。\n\n本集重點：\n・許願不是許了就等\n・願要帶著慈悲，才能圓滿\n・每天做一件利他的小事，願就會慢慢長出枝葉\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n留言告訴我，你心裡的那個願，是為了自己，還是為了別人？\n\n#與神對話 #願果 #慈悲 #許願 #修行",
+  "EP04": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡放不下的事，真的會一直跟著我們嗎？\n神對話 EP04，佛祖告訴我們：輪迴，是心在六道之間來回打轉。放下執念，心就輕了，才能跳出輪迴。\n\n本集重點：\n・放下，不是忘記\n・先看見，再慢慢鬆開\n・不再為同一件事，加上新的怨\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你心裡最難放下的一件事，是什麼？留言告訴我。\n\n#與神對話 #輪迴 #放下 #慈悲 #修行",
+  "EP05": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n放下了，念頭卻還是一直跑出來，該怎麼辦？\n神對話 EP05，佛祖告訴我們：覺察不是把念頭壓住，而是先認出它、看見它，再慢慢回到呼吸。\n\n本集重點：\n・念頭跑出來，不代表你失敗了\n・先認出它，它就不再那麼用力\n・不急著反應，先呼吸一次\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你在生活裡，最常覺察到的一種情緒是什麼？留言告訴我。\n\n#與神對話 #覺察 #放下 #慈悲 #修行",
+  "EP06": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n委屈了，是不是就該忍？\n神對話 EP06，佛祖告訴我們：慈悲不是忍讓，是看見對方也有他的苦。慈悲，先從自己開始。\n\n本集重點：\n・慈悲不是忍讓\n・原諒是心裡放下，慈悲是願對方也離苦\n・界線可以保留，慈悲也可以有\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，慈悲和忍讓最大的不同是什麼？留言告訴我。\n\n#與神對話 #慈悲 #放下 #覺察 #修行",
+  "EP07": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n守規矩，是不是就要把自己綁住？\n神對話 EP07，佛祖告訴我們：戒不是繩子，是提醒。提醒自己，哪一步會走向傷害。\n\n本集重點：\n・戒是提醒，不是綁住\n・守住戒，心才會安定\n・先守住不說傷人的話\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最難守住的一條界線是什麼？留言告訴我。\n\n#與神對話 #持戒 #慈悲 #修行 #覺察",
+  "EP08": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n給出去之後，心裡還會想著回報嗎？\n神對話 EP08，佛祖告訴我們：布施有三種，重點是不求回報。看見需要，就願意給。\n\n本集重點：\n・財布施、法布施、無畏布施\n・布施不求回報，心裡要空\n・從一句好話、一次傾聽開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，生活裡最容易做到的布施是什麼？留言告訴我。\n\n#與神對話 #布施 #慈悲 #修行 #覺察",
+  "EP09": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n被人說了難聽的話，你是硬忍，還是跟著反擊？\n神對話 EP09，佛祖告訴我們：忍辱不是忍讓，是心不被風吹動。先看清楚，再決定要不要回應。\n\n本集重點：\n・忍辱不是硬忍，也不是吞下委屈\n・風來了，知道它是風，但不跟著飄走\n・該說的清楚地說，說的時候心要靜\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，被刺痛的時候，你最難做到的是什麼？留言告訴我。\n\n#與神對話 #忍辱 #慈悲 #修行 #覺察",
+  "EP10": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n你覺得自己做事常常半途而廢嗎？\n神對話 EP10，佛祖告訴我們：精進不是拚命，是跌倒後還願意再起來。\n\n本集重點：\n・精進不是硬撐，是不間斷地走在對的路上\n・累了先休息，再回來\n・先做一件小事，就是今天的精進\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難堅持的一件事是什麼？留言告訴我。\n\n#與神對話 #精進 #慈悲 #修行 #覺察",
+  "EP11": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n坐下來，念頭還是一直跑出來嗎？\n神對話 EP11，佛祖告訴我們：禪定不是讓心空無一物，而是讓心安住在一處。\n\n本集重點：\n・念頭來了不必急著趕走，看見它，再回來安住\n・心安住在哪裡，哪裡就清楚起來\n・一次次回來，就是禪定\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，靜下來的時候，你的心會安住在哪裡？留言告訴我。\n\n#與神對話 #禪定 #慈悲 #修行 #覺察",
+  "EP12": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n修了行，怎麼還會陷在輪迴裡？\n神對話 EP12，佛祖告訴我們：修行的根本在修心，不在表面的形式。\n\n本集重點：\n・口業不改，善行也會被抵消\n・靜下心來，念頭自然沉澱\n・事業若以利益眾生為心，就是志業\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最需要先修的是哪一件事？留言告訴我。\n\n#與神對話 #六道輪迴 #口業 #志業 #修心 #慈悲",
+  "EP13": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n志業之後，還要看清念頭嗎？\n神對話 EP13，佛祖告訴我們：般若是智慧，看清念頭從哪裡來、要往哪裡去。\n\n本集重點：\n・念頭來了，先看它只是一陣風\n・看清因果，不執著，智慧自然生起\n・看清，放下，就是般若\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難看清的是哪一種念頭？留言告訴我。\n\n#與神對話 #般若 #智慧 #修心 #慈悲",
+  "EP14": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看清之後，就能解脫嗎？\n神對話 EP14，佛祖告訴我們：解脫不是逃離，而是心不再被念頭綁住。\n\n本集重點：\n・念頭來了，不必強迫它停\n・覺察每一天，習慣慢慢鬆開\n・放下執著，不跟著念頭走，就是解脫的起點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，什麼時候最難讓念頭停下來？留言告訴我。\n\n#與神對話 #解脫 #覺察 #修心 #慈悲",
+  "EP15": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n解脫之後，就結束了嗎？\n神對話 EP15，佛祖告訴我們：心自在之後，更要發願，讓一切眾生都離苦。\n\n本集重點：\n・菩提心是願一切眾生離苦\n・慈悲是情，菩提心是智\n・把自在分享出去，從身邊的人開始\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，修行之後最想分享的是什麼？留言告訴我。\n\n#與神對話 #菩提心 #慈悲 #修心 #智慧",
+  "EP16": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n幫助別人，要怎麼說才對？\n神對話 EP16，佛祖告訴我們：方便是依對方的根器，變通方法，不變的是慈悲。\n\n本集重點：\n・每個人的根器不同，方法也要不同\n・先聽他說，再慢慢說\n・方便不離慈悲，智慧引路\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，幫助別人時，最難的是什麼？留言告訴我。\n\n#與神對話 #方便 #慈悲 #修心 #智慧",
+  "EP17": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n看見別人好，為什麼心裡會不舒服？\n神對話 EP17，佛祖告訴我們：覺察嫉妒的念頭，為對方歡喜，就是隨喜。\n\n本集重點：\n・嫉妒的念頭來了，先覺察，不跟著走\n・為別人的好感到歡喜，善念會互相感染\n・隨喜之心，就是慈悲的回響\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你最近看見別人好，心裡第一個念頭是什麼？留言告訴我。\n\n#與神對話 #隨喜 #慈悲 #修心 #智慧",
+  "EP18": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n心裡那個最重要的我，到底是誰？\n神對話 EP18，佛祖告訴我們：那個我是念頭堆出來的，念頭一換，它就不見了。\n\n本集重點：\n・委屈是真的，但不必說它是我的\n・放下這個我，才看見更多人的辛苦\n・沒有我，才看得見你\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，放下哪一個念頭，會讓你最自在？留言告訴我。\n\n#與神對話 #無我 #慈悲 #修心 #智慧",
+  "EP19": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n傷害我的人，也要平等看待嗎？\n神對話 EP19，佛祖告訴我們：平等心不是讓傷害繼續，而是不因怨恨而起惡念。\n\n本集重點：\n・喜歡與討厭，都是念頭在搖擺\n・每個人都想平安，想被善待\n・對每一個人先存一分善意，心就不被分別綁住\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，最難平等看待的是哪一種人？留言告訴我。\n\n#與神對話 #平等心 #慈悲 #修心 #智慧",
+  "EP20": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n學了這麼多，最後要怎麼走？\n神對話 EP20，佛祖告訴我們：菩薩道是把慈悲與智慧，落在每一天的生活裡。\n\n本集重點：\n・從一念開始，看清它，放下它，再用善意回應\n・每一念都是一步，一步步走，就走成了菩薩道\n・一人帶一人，善念會一代一代傳下去\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最想帶給身邊的人什麼？留言告訴我。\n\n#與神對話 #菩薩道 #慈悲 #修心 #智慧",
+  "EP21": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n一切都會消失，為什麼還要愛？\n神對話 EP21，佛祖告訴我們：無常不是懲罰，而是一切都在變，所以要好好珍惜當下。\n\n本集重點：\n・無常，是一切都在變，不是誰在罰你\n・正因為會變，才要好好愛，愛不是抓住\n・看清抓緊的念頭，手就會鬆一點\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最怕失去什麼？留言告訴我。\n\n#與神對話 #無常 #珍惜 #放下 #修心",
+  "EP22": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n做了好事，功德要留給誰？\n神對話 EP22，佛祖告訴我們：功德不會消失，把它迴向給眾生，心才真正自在。\n\n本集重點：\n・功德放在自己身上，心就會計較\n・迴向給需要的人，也給讓你生氣的人\n・給出去的，反而讓心圓滿\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你想把功德給誰？留言告訴我。\n\n#與神對話 #迴向 #功德 #慈悲 #修心",
+  "LONG": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n\n念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#與神對話 #一念之間 #引果 #業力 #輪迴"
 };
 // 影片屬於哪一集：一念之間是 LONG；其他依標題開頭的集數（EP01…EP20）
 function titleKey_(vid, title) {
@@ -1003,7 +1006,7 @@ function titlePreview_(mode) {
   if (!items.length) return { text: '✏️ ' + label + '都已經是新的了，沒有要改的。', buttons: [[CHAN_BTN, MENU_BTN]] };
   setProp_('TITLE_PENDING', JSON.stringify({ at: Date.now(), mode: mode, n: items.length, snaps: titleSnapMap_(items) }));
   const tN = items.filter(x => x.titleChg).length, dN = items.filter(x => x.descChg).length, gN = items.filter(x => x.tagsChg).length;
-  const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按之前請再看一眼新標題。' : '';
+  const warn = items.some(x => x.id === TITLE_EP18_ID_ && x.titleChg) ? '\n\n⚠️ EP18 是目前觀看最高的一支，標題改動有風險，按確認修改之前請再看一眼新標題。' : '';
   const lines = items.map(x => {
     const parts = [];
     parts.push(x.titleChg ? x.from + '\n　→ ' + x.to : '（標題不變）' + x.from);
@@ -1032,14 +1035,14 @@ function titleFlex_(items, label) {
   });
   const content = [{ type: 'box', layout: 'vertical', paddingStart: '22px', paddingEnd: '22px', spacing: 'sm', contents: rows }];
   const buttons = [
-    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '✅ 全部套用', text: TITLE_APPLY } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '先不改', text: TITLE_CANCEL } },
+    { type: 'button', style: 'primary', color: '#A07C34', height: 'sm', action: { type: 'message', label: '確認修改', text: TITLE_APPLY } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '不要修改', text: TITLE_CANCEL } },
   ];
-  return chanBubble_(chanHead_('小乖 · TITLES', '預覽：' + label, items.length + ' 支影片要更新，按「全部套用」才會改'), content, buttons);
+  return chanBubble_(chanHead_('小乖 · TITLES', '預覽：' + label, items.length + ' 支影片要更新，按「確認修改」才會改'), content, buttons);
 }
 // 全部套用：內容跟預覽一樣才改；備份的原內容一律是這支影片最初的樣子，之後再改也不會被中間版本蓋掉
 function titleApply_() {
-  if (VOICE_IN_) return '更改只能按卡片上的「全部套用」按鈕，不能用語音直接改。';
+  if (VOICE_IN_) return '更改只能按卡片上的「確認修改」按鈕，不能用語音直接改。';
   return withLock_(() => {
     const pend = igState_('TITLE_PENDING');
     setProp_('TITLE_PENDING', '');
@@ -1094,7 +1097,7 @@ function titleApply_() {
       } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
       sh.getRange(start + i, 5).setValue(st);
     });
-    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : '') + '\n\n原內容都存在「' + TITLE_SHEET + '」分頁，想換回去就按「' + TITLE_RESTORE + '」（會回到最初的樣子）。',
+    return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : ''),
       buttons: [[CHAN_BTN, MENU_BTN]] };
   });
 }
@@ -1134,11 +1137,11 @@ function titleShowDesc_(key) {
   if (!d) return { text: '這一集還沒有新的影片說明。', buttons: [[TITLE_BTN, MENU_BTN]] };
   return { text: '📝 ' + (key === 'LONG' ? '一念之間' : key) + ' 新的影片說明\n\n' + d, buttons: [[TITLE_BTN, MENU_BTN]] };
 }
-// 頻道管理卡片：三種改法、頻道數據與還原都在這裡；輸入「頻道」或按選單叫出來
+// 頻道管理卡片：三種改法與頻道數據都在這裡（還原用文字「還原標題」）；輸入「頻道」或按選單叫出來
 function channelHub_() {
   const pend = igState_('TITLE_PENDING');
   const live = !!pend && Date.now() - pend.at < 60 * 60 * 1000;
-  const note = live ? '有待確認的更改：' + pend.n + ' 支（按「✅ 全部套用」才會改）' : '目前沒有待確認的更改';
+  const note = live ? '有待確認的更改：' + pend.n + ' 支（按「確認修改」才會改）' : '目前沒有待確認的更改';
   const menu = [
     ['✏️ 更改全部', '標題、說明、標記一起改，先看預覽再確認'],
     ['🏷️ 只改標題', '只改影片標題，說明保持不變'],
@@ -1176,12 +1179,10 @@ function 授權YouTube改標題() {
 
 // 程式版本：回報「頻道診斷」時顯示，確認使用者貼的是哪一版
 // 版本字串：每次合併都要更新（日期＋這次的主要功能），看截圖就知道是不是最新版
-// 神對話劇本（最新版）的網址：只留神對話播放清單一個連結，每日更新、手動更新與「傳送神對話劇本」都用這個網址
-const SHEN_SCRIPT_URL = 'https://youtube.com/playlist?list=PLZLcOre6BwBc';
-// LINE／Telegram 傳出的神對話劇本網址一律用神劇本頁（免登入、會自動更新），不再用播放清單
+// 神對話劇本（最新版）的網址：LINE／Telegram 傳出、每日更新與「傳送神對話劇本」一律用神劇本頁（免登入、會自動更新）
 const SHEN_PAGE_URL = 'https://yb131419.github.io/Tezhu/ShenScripts.html';
 const SHEN_SCRIPT_CMD = '傳送神對話劇本';
-const CHAN_VERSION = 'title-11｜2026-11-23｜全等更改：EP23–26 標題的「#與神對話」改為「#神對話」，標題與標記一致';
+const CHAN_VERSION = 'title-12｜2026-11-25｜修改確認統一為「確認修改／不要修改」，卡片說明與過期文字更新';
 // 低調的版本小字（只做標示）：取版本字串前兩段，例如「版本 version-tag-1｜2026-11-19」
 function verTag_() { return '版本 ' + String(CHAN_VERSION).split('｜').slice(0, 2).join('｜'); }
 function verLine_() { return { type: 'text', text: verTag_(), size: 'xxs', color: CHCARD_.SOFT, align: 'end', margin: 'lg' }; }
@@ -4273,7 +4274,7 @@ function findCases_(words) {
 
 // 你的專案（給語音和文字問）：這裡是寫死的清單，小乖只讀不寫；要增減請改這個陣列再部署
 const PROJECTS_ = [
-  { name: 'Tezhu', title: '小乖', repo: 'yb131419/Tezhu', sum: '小乖的程式與網頁：Assistant.html（主頁）、Talk.html（對話頁）、line-bot/（LINE、Telegram、Apps Script）。' },
+  { name: 'Tezhu', title: '小乖', repo: 'yb131419/Tezhu', sum: '小乖的程式與網頁：Assistant.html（主頁，含對話與行程）、line-bot/（LINE、Telegram、Apps Script）。' },
 ];
 
 // 「專案」列出全部；「專案 名稱」看一個（名稱或中文都可以）
@@ -6489,7 +6490,7 @@ function merge_(a, b) {
 }
 
 /* ============ 行程網頁（Schedule.html）：手機上查看、新增、修改、刪除 ============ */
-const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Talk.html#sched';
+const SCHEDULE_URL = 'https://yb131419.github.io/Tezhu/Assistant.html#sched';
 function eventApi_(b) {
   if (b.action === 'evList') return { ok: true, events: readAll_().events.slice().sort(evCmp_) };
   const now = Date.now();
@@ -6696,111 +6697,6 @@ function ack_() { return HtmlService.createHtmlOutput('OK'); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 /* ============ 「小乖對話」頁面（像 Siri：按一下講話、可選照片，小乖用講的回） ============ */
-const TALK_HTML = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
-<style>
-:root{--bg:#fff7f0;--card:#fff;--ink:#3b2a20;--soft:#8a7566;--accent:#ff8a3d;--me:#ffe3cf}
-@media (prefers-color-scheme:dark){:root{--bg:#1d1714;--card:#2a221d;--ink:#f6ece4;--soft:#b8a597;--accent:#ff9d5c;--me:#4a3326}}
-*{box-sizing:border-box}body{margin:0;font:17px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
-header{padding:14px 16px 6px;display:flex;align-items:center;gap:10px}header b{font-size:20px}header small{color:var(--soft);margin-left:auto}
-#log{flex:1;overflow:auto;padding:8px 16px 16px}
-.m{max-width:85%;margin:8px 0;padding:10px 14px;border-radius:18px;white-space:pre-wrap;word-break:break-word}
-.me{margin-left:auto;background:var(--me)}.xg{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.m img{max-width:100%;border-radius:12px;display:block}
-#bar{padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;background:var(--card)}
-#q{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:22px;padding:10px 14px;font:inherit;background:var(--bg);color:var(--ink)}
-button{border:0;border-radius:50%;width:46px;height:46px;font-size:22px;background:var(--bg);color:var(--ink)}
-#mic{width:64px;height:64px;font-size:30px;background:var(--accent);color:#fff}
-#mic.on{animation:p 1s infinite}@keyframes p{50%{transform:scale(1.08);box-shadow:0 0 0 10px rgba(255,138,61,.25)}}
-#hint{text-align:center;color:var(--soft);font-size:14px;padding:0 16px 6px}
-#login{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
-#login .box{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:360px}
-#login p{color:var(--soft);font-size:15px;margin:8px 0 12px}#login .row{display:flex;gap:8px}
-#pw{flex:1;min-width:0;border:1px solid #d9c8bb;border-radius:12px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
-#pwgo{margin-top:14px;width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:17px}
-.sep{text-align:center;color:var(--soft);font-size:13px;margin:10px 0}
-#chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-#chips::-webkit-scrollbar{display:none}
-.chip{flex:none;width:auto;height:auto;border-radius:18px;padding:7px 13px;font-size:15px;background:var(--card);border:1px solid #e6d3c4;white-space:nowrap}
-.chip.ask{background:var(--accent);color:#fff;border-color:var(--accent)}
-</style></head><body>
-<header><b>🐾 小乖</b><button id="clr" class="chip" type="button" title="清除對話紀錄" style="margin-left:auto">🗑</button><small><label><input type="checkbox" id="spk" checked> 🔊 念出來</label> <label><input type="checkbox" id="loop" checked> 🔁 連續</label></small></header>
-<div id="chips"></div>
-<div id="log"><div class="m xg">嗨，我是小乖！按橘色麥克風跟我說話，或按 📷 選照片給我看。</div></div>
-<div id="hint"></div>
-<div id="bar"><button id="cam" title="照片">📷</button><input id="q" placeholder="打字或按鍵盤上的麥克風" enterkeyhint="send"><button id="mic" title="講話">🎤</button></div>
-<input type="file" id="file" accept="image/*" hidden><audio id="au" playsinline></audio>
-<div id="login"><div class="box"><b>🔒 小乖同步密碼</b><p id="lgmsg"></p>
-<div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="同步密碼"><button id="pwshow" type="button">👁</button></div>
-<button id="pwgo" type="button">開始使用</button></div></div>
-<script>
-let KEY=__KEY__;const $=id=>document.getElementById(id);
-try{if(KEY)localStorage.setItem('xg_talk_key',KEY);else KEY=localStorage.getItem('xg_talk_key')||'';}catch(e){}
-function login(msg){$('lgmsg').textContent=msg||'第一次使用，請輸入小乖的同步密碼（只要輸入一次，會記在這支手機上）';$('login').style.display='flex';$('pw').value='';}
-$('pwgo').onclick=()=>{const k=$('pw').value.trim();if(!k)return;KEY=k;try{localStorage.setItem('xg_talk_key',KEY);}catch(e){}$('login').style.display='none';};
-$('pwshow').onclick=()=>{$('pw').type=$('pw').type==='password'?'text':'password';};
-if(!KEY)login();const log=$('log'),hint=$('hint');
-let busy=false,rec=null,photo=null;
-const MENU=['💎 選單', '📋 試算', '🛒 下單', '🪶 智囊軍師', '⏰ 今天行程', '✅ 我的待辦', '📝 我的筆記', '📊 查看持倉', '📉 平倉', '📜 下單紀錄', '🔔 交易提醒', '🎬 剪 Reels', '🎞️ 剪大片', '📕 7張＋PDF', '🗂️ 案例分類', '💬 見證案例', '🔍 查詢案例', '📁 本機找', '🌐 上網找', '➕ 新增行程', '🗑️ 刪除行程', '👤 設定主角', '💬 自動留言', '🎤 換聲音', '⚙️ 圖卡設定', '🎙️ 語音快捷指令', '❓ 說明'];
-const SHORT={'💎 選單': '💎選單', '📋 試算': '📋試算', '🪶 智囊軍師': '🪶軍師', '⏰ 今天行程': '⏰行程', '✅ 我的待辦': '✅待辦', '📝 我的筆記': '📝筆記', '🛒 下單': '📈下單', '📊 查看持倉': '📊持倉', '📉 平倉': '📉平倉', '📜 下單紀錄': '📜紀錄', '🔔 交易提醒': '🔔提醒', '🎬 剪 Reels': '🎬剪輯', '🎞️ 剪大片': '🎞️大片', '📕 7張＋PDF': '📕名單', '🗂️ 案例分類': '🗂️案例', '💬 見證案例': '💬見證', '🔍 查詢案例': '🔍查詢', '📁 本機找': '📁本機', '🌐 上網找': '🌐上網', '➕ 新增行程': '➕加行', '🗑️ 刪除行程': '🗑️刪行', '👤 設定主角': '👤主角', '💬 自動留言': '💬留言', '🎤 換聲音': '🎤換聲', '⚙️ 圖卡設定': '⚙️圖卡', '🎙️ 語音快捷指令': '🎙️語音', '❓ 說明': '❓說明'};
-function chips(list){const c=$('chips');c.innerHTML='';const ask=list&&list.length;(ask?list:MENU).forEach(t=>{const b=document.createElement('button');b.className='chip'+(ask?' ask':'');b.textContent=ask?t:(SHORT[t]||t);
- b.onclick=()=>{if(t==='📋 試算'){$('q').value='試算';$('file').click();return;}send(t);};c.appendChild(b);});}
-chips();
-// 對話紀錄存在這支手機（關掉再開還在）：最多 200 則，照片存成小縮圖
-const LOGK='xg_talk_log';
-function saveLog(){try{const a=[...log.querySelectorAll('.m')].slice(1).map(d=>{const i=d.querySelector('img');return {c:d.className.replace(/^m /,''),t:d.textContent,i:i?(i.dataset.th||''):''};}).filter(x=>(x.t||x.i)&&!/^(小乖想一下|小乖在聽你說的話)…$/.test(x.t)).slice(-200);localStorage.setItem(LOGK,JSON.stringify(a));}catch(e){}}
-function thumb(src,cb){const im=new Image();im.onload=()=>{const s=Math.min(1,240/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.6));};im.src=src;}
-function add(t,who,img){const d=document.createElement('div');d.className='m '+who;if(img){const i=new Image();i.src=img;if(/^data:/.test(img)&&img.length<20000)i.dataset.th=img;else thumb(img,th=>{i.dataset.th=th;saveLog();});d.appendChild(i);}if(t){d.appendChild(document.createTextNode(t));}log.appendChild(d);log.scrollTop=1e9;return d;}
-try{const old=JSON.parse(localStorage.getItem(LOGK)||'[]');if(old.length){old.forEach(x=>add(x.t,x.c,x.i||null));const d=document.createElement('div');d.className='sep';d.textContent='— 以上是之前的對話 —';log.appendChild(d);log.scrollTop=1e9;}}catch(e){}
-let clrT=0;$('clr').onclick=()=>{if(Date.now()-clrT>3000){clrT=Date.now();hint.textContent='再按一次 🗑 清除對話紀錄';return;}try{localStorage.removeItem(LOGK);}catch(e){}[...log.querySelectorAll('.m,.sep')].slice(1).forEach(d=>d.remove());hint.textContent='對話紀錄已清除';clrT=0;};
-// iPhone 不讓網頁自己出聲：第一次按按鈕時先播一段無聲音檔「解鎖」，之後小乖的語音才放得出來
-const SIL='data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAABgAAAykAWlpaWlpaWlpaWlpaWlpaWnt7e3t7e3t7e3t7e3t7e3t7nJycnJycnJycnJycnJycnL29vb29vb29vb29vb29vb293t7e3t7e3t7e3t7e3t7e3t7/////////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQCowAAAAAAAAMpso+sIAAAAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NAxKQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEowAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
-function unlock(){const a=$('au');if(!a.dataset.ok){a.src=SIL;const p=a.play();if(p)p.then(()=>{a.dataset.ok=1;}).catch(()=>{});}if(window.speechSynthesis&&!window._su){window._su=1;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}
-document.addEventListener('click',unlock,true);document.addEventListener('touchend',unlock,true);
-// 連續對話：小乖講完自動再聽你說；說「結束／沒事了」或不說話就停（螢幕會保持亮著）
-let conv=false,wl=null;
-function convOn(){conv=true;try{if(navigator.wakeLock&&!wl)navigator.wakeLock.request('screen').then(l=>{wl=l;}).catch(()=>{});}catch(e){}}
-function convOff(msg){conv=false;if(wl){wl.release().catch(()=>{});wl=null;}if(msg)hint.textContent=msg;}
-function next(){if(conv&&$('loop').checked&&!busy&&!recOn)setTimeout(()=>{if(conv&&!busy&&!recOn)micStart();},350);}
-function speak(t,audio){if(!$('spk').checked)return next();if(audio){const a=$('au');a.onended=next;a.src='data:audio/mpeg;base64,'+audio;const p=a.play();if(p)p.catch(()=>tts(t));return;}tts(t);}
-function tts(t){if(!window.speechSynthesis)return next();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang));if(v)u.voice=v;u.onend=next;speechSynthesis.speak(u);}
-function send(q,img,aud){if(busy)return;q=(q||'').trim();if(!q&&!img&&!aud)return;busy=true;const me=add(aud?'🎤 …':q,'me',img);$('q').value='';const w=add(aud?'小乖在聽你說的話…':'小乖想一下…','xg');hint.textContent='';
- const show=r=>{busy=false;if(/同步密碼不對/.test(r.say)){try{localStorage.removeItem('xg_talk_key');}catch(e){}login('同步密碼不對，請重新輸入');}w.textContent=r.show||r.say;saveLog();chips(r.buttons);if(/有事再叫我/.test(r.say))convOff('好，有事再按麥克風叫我');speak(r.say,r.audio);};
- const fail=e=>{busy=false;w.textContent='連線有問題，再試一次：'+e.message;};
- if(!aud){google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,q,img?img.split(',')[1]:'',$('spk').checked,'','');return;}
- google.script.run.withFailureHandler(fail).withSuccessHandler(t=>{const h=t.heard||'';me.textContent='🎤 '+(h||'（沒聽清楚）');if(!h)return show({say:'沒聽清楚，再說一次看看。',show:'沒聽清楚，再說一次看看。',buttons:[]});google.script.run.withSuccessHandler(show).withFailureHandler(fail).talk(KEY,h,'',$('spk').checked,'','',true);}).talkHeard(KEY,aud.b64,aud.mime);}
-$('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send($('q').value);}});
-// 講話：用手機錄音，送到小乖用 Whisper 轉文字（iPhone 的瀏覽器語音辨識常常沒反應，所以不用它）
-let mr=null,chunks=[],stream=null,actx=null,recOn=false,stopT=null,heardAny=null;
-function micUI(on){recOn=on;$('mic').classList.toggle('on',on);$('mic').textContent=on?'⏹':'🎤';}
-// 全部關掉：錄音、麥克風、音量偵測（不管停在哪一步都關得掉）
-function micCleanup(){clearTimeout(stopT);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}if(actx){actx.close().catch(()=>{});actx=null;}mr=null;micUI(false);}
-function kb(msg){$('q').focus();hint.textContent=msg||'點鍵盤右下角的 🎤 講話，講完按「傳送」';}
-async function micStart(){
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return kb();
- micUI(true);hint.textContent='開麥克風中…';
- try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
- catch(e){micCleanup();return kb('麥克風被擋住了：請到「設定 → Safari → 麥克風」選允許，或先按鍵盤上的 🎤 講話');}
- if(!recOn){micCleanup();hint.textContent='';return;}   // 開麥克風途中又按了一次＝取消
- const type=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
- try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);}catch(e){micCleanup();return kb();}
- heardAny=null;chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
- mr.onstop=()=>{const mt=(mr&&mr.mimeType)||type||'audio/mp4';micCleanup();hint.textContent='';const blob=new Blob(chunks,{type:mt});
-  if(blob.size<1500||heardAny===false){convOff(conv?'對話先停在這裡，要講話再按麥克風':'沒錄到聲音，再按一次麥克風');return;}
-  const fr=new FileReader();fr.onload=()=>send($('q').value,null,{b64:String(fr.result).split(',')[1],mime:mt.split(';')[0]});fr.readAsDataURL(blob);};
- mr.start(250);micUI(true);hint.textContent=conv&&$('loop').checked?'我在聽…（連續對話中，說「結束」或不說話就停）':'我在聽…講完停一下會自動送出，或再按一次麥克風';
- // 講完安靜 1.5 秒就自動送出；一直沒講話 8 秒就停
- try{actx=new (window.AudioContext||window.webkitAudioContext)();const an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(stream).connect(an);
-  const d=new Uint8Array(an.fftSize),t0=Date.now();let heard=false,last=Date.now();heardAny=false;
-  const tick=()=>{if(!mr)return;an.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]-128));
-   if(m>14){heard=true;heardAny=true;last=Date.now();}
-   if((heard&&Date.now()-last>1500)||(!heard&&Date.now()-t0>8000)||Date.now()-t0>60000)return micStop();setTimeout(tick,100);};setTimeout(tick,300);}catch(e){}
-}
-function micStop(){if(mr&&mr.state!=='inactive'){try{mr.stop();}catch(e){micCleanup();return;}stopT=setTimeout(micCleanup,1500);}else micCleanup();}
-$('mic').onclick=()=>{unlock();if(window.speechSynthesis)speechSynthesis.cancel();$('au').pause();if(recOn)return micStop();if(busy)return;convOn();micStart();};
-$('cam').onclick=()=>$('file').click();
-$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1500/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
- send($('q').value,c.toDataURL('image/jpeg',0.85));};im.src=r.result;};r.readAsDataURL(f);e.target.value='';};
-</script></body></html>`;
 
 
 /* ============ 🧽 去除浮水印：影片交給 GitHub Actions 去掉固定位置的浮水印（watermark/remove_watermark.py），去好傳回 Telegram ============ */
