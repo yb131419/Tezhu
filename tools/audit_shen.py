@@ -4,6 +4,7 @@
 有問題時列出並以結束碼 1 結束；全部通過結束碼 0。
 規則來源：每段至少 4 秒、台詞字數不超過秒數 3 倍、標題主文字連同標點最多 9 字、封面大字 4 到 8 字、
 標籤最多 5 個且含 #與神對話、9:16 為準（16:9 與一念之間的提示詞與台詞要一致）。
+已上架集數的 Code.gs 說明與標記要跟劇本一致，GS 檔版本短碼要是最新（tools/stamp_gas.py）。
 """
 import re, glob, os, sys, json, subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,6 +108,28 @@ def main():
     for k in ["自在", "放下", "放手"]:
         if len(lasts) == 3 and all(k in x for x in lasts): bad("最近三集", f"結尾都用「{k}」，建議換不同收尾")
     # 開場提醒（不算錯誤，列為建議）
+    # GAS 同步（2026-11-27）：已上架的集數（Code.gs 有標題），Code.gs 的說明與標記要跟劇本一致；GS 檔短碼要是最新
+    code = open(os.path.join(ROOT, "line-bot", "Code.gs"), encoding="utf-8").read()
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        from build_shen_from_repo import load_plans
+        _, descs = load_plans(code)
+        tm = re.search(r"const TAG_PLAN_ = (\{.*?\});", code)
+        tagp = json.loads(tm[1]) if tm else {}
+    except Exception as e:
+        descs, tagp = {}, {}; bad("Code.gs", f"讀不到說明或標記清單：{e}")
+    SI = re.compile(r"[&?]si=[A-Za-z0-9_-]+")
+    for ep in sorted(yt):
+        k = f"EP{ep:02d}"; p9 = os.path.join(R, "9x16", f"Ep{ep:02d} 劇本.md")
+        if not os.path.exists(p9): continue
+        m = re.search(r"\*\*影片說明\*\*[^\n]*\n```\n(.*?)\n```", open(p9, encoding="utf-8").read(), re.S)
+        if k not in descs: bad("Code.gs", f"{k} 已上架，DESC_PLAN_ 缺這集的說明（從劇本補上）")
+        elif m and SI.sub("", m[1]).strip() != descs[k].strip(): bad("Code.gs", f"{k} 的 DESC_PLAN_ 說明與劇本不一致")
+        tg = tagp.get(k)
+        if not tg: bad("Code.gs", f"{k} 已上架，TAG_PLAN_ 缺這集的標記")
+        elif "與神對話" not in tg or "神對話" in tg: bad("Code.gs", f"{k} 的 TAG_PLAN_ 要用「與神對話」，不要「神對話」")
+    st = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "stamp_gas.py"), "--check"], capture_output=True, text=True)
+    if st.returncode: bad("GS 檔", "版本短碼過期，請執行 python3 tools/stamp_gas.py")
     tips = [f"EP{e:02d} 開場是定義式問句：{canon[e][0]['line']}" for e in sorted(canon)
             if canon[e] and re.search(r"^[^，]{1,4}，(是|是不是|就是).*嗎？$", canon[e][0]["line"])]
     for x in problems: print("✗", x)

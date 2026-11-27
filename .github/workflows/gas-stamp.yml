@@ -1,0 +1,41 @@
+# GS 檔版本短碼自動更新：line-bot 的 GS 檔有更新、但忘了跑 tools/stamp_gas.py 時，重新產生短碼並推回 main。
+# 小乖每日回報會用這個短碼判斷 Apps Script 是不是最新版，不是就提醒「需要更改 GAS」。
+name: GS 檔版本短碼
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'line-bot/*.gs'
+      - 'tools/stamp_gas.py'
+      - '.github/workflows/gas-stamp.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gas-stamp
+  cancel-in-progress: false
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 更新版本短碼
+        run: python3 tools/stamp_gas.py
+
+      - name: 有變動才推回 main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add line-bot/*.gs
+          if git diff --cached --quiet; then
+            echo "版本短碼沒有變動"
+          else
+            git commit -m "GS 檔版本短碼自動更新"
+            git push origin HEAD:main
+          fi
