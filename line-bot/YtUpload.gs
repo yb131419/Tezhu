@@ -63,8 +63,16 @@ function ytUploadNow() {
     return msg;
   }
   const plans = titlePlans_();
-  const title = String((plans.ep && plans.ep[key]) || name.replace(/\.[^.]+$/, '')).slice(0, 100);
-  const desc = String((plans.desc && plans.desc[key]) || '').slice(0, 4800);
+  const planTitle = plans.ep && plans.ep[key];
+  const planDesc = plans.desc && plans.desc[key];
+  // 沒有這一集的標題或說明資料：不上傳，免得變成沒有標題、說明的影片
+  if (!planTitle || !planDesc) {
+    const msg = '⚠️ ' + key + ' 還沒有標題或說明資料，所以沒有上傳（影片還留在「YT自動上傳」資料夾）。\n請先把這一集的標題與說明加進神對話劇本資料，之後會自動上傳。';
+    ytNotify_(msg);
+    return msg;
+  }
+  const title = String(planTitle).slice(0, 100);
+  const desc = String(planDesc).slice(0, 4800);
   let tags = (plans.tags && plans.tags[key]) || [];
   const kept = [];
   let len = 0;
