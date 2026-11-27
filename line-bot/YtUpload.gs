@@ -1,14 +1,21 @@
 /* ============ YouTube 自動上傳（一律私人）：雲端硬碟「YT自動上傳」資料夾裡的影片 → 上傳到頻道 ============
    未通過審核的 API 專案，上傳的影片會被強制設為「私人」，所以這裡一律用私人上傳。
-   檔名要含集數：例如 EP21.mp4、EP21_神對話.mov、一念之間.mp4（一念之間是長影片）。
-   標題、說明、標記沿用 titlePlans_()（Code.gs）裡現有的神對話資料。
-   上傳成功後影片會移到資料夾裡的「已上傳」，並把連結傳到 LINE／Telegram 提醒你改成公開或排程發布。
-   設定順序：ytUploadSetup（建立資料夾）→ ytUploadNow（授權，並手動上傳一次）→ ytUploadOn（每小時自動檢查）。 */
+   檔名要含集數：例如 EP31.mov、EP32.mp4、一念之間.mp4。
+   標題、說明、標記以劇本資料為準：先看 titlePlans_()（Code.gs），沒有的集數再讀 GitHub 上的劇本檔（shen/9x16/EpNN 劇本.md）。
+   分段續傳：每次最多跑 4 分鐘，影片每段 8MB，進度存在指令碼屬性，下一次接著傳（不會因超時重複上傳）。
+   成功後移到「已上傳」；同一支連續失敗 3 次移到「失敗」。
+   設定順序：ytUploadSetup（建立資料夾）→ 授權YT上傳 → ytUploadOn（每小時自動檢查）。 */
 
 const YT_UP_FOLDER_NAME_ = 'YT自動上傳';
 const YT_UP_DONE_NAME_ = '已上傳';
+const YT_UP_FAIL_NAME_ = '失敗';
+const YT_UP_CHUNK_ = 8 * 1024 * 1024;     // 每段 8MB（必須是 256KB 的倍數）
+const YT_UP_BUDGET_MS_ = 4 * 60 * 1000;   // 每次執行最多用 4 分鐘（Apps Script 上限 6 分鐘）
+const YT_UP_MAX_FAILS_ = 3;
+const YT_UP_STATE_KEY_ = 'YT_UP_STATE';
+const YT_UP_NOTED_KEY_ = 'YT_UP_NOTED';
 
-// 一次性：在編輯器選「ytUploadSetup」按「執行」一次。會找（或建立）雲端硬碟根目錄的「YT自動上傳」資料夾，並把 ID 寫進指令碼屬性 YT_UPLOAD_FOLDER_ID。
+// 一次性：在編輯器選「ytUploadSetup」按「執行」一次。會找（或建立）雲端硬碟根目錄的「YT自動上傳」資料夾。
 function ytUploadSetup() {
   const f = ytFolder_();
   Logger.log('已設定 YT_UPLOAD_FOLDER_ID：' + f.getId() + '（資料夾：' + f.getName() + '）');
@@ -33,65 +40,198 @@ function ytFolder_() {
   setProp_('YT_UPLOAD_FOLDER_ID', f.getId());
   return f;
 }
-function ytDoneFolder_(folder) {
-  const it = folder.getFoldersByName(YT_UP_DONE_NAME_);
-  return it.hasNext() ? it.next() : folder.createFolder(YT_UP_DONE_NAME_);
+function ytSubFolder_(folder, name) {
+  const it = folder.getFoldersByName(name);
+  return it.hasNext() ? it.next() : folder.createFolder(name);
 }
 
-// 從檔名找出集數：EP21 → EP21；一念之間 → LONG；找不到就回傳空字串
+// 從檔名找出集數：EP31 → EP31；一念之間 → LONG；找不到就回傳空字串
 function ytEpKey_(name) {
   if (/一念之間|LONG/i.test(name)) return 'LONG';
   const m = String(name).match(/EP\s*(\d{1,2})/i);
   return m ? 'EP' + ('0' + m[1]).slice(-2) : '';
 }
 
-// 主要流程：每次最多上傳一支（避免超過 Apps Script 的執行時間上限），沒有新影片就什麼都不做
+// 入口：每小時的排程與手動執行都用這個。LockService 避免手動與排程同時跑。
 function ytUploadNow() {
-  const folder = ytFolder_();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return '上一次上傳還在進行中，這次先不跑。';
+  try {
+    const started = Date.now();
+    const folder = ytFolder_();
+    const out = [];
+    for (let i = 0; i < 50; i++) {          // 50 只是保險上限，正常用不到
+      const r = ytStep_(folder, started);
+      if (r.msg) out.push(r.msg);
+      if (!r.keepGoing) break;
+    }
+    return out.join('\n\n') || '沒有待上傳的影片。';
+  } finally { lock.releaseLock(); }
+}
+
+// 處理一步：有進行中的影片就接著傳；沒有就挑下一支開始
+function ytStep_(folder, started) {
+  let st = ytLoadState_();
+  try {
+    if (!st) {
+      st = ytStart_(folder);
+      if (!st) return { keepGoing: false, msg: '' };
+    }
+    const r = ytTransfer_(st, started);
+    if (!r.finished) {
+      ytSaveState_(st);
+      return { keepGoing: false, msg: '⏳ ' + st.name + ' 上傳中，' + Math.floor(100 * st.offset / st.size) + '%，下次自動接著傳。' };
+    }
+    st.videoId = r.videoId;
+    ytSaveState_(st);
+    ytFinish_(folder, st);
+    return { keepGoing: Date.now() - started < YT_UP_BUDGET_MS_, msg: '📤 ' + st.name + ' 已上傳（私人）：https://youtu.be/' + st.videoId };
+  } catch (e) {
+    return ytOnError_(folder, st, e);
+  }
+}
+
+// 挑下一支要上傳的影片（依檔名排序，沒有劇本資料的略過並通知一次）
+function ytPickNext_(folder) {
+  const list = [];
   const it = folder.getFiles();
-  let file = null;
   while (it.hasNext()) {
     const f = it.next();
-    if (/\.(mp4|mov)$/i.test(f.getName())) { file = f; break; }
+    if (/\.(mp4|mov)$/i.test(f.getName())) list.push(f);
   }
-  if (!file) return '沒有待上傳的影片。';
-  const name = file.getName();
-  const key = ytEpKey_(name);
-  if (!key) {
-    const msg = '⚠️ 檔名看不出集數，沒有上傳：' + name + '（請改成含 EP21 或「一念之間」的檔名）';
-    ytNotify_(msg);
-    return msg;
+  list.sort((a, b) => (a.getName() < b.getName() ? -1 : a.getName() > b.getName() ? 1 : 0));
+  const noted = ytNotedLoad_();
+  for (const f of list) {
+    const name = f.getName();
+    const key = ytEpKey_(name);
+    const meta = key ? ytMetaFor_(key) : null;
+    if (meta) return { file: f, meta: meta };
+    if (noted.indexOf(name) < 0) {
+      const why = key ? (key + ' 還沒有標題或說明資料') : '檔名看不出集數';
+      ytNotify_('⚠️ ' + name + '：' + why + '，所以沒有上傳（影片還留在「YT自動上傳」資料夾，資料補上後會自動上傳）。');
+      noted.push(name);
+      ytNotedSave_(noted);
+    }
   }
+  return null;
+}
+
+// 開始一支新影片：只記下進度，還沒有建立上傳連線
+function ytStart_(folder) {
+  const pick = ytPickNext_(folder);
+  if (!pick) return null;
+  const f = pick.file, m = pick.meta;
+  const st = {
+    fileId: f.getId(), name: f.getName(), title: m.title, desc: m.desc, tags: m.tags,
+    mime: /\.mov$/i.test(f.getName()) ? 'video/quicktime' : 'video/mp4',
+    size: f.getSize(), offset: 0, sessionUri: '', fails: 0, videoId: '',
+  };
+  ytSaveState_(st);
+  return st;
+}
+
+// 分段傳送：超過時間預算就先停下，進度已存好，下次接著傳
+function ytTransfer_(st, started) {
+  if (st.videoId) return { finished: true, videoId: st.videoId };
+  if (!st.sessionUri) { st.sessionUri = ytInit_(st); st.offset = 0; ytSaveState_(st); }
+  while (st.offset < st.size) {
+    if (Date.now() - started > YT_UP_BUDGET_MS_) return { finished: false };
+    const end = Math.min(st.offset + YT_UP_CHUNK_, st.size) - 1;
+    const bytes = ytDownloadRange_(st.fileId, st.offset, end);
+    const res = UrlFetchApp.fetch(st.sessionUri, {
+      method: 'put', muteHttpExceptions: true, contentType: st.mime,
+      headers: { 'Content-Range': 'bytes ' + st.offset + '-' + end + '/' + st.size },
+      payload: bytes,
+    });
+    const code = res.getResponseCode();
+    if (code === 308) { st.offset = end + 1; ytSaveState_(st); continue; }
+    if (code === 200 || code === 201) {
+      const data = JSON.parse(res.getContentText() || '{}');
+      if (!data.id) throw new Error('上傳完成但沒有回傳影片 ID');
+      return { finished: true, videoId: data.id };
+    }
+    if (code === 404 || code === 410) { st.sessionUri = ''; st.offset = 0; ytSaveState_(st); return { finished: false }; }
+    throw new Error('第 ' + (Math.floor(st.offset / YT_UP_CHUNK_) + 1) + ' 段上傳失敗（HTTP ' + code + '）：' + ytUpErr_(res));
+  }
+  // 段落都送完了卻沒有拿到影片 ID：從頭重傳這一支
+  st.sessionUri = ''; st.offset = 0; ytSaveState_(st);
+  return { finished: false };
+}
+
+// 建立上傳連線，回傳上傳網址（之後每段都送到這個網址）
+function ytInit_(st) {
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+    method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Upload-Content-Type': st.mime, 'X-Upload-Content-Length': String(st.size) },
+    payload: JSON.stringify({
+      snippet: { title: st.title, description: st.desc, tags: st.tags, categoryId: '22' },
+      status: { privacyStatus: 'private', selfDeclaredMadeForKids: false },
+    }),
+  });
+  if (res.getResponseCode() !== 200) throw new Error('建立上傳失敗：' + ytUpErr_(res));
+  const h = res.getHeaders();
+  const loc = h['Location'] || h['location'];
+  if (!loc) throw new Error('沒有拿到上傳網址');
+  return loc;
+}
+
+// 從雲端硬碟讀出一段影片內容（start 到 end，含頭尾）
+function ytDownloadRange_(fileId, start, end) {
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+    muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), Range: 'bytes=' + start + '-' + end },
+  });
+  const c = res.getResponseCode();
+  if (c !== 200 && c !== 206) throw new Error('讀取影片失敗（HTTP ' + c + '）');
+  return res.getContent();
+}
+
+// 上傳成功：先把檔案移到「已上傳」，再清掉進度，最後通知
+function ytFinish_(folder, st) {
+  const file = DriveApp.getFileById(st.fileId);
+  ytSubFolder_(folder, YT_UP_DONE_NAME_).addFile(file);
+  folder.removeFile(file);
+  ytStateClear_();
+  ytNotify_('📤 已上傳到 YouTube（目前是私人）\n' + st.title + '\nhttps://youtu.be/' + st.videoId +
+    '\n\n要公開：到 YouTube Studio 把可見範圍改成「公開」，或設定排程發布（建議 12:00 或 21:00）。\nhttps://studio.youtube.com/video/' + st.videoId + '/edit');
+}
+
+// 出錯：影片已上傳但移檔失敗，只重試移檔；其他錯誤累計次數，滿 3 次移到「失敗」資料夾
+function ytOnError_(folder, st, e) {
+  const why = String((e && e.message) || e).slice(0, 300);
+  if (!st) return { keepGoing: false, msg: '⚠️ 上傳出錯：' + why };
+  if (st.videoId) {
+    ytSaveState_(st);
+    return { keepGoing: false, msg: '⚠️ ' + st.name + ' 已上傳，但移檔失敗，下次會再試移檔：' + why };
+  }
+  st.fails = (st.fails || 0) + 1;
+  if (st.fails >= YT_UP_MAX_FAILS_) {
+    const file = DriveApp.getFileById(st.fileId);
+    ytSubFolder_(folder, YT_UP_FAIL_NAME_).addFile(file);
+    folder.removeFile(file);
+    ytStateClear_();
+    ytNotify_('⚠️ ' + st.name + ' 連續失敗 ' + st.fails + ' 次，已移到「失敗」資料夾。\n原因：' + why);
+    return { keepGoing: false, msg: '⚠️ ' + st.name + ' 已移到「失敗」資料夾：' + why };
+  }
+  ytSaveState_(st);
+  return { keepGoing: false, msg: '⚠️ ' + st.name + ' 這次出錯（第 ' + st.fails + ' 次），下次會接著試：' + why };
+}
+
+// 這一集的標題、說明、標記：先看清單，沒有再讀劇本檔；都沒有回傳 null（不上傳）
+function ytMetaFor_(key) {
   const plans = titlePlans_();
-  let planTitle = plans.ep && plans.ep[key];
-  let planDesc = plans.desc && plans.desc[key];
-  let planTags = (plans.tags && plans.tags[key]) || [];
-  // 清單裡沒有的集數（例如每日迭代新產生的集），直接讀 GitHub 上的劇本檔
-  if (key !== 'LONG' && (!planTitle || !planDesc)) {
+  let title = plans.ep && plans.ep[key];
+  let desc = plans.desc && plans.desc[key];
+  let tags = (plans.tags && plans.tags[key]) || [];
+  if (key !== 'LONG' && (!title || !desc)) {
     const s = ytPlanFromScript_(key);
-    if (s) { planTitle = s.title; planDesc = s.desc; planTags = s.tags; }
+    if (s) { title = s.title; desc = s.desc; tags = s.tags; }
   }
-  // 沒有這一集的標題或說明資料：不上傳，免得變成沒有標題、說明的影片
-  if (!planTitle || !planDesc) {
-    const msg = '⚠️ ' + key + ' 還沒有標題或說明資料，所以沒有上傳（影片還留在「YT自動上傳」資料夾）。\n請先把這一集的標題與說明加進神對話劇本資料，之後會自動上傳。';
-    ytNotify_(msg);
-    return msg;
-  }
-  const title = String(planTitle).slice(0, 100);
-  const desc = String(planDesc).slice(0, 4800);
-  const tags = planTags;
+  if (!title || !desc) return null;
   const kept = [];
   let len = 0;
   tags.forEach(t => { if (len + t.length + 1 <= 450) { kept.push(t); len += t.length + 1; } });
-  const id = ytUploadOne_(file, { title: title, desc: desc, tags: kept });
-  ytDoneFolder_(folder).addFile(file);
-  folder.removeFile(file);
-  const url = 'https://youtu.be/' + id;
-  const studio = 'https://studio.youtube.com/video/' + id + '/edit';
-  const msg = '📤 已上傳到 YouTube（目前是私人）\n' + title + '\n' + url + '\n\n' +
-    '要公開：到 YouTube Studio 把可見範圍改成「公開」，或設定排程發布（建議 12:00 或 21:00）。\n' + studio;
-  ytNotify_(msg);
-  return msg;
+  return { title: String(title).slice(0, 100), desc: String(desc).slice(0, 4800), tags: kept };
 }
 
 // 從 GitHub 上的劇本檔（shen/9x16/EpNN 劇本.md）讀出標題、影片說明與標記；讀不到回傳 null
@@ -112,32 +252,16 @@ function ytPlanFromScript_(key) {
   } catch (e) { console.error('讀取劇本檔失敗：' + e); return null; }
 }
 
-// 上傳一支影片（可續傳的上傳流程：先取得上傳網址，再把影片內容送過去）
-function ytUploadOne_(file, meta) {
-  const token = ScriptApp.getOAuthToken();
-  const bytes = file.getBlob().getBytes();
-  const ct = /\.mov$/i.test(file.getName()) ? 'video/quicktime' : 'video/mp4';
-  const body = {
-    snippet: { title: meta.title, description: meta.desc, tags: meta.tags, categoryId: '22' },
-    status: { privacyStatus: 'private', selfDeclaredMadeForKids: false },
-  };
-  const init = UrlFetchApp.fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
-    method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + token, 'X-Upload-Content-Type': ct, 'X-Upload-Content-Length': String(bytes.length) },
-    payload: JSON.stringify(body),
-  });
-  if (init.getResponseCode() !== 200) throw new Error('建立上傳失敗：' + ytUpErr_(init));
-  const h = init.getHeaders();
-  const loc = h['Location'] || h['location'];
-  if (!loc) throw new Error('沒有拿到上傳網址');
-  const put = UrlFetchApp.fetch(loc, {
-    method: 'put', contentType: ct, muteHttpExceptions: true, payload: bytes,
-  });
-  if (put.getResponseCode() !== 200) throw new Error('影片內容上傳失敗：' + ytUpErr_(put));
-  const data = JSON.parse(put.getContentText() || '{}');
-  if (!data.id) throw new Error('上傳完成但沒有回傳影片 ID');
-  return data.id;
+function ytLoadState_() {
+  try { const s = prop_(YT_UP_STATE_KEY_); return s ? JSON.parse(s) : null; } catch (e) { return null; }
 }
+function ytSaveState_(st) { setProp_(YT_UP_STATE_KEY_, JSON.stringify(st)); }
+function ytStateClear_() { PropertiesService.getScriptProperties().deleteProperty(YT_UP_STATE_KEY_); }
+function ytNotedLoad_() {
+  try { return JSON.parse(prop_(YT_UP_NOTED_KEY_) || '[]'); } catch (e) { return []; }
+}
+function ytNotedSave_(arr) { setProp_(YT_UP_NOTED_KEY_, JSON.stringify(arr.slice(-50))); }
+
 function ytUpErr_(res) {
   try {
     const j = JSON.parse(res.getContentText() || '{}');
