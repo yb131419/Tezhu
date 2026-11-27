@@ -29,7 +29,7 @@ function shenDailyOn() {
 }
 
 // 頻道數據裡要放進圖卡的數字（chanDailyJob 會一起存進 CHAN_DAILY_MSG 的 st 欄位）
-// 平均看了％超過 100 時照原樣顯示，並標記 pctWarn，圖卡上會註明「待確認」
+// 平均看了％超過 100 時照原樣顯示（pctWarn 只作記錄，圖卡不標註）
 function chanStats_(d) {
   const v = d.videos || [];
   const pv = v.filter(x => x.avgPct != null);
@@ -137,7 +137,7 @@ function scLines_(text, size, width) {
   return String(text).split('\n').reduce((n, seg) => n + Math.max(1, Math.ceil(Array.from(seg).length / cpl)), 0);
 }
 
-// 把各區（今日重點／熱門歸納／頻道改善建議／待確認）攤平成一列列區塊，每個區塊帶高度
+// 把各區（今日重點／熱門歸納／頻道改善建議）攤平成一列列區塊，每個區塊帶高度
 function scBlocksFromSections_(sections) {
   const blocks = [];
   sections.forEach((sec, si) => {
@@ -303,13 +303,12 @@ function shenDailyRun_(resend) {
   // 沒設定的管道不算失敗；設定了但沒有成功送出，才算失敗
   let lineOk = !owner, tgOk = !tgOn;
   try {
-    // 把摘要拆成幾區：今日重點、熱門歸納（劇本關鍵字）、頻道改善建議（①–⑨）、待確認（不確定）
+    // 把摘要拆成幾區：今日重點、熱門歸納（劇本關鍵字）、頻道改善建議（①–⑨）；「不確定」的內容不上圖卡
     const items = [];
     pending.forEach(p => shenCardItems_(p.body).forEach(it => items.push(it)));
     const leads = items.filter(it => it.lead);
     const kw = items.filter(it => it.muted && String(it.text).indexOf('劇本關鍵字') === 0);
     const nums = items.filter(it => it.num);
-    const tails = items.filter(it => it.muted && String(it.text).indexOf('劇本關鍵字') !== 0);
     if (kwLine && !kw.length) kw.push({ num: '', text: kwLine, muted: true });
     const sections = [];
     if (leads.length) sections.push({ label: '今日重點', items: leads.reduce((a, it) => a.concat(scSentences_(it.text).map(t => ({ num: '・', text: t }))), []) });
@@ -318,7 +317,6 @@ function shenDailyRun_(resend) {
       sections.push({ label: '熱門歸納', items: body.split('、').map(t => t.trim()).filter(Boolean).map(t => ({ num: '・', text: t })) });
     }
     if (nums.length) sections.push({ label: '頻道改善建議', items: nums.map(it => ({ num: it.num, text: it.text })) });
-    if (tails.length) sections.push({ label: '待確認', items: tails.map(it => ({ text: it.text, muted: true })) });
     if (!sections.length) sections.push({ label: '今日重點', items: [{ text: '今天還沒有新的神對話迭代建議。' }] });
     const dateLine = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy 年 M 月 d 日') + ' ・ 每日回報';
     const pages = scPages_(chanSt, sections, dateLine);
