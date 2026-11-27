@@ -10,6 +10,7 @@ on:
       - 'shen/**'
       - 'tools/build_shen_from_repo.py'
       - 'tools/build_shen_scripts.py'
+      - 'tools/export_plans.py'
       - '.github/workflows/shen-page.yml'
   workflow_dispatch:
 
@@ -30,11 +31,15 @@ jobs:
       - name: 重新產生神劇本頁
         run: python3 tools/build_shen_from_repo.py
 
+      # 小乖每天自動更新 YouTube 時，讀的是這份計畫表（從 Code.gs 匯出，不用重貼 Code.gs）
+      - name: 匯出標題、說明、標記計畫表
+        run: python3 tools/export_plans.py
+
       - name: 有變動才推回 main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ShenScripts.html shen-latest.json
+          git add ShenScripts.html shen-latest.json shen-plans.json
           if git diff --cached --quiet; then
             echo "劇本頁沒有變動"
           else

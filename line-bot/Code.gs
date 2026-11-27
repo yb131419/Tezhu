@@ -870,6 +870,43 @@ const DESC_PLAN_ = {
   "EP29": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n期待落空的時候，你是失落，還是放不下？\n神對話 EP29，佛祖告訴我們：痛來自把結果押在別人身上，結果交給緣，努力留給自己。\n\n本集重點：\n・努力之後落空，心會失落，是因為把結果押在別人身上\n・期待不是錯，是把快樂交給了別人\n・做完就放下，結果是緣，不是自己的債\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n看完這一集，你最近一次期待落空，心裡是什麼感覺？留言告訴我。\n\n#與神對話 #期待 #放下 #修心",
   "LONG": "關注頻道，每天一則神對話。\n覺得有幫助，就分享給需要的朋友，順手按個讚。\n\n念頭會互相感染。彥彬從一句火氣開始，跟著佛祖看清引果、業力、願果與輪迴。\n\n本集內容：\n・什麼是引果：火氣上來時，先覺察，不急著說話\n・什麼是業力：業不是命，是每天的選擇\n・什麼是願果：許願要看心，出於慈悲，願果才圓滿\n・什麼是輪迴：放下執念，不再讓它決定你，才能跳出輪迴\n\n時間軸：\n0:00 片頭\n0:05 第 1 章 什麼是引果\n1:02 第 2 章 什麼是業力\n1:59 第 3 章 什麼是願果\n2:56 第 4 章 什麼是輪迴\n3:53 片尾\n\n神對話系列播放清單：\nhttps://youtube.com/playlist?list=PLZLcOre6BwBc\n\n喜歡這一集，請訂閱並分享給需要的朋友。\n你覺得，念頭來了，你會先做什麼？留言告訴我。\n\n#與神對話 #一念之間 #引果 #業力 #輪迴"
 };
+// 標題、說明、標記的計畫表（2026-11-27）：優先用 GitHub 上最新的 shen-plans.json（由 tools/export_plans.py 從這份 Code.gs 的清單產生，
+// 只是資料、不是程式），讀不到或格式不對就用這份程式裡的清單。每日迭代補上新集數後，不用重貼 Code.gs 也會生效。
+let TITLE_PLANS_CACHE_ = null;
+function titlePlans_() {
+  if (TITLE_PLANS_CACHE_) return TITLE_PLANS_CACHE_;
+  const local = { title: TITLE_PLAN_, ep: TITLE_EP_PLAN_, desc: DESC_PLAN_, tags: TAG_PLAN_, src: '程式內建清單' };
+  try {
+    const res = UrlFetchApp.fetch('https://raw.githubusercontent.com/yb131419/Tezhu/' + gitMainSha_() + '/shen-plans.json', { muteHttpExceptions: true });
+    if (res.getResponseCode() === 200) {
+      const j = JSON.parse(res.getContentText());
+      if (titlePlansOk_(j)) {
+        TITLE_PLANS_CACHE_ = { title: j.TITLE_PLAN_, ep: j.TITLE_EP_PLAN_, desc: j.DESC_PLAN_, tags: j.TAG_PLAN_, src: 'GitHub 最新清單' };
+        return TITLE_PLANS_CACHE_;
+      }
+      console.error('shen-plans.json 格式不對，改用程式內建清單');
+    }
+  } catch (e) { console.error('讀取 shen-plans.json 失敗，改用程式內建清單：' + e); }
+  TITLE_PLANS_CACHE_ = local;
+  return local;
+}
+// 檢查下載的清單格式：只接受字串與字串陣列，EP 標題要以該集開頭
+function titlePlansOk_(j) {
+  const str = v => typeof v === 'string' && v.length > 0;
+  if (!j || !Array.isArray(j.TITLE_PLAN_) || !j.TITLE_EP_PLAN_ || !j.DESC_PLAN_ || !j.TAG_PLAN_) return false;
+  if (!j.TITLE_PLAN_.every(x => Array.isArray(x) && str(x[0]) && str(x[1]))) return false;
+  if (!Object.keys(j.TITLE_EP_PLAN_).every(k => /^EP\d{2}$/.test(k) && str(j.TITLE_EP_PLAN_[k]) && j.TITLE_EP_PLAN_[k].indexOf(k + '｜') === 0)) return false;
+  if (!Object.keys(j.DESC_PLAN_).every(k => str(j.DESC_PLAN_[k]))) return false;
+  return Object.keys(j.TAG_PLAN_).every(k => Array.isArray(j.TAG_PLAN_[k]) && j.TAG_PLAN_[k].every(str));
+}
+// GitHub main 最新的 commit（固定版本，避免 /main/ 快取到舊檔）；查不到就用 main
+function gitMainSha_() {
+  try {
+    const r = UrlFetchApp.fetch('https://api.github.com/repos/yb131419/Tezhu/commits/main', { muteHttpExceptions: true, headers: { Accept: 'application/vnd.github+json' } });
+    if (r.getResponseCode() === 200) return JSON.parse(r.getContentText()).sha || 'main';
+  } catch (e) { console.error('查 GitHub 最新版本失敗：' + e); }
+  return 'main';
+}
 // 影片屬於哪一集：一念之間是 LONG；其他依標題開頭的集數（EP01…EP20）
 function titleKey_(vid, title) {
   if (vid === TITLE_LONG_ID_) return 'LONG';
@@ -959,19 +996,24 @@ function titleSameTags_(a, b) { return JSON.stringify(a || []) === JSON.stringif
 // mode：both＝標題＋說明；title＝只改標題；desc＝只改說明；tags＝只改標記；all＝標題＋說明＋標記
 function titleBuildItems_(mode) {
   mode = mode || 'both';
+  // auto：每日自動更新，跟 all 一樣改標題、說明、標記，但只動有劇本規劃的集數（EP 與一念之間），其他影片不碰
+  const auto = mode === 'auto';
+  if (auto) mode = 'all';
   const all = titleAllIds_();
   const snaps = titleFetch_(all);
   const items = [];
+  const P = titlePlans_();
   all.forEach(vid => {
     const s = snaps[vid];
     if (!s) return;
     const key = titleKey_(vid, s.title);
     let to = s.title;
-    const planned = TITLE_PLAN_.find(x => x[0] === vid);
+    const planned = P.title.find(x => x[0] === vid);
+    if (auto && !planned && !(key && (P.ep[key] || P.desc[key] != null || P.tags[key]))) return;
     if (planned) to = planned[1];
-    else if (key && TITLE_EP_PLAN_[key]) to = TITLE_EP_PLAN_[key];
+    else if (key && P.ep[key]) to = P.ep[key];
     if (TITLE_KEEP_.indexOf(vid) >= 0) to = s.title;
-    let toDesc = key && DESC_PLAN_[key] != null ? DESC_PLAN_[key] : (s.description || '');
+    let toDesc = key && P.desc[key] != null ? P.desc[key] : (s.description || '');
     let toTags = s.tags || [];
     if (mode === 'title') toDesc = s.description || '';                       // 只改標題
     if (mode === 'desc') to = s.title;                                        // 只改說明
@@ -979,7 +1021,7 @@ function titleBuildItems_(mode) {
     // 標記：有劇本規劃的集數用規劃好的關鍵字；其他上架影片（沒有規劃）在「更改全部」「只改標記」時，
     // 保留原有標記，再從標題的 #井號 補上（不會刪掉原標記）
     if (mode === 'tags' || mode === 'all') {
-      if (key && TAG_PLAN_[key]) toTags = titleFitTags_(TAG_PLAN_[key]);
+      if (key && P.tags[key]) toTags = titleFitTags_(P.tags[key]);
       else toTags = titleFitTags_(titleMergeTags_(s.tags || [], s.title || ''));
     }
     if (mode === 'title' || mode === 'desc' || mode === 'both') { /* 標記不動 */ }
@@ -1078,39 +1120,57 @@ function titleApply_() {
       const msg = skipped.length ? '✏️ 沒有改任何東西。\n' + skipped.join('\n') + '\n\n請重新產生預覽再按確認。' : '✏️ 都已經是新的了，沒有要改的。';
       return { text: msg, buttons: [[TITLE_BTN, MENU_BTN]] };
     }
-    const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
-    const sh = titleSheet_();
-    const hist = sh.getDataRange().getValues();
-    const first = {};   // 每支影片最初的原內容（歷史紀錄裡最早的那一筆）
-    for (let i = 1; i < hist.length; i++) {
-      const id = String(hist[i][1] || '');
-      if (!id) continue;
-      if (!first[id]) first[id] = { t: String(hist[i][2] || ''), d: String(hist[i][5] || ''), g: String(hist[i][7] || '') };
-      else {
-        if (!first[id].d && hist[i][5]) first[id].d = String(hist[i][5]);
-        if (!first[id].g && hist[i][7]) first[id].g = String(hist[i][7]);
-      }
-    }
-    const cur = titleFetch_(items.map(x => x.id));
-    const rows = items.map(x => {
-      const c = cur[x.id] || {};
-      const o = first[x.id] || { t: c.title != null ? c.title : x.from, d: c.description || '', g: JSON.stringify(c.tags || []) };
-      return { id: x.id, from: o.t, fromDesc: o.d, fromTags: o.g || JSON.stringify(c.tags || []), to: x.to, toDesc: x.toDesc, toTags: x.toTags, titleChg: x.titleChg, descChg: x.descChg, tagsChg: x.tagsChg };
-    });
-    const start = sh.getLastRow() + 1;
-    sh.getRange(start, 1, rows.length, TITLE_HEAD_.length).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成', r.fromDesc, r.toDesc, r.fromTags, JSON.stringify(r.toTags)]));
-    setProp_('TITLE_LAST', batch);
-    let okT = 0, okD = 0, okG = 0; const bad = [];
-    rows.forEach((r, i) => {
-      let st;
-      try {
-        titleWrite_(r.id, r.titleChg ? r.to : null, r.descChg ? r.toDesc : null, r.tagsChg ? r.toTags : null);
-        st = '已改'; if (r.titleChg) okT++; if (r.descChg) okD++; if (r.tagsChg) okG++;
-      } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
-      sh.getRange(start + i, 5).setValue(st);
-    });
+    const { okT, okD, okG, bad } = titleCommit_(items);
     return { text: '✅ 改好了：標題 ' + okT + ' 支、說明 ' + okD + ' 支、標記 ' + okG + ' 支' + (bad.length ? '\n\n沒改成功的：\n' + bad.join('\n') : '') + (skipped.length ? '\n\n跳過的（內容有變動，沒有改）：\n' + skipped.join('\n') + '\n請重新預覽這幾支再按確認。' : ''),
       buttons: [[CHAN_BTN, MENU_BTN]] };
+  });
+}
+// 把要改的影片寫上 YouTube：先把每支影片最初的原內容存進「標題更改紀錄」，再逐支改；回傳改了幾支與失敗的
+function titleCommit_(items) {
+  const batch = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
+  const sh = titleSheet_();
+  const hist = sh.getDataRange().getValues();
+  const first = {};   // 每支影片最初的原內容（歷史紀錄裡最早的那一筆）
+  for (let i = 1; i < hist.length; i++) {
+    const id = String(hist[i][1] || '');
+    if (!id) continue;
+    if (!first[id]) first[id] = { t: String(hist[i][2] || ''), d: String(hist[i][5] || ''), g: String(hist[i][7] || '') };
+    else {
+      if (!first[id].d && hist[i][5]) first[id].d = String(hist[i][5]);
+      if (!first[id].g && hist[i][7]) first[id].g = String(hist[i][7]);
+    }
+  }
+  const cur = titleFetch_(items.map(x => x.id));
+  const rows = items.map(x => {
+    const c = cur[x.id] || {};
+    const o = first[x.id] || { t: c.title != null ? c.title : x.from, d: c.description || '', g: JSON.stringify(c.tags || []) };
+    return { id: x.id, from: o.t, fromDesc: o.d, fromTags: o.g || JSON.stringify(c.tags || []), to: x.to, toDesc: x.toDesc, toTags: x.toTags, titleChg: x.titleChg, descChg: x.descChg, tagsChg: x.tagsChg };
+  });
+  const start = sh.getLastRow() + 1;
+  sh.getRange(start, 1, rows.length, TITLE_HEAD_.length).setValues(rows.map(r => [batch, r.id, r.from, r.to, '備份完成', r.fromDesc, r.toDesc, r.fromTags, JSON.stringify(r.toTags)]));
+  setProp_('TITLE_LAST', batch);
+  let okT = 0, okD = 0, okG = 0; const bad = [];
+  rows.forEach((r, i) => {
+    let st;
+    try {
+      titleWrite_(r.id, r.titleChg ? r.to : null, r.descChg ? r.toDesc : null, r.tagsChg ? r.toTags : null);
+      st = '已改'; if (r.titleChg) okT++; if (r.descChg) okD++; if (r.tagsChg) okG++;
+    } catch (e) { st = '失敗：' + String(e.message || e).slice(0, 80); bad.push(r.from + '：' + String(e.message || e).slice(0, 60)); }
+    sh.getRange(start + i, 5).setValue(st);
+  });
+  return { okT: okT, okD: okD, okG: okG, bad: bad };
+}
+// 每日自動更新（2026-11-27 使用者指示「改成每日迭代後自動全部更新標題、說明、標記，只要回報給我就好」）：
+// 由每日回報（ShenDaily.gs，約 9:30）呼叫，不用按確認；原內容一樣先存進「標題更改紀錄」分頁。回傳要放進每日回報的文字。
+function titleAutoApply_() {
+  return withLock_(() => {
+    const items = titleBuildItems_('auto');
+    if (!items.length) return { n: 0, text: '📺 YouTube 自動更新：標題、說明、標記都是最新的，今天沒有要改。' };
+    const r = titleCommit_(items);
+    const names = items.map(x => (x.key === 'LONG' ? '一念之間' : (x.key || String(x.from).slice(0, 14))) + '（' +
+      [x.titleChg ? '標題' : '', x.descChg ? '說明' : '', x.tagsChg ? '標記' : ''].filter(Boolean).join('、') + '）');
+    return { n: items.length, text: '📺 YouTube 自動更新：標題 ' + r.okT + ' 支、說明 ' + r.okD + ' 支、標記 ' + r.okG + ' 支\n' +
+      names.join('、') + (r.bad.length ? '\n沒改成功：' + r.bad.join('；') : '') };
   });
 }
 // 還原：把最近一次批次的內容寫回每支影片最初的樣子（原說明或原標記是空的就不動那一項）
@@ -1145,7 +1205,7 @@ function titleRestore_() {
 }
 // 看完整說明：輸入「說明EP05」或「說明一念之間」
 function titleShowDesc_(key) {
-  const d = DESC_PLAN_[key];
+  const d = titlePlans_().desc[key];
   if (!d) return { text: '這一集還沒有新的影片說明。', buttons: [[TITLE_BTN, MENU_BTN]] };
   return { text: '📝 ' + (key === 'LONG' ? '一念之間' : key) + ' 新的影片說明\n\n' + d, buttons: [[TITLE_BTN, MENU_BTN]] };
 }
@@ -7997,4 +8057,4 @@ function oaAsk_(t, raw) {
 }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampCode_() { return 'acb1220'; }
+function gasStampCode_() { return '30f04fc'; }

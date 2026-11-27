@@ -289,11 +289,21 @@ function shenDailyRun_(resend) {
     return 'nothing_to_send';
   }
   const kwLine = shenKeywordLine_();
+  // 每日迭代後自動套用 YouTube 標題、說明、標記（2026-11-27）：計畫表以 GitHub 上的 shen-plans.json 為準，
+  // 原內容備份在「標題更改紀錄」分頁；只在排程時執行，手動重送不改。
+  let ytNote = '';
+  if (!resend && typeof titleAutoApply_ === 'function') {
+    try { ytNote = titleAutoApply_().text; }
+    catch (e) { ytNote = '📺 YouTube 自動更新沒有完成：' + String(e && e.message || e).slice(0, 80); }
+    console.log(ytNote);
+  }
   const gasNote = gasUpdateNote_();
+  const extraNote = [ytNote, gasNote].filter(Boolean).join('\n\n');
   const parts = [];
   if (chanText) parts.push(chanText);
   pending.forEach(p => parts.push('🌿 神對話每日迭代（' + p.date + '）\n\n' + p.body + '\n\n📜 劇本網址：' + p.url));
   if (kwLine) parts.push('🔎 ' + kwLine);
+  if (ytNote) parts.push(ytNote);
   if (gasNote) parts.push(gasNote);
   const msg = parts.join('\n\n━━━━━━━━\n\n') + '\n\n' + verTag_();
   const owner = prop_('OWNER_USER_ID'), tgOwner = prop_('TG_OWNER_CHAT_ID');
@@ -332,7 +342,7 @@ function shenDailyRun_(resend) {
           // LINE 每次最多 5 則訊息，超過就分批推送
           for (let i = 0; i < imgs.length; i += 5) {
             const batch = imgs.slice(i, i + 5);
-            if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL + (gasNote ? '\n\n' + gasNote : '') });
+            if (i + 5 >= imgs.length) batch.push({ type: 'text', text: '📜 劇本網址：' + SHEN_PAGE_URL + (extraNote ? '\n\n' + extraNote : '') });
             shenLinePush_(owner, i === 0 ? withQuick_(batch) : batch);
           }
           lineOk = true;
@@ -341,7 +351,7 @@ function shenDailyRun_(resend) {
       if (tgOn) {
         try {
           pngs.forEach(p => shenTgSend_(tgOwner, { text: '📜 劇本網址：' + SHEN_PAGE_URL, png: p }));
-          if (gasNote) shenTgSend_(tgOwner, { text: gasNote });
+          if (extraNote) shenTgSend_(tgOwner, { text: extraNote });
           tgOk = true;
         } catch (e) { errs.push('Telegram 圖卡：' + e); }
       }
@@ -411,4 +421,4 @@ function gasUpdateNote_() {
 function gasCheck() { const t = gasUpdateNote_() || 'GAS 都是最新版，不用更改。'; console.log(t); return t; }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampShenDaily_() { return '6e16409'; }
+function gasStampShenDaily_() { return '90ea510'; }

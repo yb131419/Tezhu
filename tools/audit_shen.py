@@ -4,7 +4,7 @@
 有問題時列出並以結束碼 1 結束；全部通過結束碼 0。
 規則來源：每段至少 4 秒、台詞字數不超過秒數 3 倍、標題主文字連同標點最多 9 字、封面大字 4 到 8 字、
 標籤最多 5 個且含 #與神對話、9:16 為準（16:9 與一念之間的提示詞與台詞要一致）。
-已上架集數的 Code.gs 說明與標記要跟劇本一致，GS 檔版本短碼要是最新（tools/stamp_gas.py）。
+已上架集數的 Code.gs 說明與標記要跟劇本一致，GS 檔版本短碼要是最新（tools/stamp_gas.py），shen-plans.json 要跟 Code.gs 一致（tools/export_plans.py）。
 """
 import re, glob, os, sys, json, subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -130,6 +130,8 @@ def main():
         elif "與神對話" not in tg or "神對話" in tg: bad("Code.gs", f"{k} 的 TAG_PLAN_ 要用「與神對話」，不要「神對話」")
     st = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "stamp_gas.py"), "--check"], capture_output=True, text=True)
     if st.returncode: bad("GS 檔", "版本短碼過期，請執行 python3 tools/stamp_gas.py")
+    ex = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "export_plans.py"), "--check"], capture_output=True, text=True)
+    if ex.returncode: bad("shen-plans.json", "跟 Code.gs 的計畫表不一致，請執行 python3 tools/export_plans.py")
     tips = [f"EP{e:02d} 開場是定義式問句：{canon[e][0]['line']}" for e in sorted(canon)
             if canon[e] and re.search(r"^[^，]{1,4}，(是|是不是|就是).*嗎？$", canon[e][0]["line"])]
     for x in problems: print("✗", x)
