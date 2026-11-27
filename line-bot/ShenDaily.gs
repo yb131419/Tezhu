@@ -266,25 +266,28 @@ function shenLinePush_(to, messages) {
 function shenDailyPush() { shenDailyRun_(false); }
 
 // 測試 YouTube 自動更新（2026-11-27）：在編輯器選函式按執行，結果傳到 LINE 與 Telegram
-//   ytAutoTest：只預覽，列出 9:30 會改哪幾支影片的標題、說明、標記，不會改 YouTube
-//   ytAutoRun：馬上真的改一次（原內容一樣先存進「標題更改紀錄」分頁），回傳的就是每日回報裡那一段
+//   ytAutoTest：只預覽 9:30 會改幾支，不會改 YouTube
+//   ytAutoRun：馬上真的改一次（原內容一樣先存進「標題更改紀錄」分頁）
+// 回報只寫一行數量（2026-11-27 使用者指示「每日回報簡單寫就好，不用寫這麼長」），不逐集列出
 function ytAutoTest() { return ytAutoSend_(ytAutoPreview_()); }
-function ytAutoRun() { return ytAutoSend_(titleAutoApply_().text); }
+function ytAutoRun() { return ytAutoSend_(ytShort_(titleAutoApply_().text)); }
 function ytAutoPreview_() {
   const items = titleBuildItems_('auto');
-  const src = '清單來源：' + titlePlans_().src;
-  if (!items.length) return '🧪 YouTube 自動更新預覽（只看不改）\n標題、說明、標記都是最新的，現在跑也不會改任何影片。\n' + src;
-  const lines = items.map(x => '・' + (x.key === 'LONG' ? '一念之間' : (x.key || String(x.from).slice(0, 14))) + '（' + x.id + '）：' +
-    [x.titleChg ? '標題' : '', x.descChg ? '說明' : '', x.tagsChg ? '標記' : ''].filter(Boolean).join('、') +
-    (x.titleChg ? '\n　原：' + x.from + '\n　新：' + x.to : '') +
-    (x.tagsChg ? '\n　新標記：' + (x.toTags || []).join('、') : ''));
-  return '🧪 YouTube 自動更新預覽（只看不改）\n共 ' + items.length + ' 支影片會更新：\n' + lines.join('\n') + '\n\n' + src + '\n要真的改，請執行 ytAutoRun；不執行的話，明天 9:30 也會自動改。';
+  if (!items.length) return '🧪 YouTube 自動更新預覽：都是最新的，不會改。';
+  const n = k => items.filter(x => x[k]).length;
+  return '🧪 YouTube 自動更新預覽（只看不改）：標題 ' + n('titleChg') + ' 支、說明 ' + n('descChg') + ' 支、標記 ' + n('tagsChg') + ' 支';
+}
+// 只留第一行的數量；有失敗再加一行簡短原因
+function ytShort_(t) {
+  const lines = String(t || '').split('\n');
+  const bad = lines.find(l => l.indexOf('沒改成功') === 0);
+  return lines[0] + (bad ? '\n' + bad.slice(0, 100) : '');
 }
 function ytAutoSend_(text) {
   console.log(text);
   const owner = prop_('OWNER_USER_ID'), tg = prop_('TG_OWNER_CHAT_ID');
-  if (owner) shenChunks_(text, 4800).forEach(t => shenLinePush_(owner, [{ type: 'text', text: t }]));
-  if (tg && prop_('TELEGRAM_BOT_TOKEN')) shenChunks_(text, 3800).forEach(t => shenTgSend_(tg, { text: t }));
+  if (owner) shenLinePush_(owner, [{ type: 'text', text: text }]);
+  if (tg && prop_('TELEGRAM_BOT_TOKEN')) shenTgSend_(tg, { text: text });
   return text;
 }
 
@@ -316,7 +319,7 @@ function shenDailyRun_(resend) {
   // 原內容備份在「標題更改紀錄」分頁；只在排程時執行，手動重送不改。
   let ytNote = '';
   if (!resend && typeof titleAutoApply_ === 'function') {
-    try { ytNote = titleAutoApply_().text; }
+    try { ytNote = ytShort_(titleAutoApply_().text); }
     catch (e) { ytNote = '📺 YouTube 自動更新沒有完成：' + String(e && e.message || e).slice(0, 80); }
     console.log(ytNote);
   }
@@ -444,4 +447,4 @@ function gasUpdateNote_() {
 function gasCheck() { const t = gasUpdateNote_() || 'GAS 都是最新版，不用更改。'; console.log(t); return t; }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampShenDaily_() { return '92044f0'; }
+function gasStampShenDaily_() { return '51b938a'; }
