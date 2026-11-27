@@ -63,8 +63,14 @@ function ytUploadNow() {
     return msg;
   }
   const plans = titlePlans_();
-  const planTitle = plans.ep && plans.ep[key];
-  const planDesc = plans.desc && plans.desc[key];
+  let planTitle = plans.ep && plans.ep[key];
+  let planDesc = plans.desc && plans.desc[key];
+  let planTags = (plans.tags && plans.tags[key]) || [];
+  // 清單裡沒有的集數（例如每日迭代新產生的集），直接讀 GitHub 上的劇本檔
+  if (key !== 'LONG' && (!planTitle || !planDesc)) {
+    const s = ytPlanFromScript_(key);
+    if (s) { planTitle = s.title; planDesc = s.desc; planTags = s.tags; }
+  }
   // 沒有這一集的標題或說明資料：不上傳，免得變成沒有標題、說明的影片
   if (!planTitle || !planDesc) {
     const msg = '⚠️ ' + key + ' 還沒有標題或說明資料，所以沒有上傳（影片還留在「YT自動上傳」資料夾）。\n請先把這一集的標題與說明加進神對話劇本資料，之後會自動上傳。';
@@ -73,7 +79,7 @@ function ytUploadNow() {
   }
   const title = String(planTitle).slice(0, 100);
   const desc = String(planDesc).slice(0, 4800);
-  let tags = (plans.tags && plans.tags[key]) || [];
+  const tags = planTags;
   const kept = [];
   let len = 0;
   tags.forEach(t => { if (len + t.length + 1 <= 450) { kept.push(t); len += t.length + 1; } });
@@ -86,6 +92,24 @@ function ytUploadNow() {
     '要公開：到 YouTube Studio 把可見範圍改成「公開」，或設定排程發布（建議 12:00 或 21:00）。\n' + studio;
   ytNotify_(msg);
   return msg;
+}
+
+// 從 GitHub 上的劇本檔（shen/9x16/EpNN 劇本.md）讀出標題、影片說明與標記；讀不到回傳 null
+function ytPlanFromScript_(key) {
+  try {
+    const sha = gitMainSha_();
+    const path = encodeURI('shen/9x16/' + key.replace('EP', 'Ep') + ' 劇本.md');
+    const res = UrlFetchApp.fetch('https://raw.githubusercontent.com/yb131419/Tezhu/' + sha + '/' + path, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return null;
+    const md = res.getContentText('UTF-8').replace(/\r/g, '');
+    const t = md.match(/\*\*影片標題\*\*[^\n]*\n```\n([^\n]+)\n```/);
+    const d = md.match(/\*\*影片說明\*\*[^\n]*\n```\n([\s\S]*?)\n```/);
+    if (!t || !d) return null;
+    const desc = d[1].trim();
+    const last = desc.split('\n').pop() || '';
+    const tags = last.split(/\s+/).filter(x => /^#/.test(x)).map(x => x.slice(1));
+    return { title: t[1].trim(), desc: desc, tags: tags };
+  } catch (e) { console.error('讀取劇本檔失敗：' + e); return null; }
 }
 
 // 上傳一支影片（可續傳的上傳流程：先取得上傳網址，再把影片內容送過去）
