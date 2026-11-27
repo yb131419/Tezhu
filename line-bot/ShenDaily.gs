@@ -265,6 +265,29 @@ function shenLinePush_(to, messages) {
 // 由時間觸發器執行（9:30）：只推送還沒送出的內容
 function shenDailyPush() { shenDailyRun_(false); }
 
+// 測試 YouTube 自動更新（2026-11-27）：在編輯器選函式按執行，結果傳到 LINE 與 Telegram
+//   ytAutoTest：只預覽，列出 9:30 會改哪幾支影片的標題、說明、標記，不會改 YouTube
+//   ytAutoRun：馬上真的改一次（原內容一樣先存進「標題更改紀錄」分頁），回傳的就是每日回報裡那一段
+function ytAutoTest() { return ytAutoSend_(ytAutoPreview_()); }
+function ytAutoRun() { return ytAutoSend_(titleAutoApply_().text); }
+function ytAutoPreview_() {
+  const items = titleBuildItems_('auto');
+  const src = '清單來源：' + titlePlans_().src;
+  if (!items.length) return '🧪 YouTube 自動更新預覽（只看不改）\n標題、說明、標記都是最新的，現在跑也不會改任何影片。\n' + src;
+  const lines = items.map(x => '・' + (x.key === 'LONG' ? '一念之間' : (x.key || String(x.from).slice(0, 14))) + '（' + x.id + '）：' +
+    [x.titleChg ? '標題' : '', x.descChg ? '說明' : '', x.tagsChg ? '標記' : ''].filter(Boolean).join('、') +
+    (x.titleChg ? '\n　原：' + x.from + '\n　新：' + x.to : '') +
+    (x.tagsChg ? '\n　新標記：' + (x.toTags || []).join('、') : ''));
+  return '🧪 YouTube 自動更新預覽（只看不改）\n共 ' + items.length + ' 支影片會更新：\n' + lines.join('\n') + '\n\n' + src + '\n要真的改，請執行 ytAutoRun；不執行的話，明天 9:30 也會自動改。';
+}
+function ytAutoSend_(text) {
+  console.log(text);
+  const owner = prop_('OWNER_USER_ID'), tg = prop_('TG_OWNER_CHAT_ID');
+  if (owner) shenChunks_(text, 4800).forEach(t => shenLinePush_(owner, [{ type: 'text', text: t }]));
+  if (tg && prop_('TELEGRAM_BOT_TOKEN')) shenChunks_(text, 3800).forEach(t => shenTgSend_(tg, { text: t }));
+  return text;
+}
+
 // 手動重送（在編輯器選 shenDailyResend 按執行）：不看推送時間，把最新一筆摘要重新送出（頻道數據已在 9:30 送過就不會再附）
 function shenDailyResend() { return shenDailyRun_(true); }
 
@@ -421,4 +444,4 @@ function gasUpdateNote_() {
 function gasCheck() { const t = gasUpdateNote_() || 'GAS 都是最新版，不用更改。'; console.log(t); return t; }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampShenDaily_() { return '90ea510'; }
+function gasStampShenDaily_() { return '92044f0'; }
