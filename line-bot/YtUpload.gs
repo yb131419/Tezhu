@@ -14,6 +14,10 @@ const YT_UP_BUDGET_MS_ = 4 * 60 * 1000;   // 每次執行最多用 4 分鐘（Ap
 const YT_UP_MAX_FAILS_ = 3;
 const YT_UP_STATE_KEY_ = 'YT_UP_STATE';
 const YT_UP_NOTED_KEY_ = 'YT_UP_NOTED';
+// 子資料夾分類：資料夾名稱 → 要加入的播放清單、是否標註 AI 創作。沒列在這裡的子資料夾會略過並通知一次。
+const YT_UP_CATS_ = {
+  '神對話': { playlist: '神對話｜與佛祖的一分鐘對話 放下・覺察・因果', ai: true },
+};
 
 // 一次性：在編輯器選「ytUploadSetup」按「執行」一次。會找（或建立）雲端硬碟根目錄的「YT自動上傳」資料夾。
 function ytUploadSetup() {
@@ -84,6 +88,7 @@ function ytStep_(folder, started) {
     }
     st.videoId = r.videoId;
     ytSaveState_(st);
+    if (!st.plDone) { ytAddToPlaylist_(st.plId, st.videoId); st.plDone = true; ytSaveState_(st); }
     ytFinish_(folder, st);
     return { keepGoing: Date.now() - started < YT_UP_BUDGET_MS_, msg: '📤 ' + st.name + ' 已上傳（私人）：https://youtu.be/' + st.videoId };
   } catch (e) {
@@ -91,29 +96,105 @@ function ytStep_(folder, started) {
   }
 }
 
-// 挑下一支要上傳的影片（依檔名排序，沒有劇本資料的略過並通知一次）
-function ytPickNext_(folder) {
-  const list = [];
-  const it = folder.getFiles();
-  while (it.hasNext()) {
-    const f = it.next();
-    if (/\.(mp4|mov)$/i.test(f.getName())) list.push(f);
-  }
-  list.sort((a, b) => (a.getName() < b.getName() ? -1 : a.getName() > b.getName() ? 1 : 0));
+// 挑下一支要上傳的影片：只看分類子資料夾（依名稱排序）；根目錄的影片與不認識的子資料夾會略過並通知一次
+function ytCandidates_(folder) {
+  const cands = [];
   const noted = ytNotedLoad_();
-  for (const f of list) {
-    const name = f.getName();
-    const key = ytEpKey_(name);
-    const meta = key ? ytMetaFor_(key) : null;
-    if (meta) return { file: f, meta: meta };
-    if (noted.indexOf(name) < 0) {
-      const why = key ? (key + ' 還沒有標題或說明資料') : '檔名看不出集數';
-      ytNotify_('⚠️ ' + name + '：' + why + '，所以沒有上傳（影片還留在「YT自動上傳」資料夾，資料補上後會自動上傳）。');
-      noted.push(name);
-      ytNotedSave_(noted);
+  const rootIt = folder.getFiles();
+  while (rootIt.hasNext()) {
+    const f = rootIt.next();
+    if (!/\.(mp4|mov)$/i.test(f.getName())) continue;
+    const k = 'root:' + f.getName();
+    if (noted.indexOf(k) < 0) {
+      ytNotify_('⚠️ ' + f.getName() + ' 放在根目錄，沒有上傳。請把它移到「YT自動上傳」裡的分類子資料夾（例如「神對話」）。');
+      noted.push(k); ytNotedSave_(noted);
     }
   }
+  const subs = [];
+  const sit = folder.getFolders();
+  while (sit.hasNext()) subs.push(sit.next());
+  subs.sort((a, b) => (a.getName() < b.getName() ? -1 : a.getName() > b.getName() ? 1 : 0));
+  subs.forEach(sub => {
+    const sname = sub.getName();
+    if (sname === YT_UP_DONE_NAME_ || sname === YT_UP_FAIL_NAME_) return;
+    const cat = YT_UP_CATS_[sname];
+    if (!cat) {
+      const k = 'folder:' + sname;
+      if (noted.indexOf(k) < 0) {
+        ytNotify_('⚠️ 子資料夾「' + sname + '」沒有分類設定，裡面的影片沒有上傳。');
+        noted.push(k); ytNotedSave_(noted);
+      }
+      return;
+    }
+    const list = [];
+    const fit = sub.getFiles();
+    while (fit.hasNext()) {
+      const f = fit.next();
+      if (/\.(mp4|mov)$/i.test(f.getName())) list.push(f);
+    }
+    list.sort((a, b) => (a.getName() < b.getName() ? -1 : a.getName() > b.getName() ? 1 : 0));
+    list.forEach(f => cands.push({ file: f, parentId: sub.getId(), catName: sname, cat: cat }));
+  });
+  return cands;
+}
+
+function ytPickNext_(folder) {
+  const noted = ytNotedLoad_();
+  for (const c of ytCandidates_(folder)) {
+    const name = c.file.getName();
+    const key = ytEpKey_(name);
+    const meta = key ? ytMetaFor_(key) : null;
+    if (!meta) {
+      if (noted.indexOf(name) < 0) {
+        ytNotify_('⚠️ ' + name + '：' + (key ? key + ' 還沒有標題或說明資料' : '檔名看不出集數') + '，所以沒有上傳（資料補上後會自動上傳）。');
+        noted.push(name); ytNotedSave_(noted);
+      }
+      continue;
+    }
+    let plId = '';
+    if (c.cat.playlist) {
+      plId = ytPlaylistId_(c.catName, c.cat.playlist);
+      if (!plId) {
+        const k = 'pl:' + c.catName;
+        if (noted.indexOf(k) < 0) {
+          ytNotify_('⚠️ 找不到播放清單「' + c.cat.playlist + '」，「' + c.catName + '」的影片暫時不上傳。請先在 YouTube 建立這個播放清單。');
+          noted.push(k); ytNotedSave_(noted);
+        }
+        continue;
+      }
+    }
+    return { file: c.file, parentId: c.parentId, meta: meta, cat: c.cat, catName: c.catName, plId: plId };
+  }
   return null;
+}
+
+// 播放清單：用標題找（忽略空白與「|」「｜」「・」），找到的 ID 存起來
+function ytNorm_(s) { return String(s).replace(/[\s|｜・･•·]/g, ''); }
+function ytPlaylistId_(catName, title) {
+  const cacheKey = 'YT_PL_' + catName;
+  const cached = prop_(cacheKey);
+  if (cached) return cached;
+  const want = ytNorm_(title);
+  let pageToken = '';
+  for (let i = 0; i < 10; i++) {
+    const url = 'https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=50' + (pageToken ? '&pageToken=' + pageToken : '');
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+    if (res.getResponseCode() !== 200) throw new Error('查詢播放清單失敗：' + ytUpErr_(res));
+    const j = JSON.parse(res.getContentText() || '{}');
+    const hit = (j.items || []).find(it => ytNorm_(it.snippet.title).indexOf(want) >= 0);
+    if (hit) { setProp_(cacheKey, hit.id); return hit.id; }
+    pageToken = j.nextPageToken || '';
+    if (!pageToken) break;
+  }
+  return '';
+}
+function ytAddToPlaylist_(plId, videoId) {
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet', {
+    method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ snippet: { playlistId: plId, resourceId: { kind: 'youtube#video', videoId: videoId } } }),
+  });
+  if (res.getResponseCode() !== 200) throw new Error('加入播放清單失敗：' + ytUpErr_(res));
 }
 
 // 開始一支新影片：只記下進度，還沒有建立上傳連線
@@ -122,9 +203,11 @@ function ytStart_(folder) {
   if (!pick) return null;
   const f = pick.file, m = pick.meta;
   const st = {
-    fileId: f.getId(), name: f.getName(), title: m.title, desc: m.desc, tags: m.tags,
+    fileId: f.getId(), name: f.getName(), parentId: pick.parentId, catName: pick.catName,
+    title: m.title, desc: m.desc, tags: m.tags,
     mime: /\.mov$/i.test(f.getName()) ? 'video/quicktime' : 'video/mp4',
     size: f.getSize(), offset: 0, sessionUri: '', fails: 0, videoId: '',
+    plId: pick.plId, plDone: !pick.plId, ai: !!pick.cat.ai,
   };
   ytSaveState_(st);
   return st;
@@ -165,7 +248,7 @@ function ytInit_(st) {
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Upload-Content-Type': st.mime, 'X-Upload-Content-Length': String(st.size) },
     payload: JSON.stringify({
       snippet: { title: st.title, description: st.desc, tags: st.tags, categoryId: '22' },
-      status: { privacyStatus: 'private', selfDeclaredMadeForKids: false },
+      status: { privacyStatus: 'private', selfDeclaredMadeForKids: false, containsSyntheticMedia: !!st.ai },
     }),
   });
   if (res.getResponseCode() !== 200) throw new Error('建立上傳失敗：' + ytUpErr_(res));
@@ -189,13 +272,21 @@ function ytDownloadRange_(fileId, start, end) {
   return bytes;
 }
 
-// 上傳成功：先把檔案移到「已上傳」，再清掉進度，最後通知
-function ytFinish_(folder, st) {
+// 把影片移到它所在分類資料夾裡的指定子資料夾（已上傳／失敗）
+function ytMoveTo_(st, folder, targetName) {
   const file = DriveApp.getFileById(st.fileId);
-  ytSubFolder_(folder, YT_UP_DONE_NAME_).addFile(file);
-  folder.removeFile(file);
+  const parent = st.parentId ? DriveApp.getFolderById(st.parentId) : folder;
+  ytSubFolder_(parent, targetName).addFile(file);
+  parent.removeFile(file);
+}
+
+// 上傳成功：先移到「已上傳」，再清掉進度，最後通知
+function ytFinish_(folder, st) {
+  ytMoveTo_(st, folder, YT_UP_DONE_NAME_);
   ytStateClear_();
   ytNotify_('📤 已上傳到 YouTube（目前是私人）\n' + st.title + '\nhttps://youtu.be/' + st.videoId +
+    (st.plId ? '\n已加入播放清單：' + st.catName : '') +
+    (st.ai ? '\n已標註為 AI 創作（變造或合成內容）' : '') +
     '\n\n要公開：到 YouTube Studio 把可見範圍改成「公開」，或設定排程發布（建議 12:00 或 21:00）。\nhttps://studio.youtube.com/video/' + st.videoId + '/edit');
 }
 
@@ -209,9 +300,7 @@ function ytOnError_(folder, st, e) {
   }
   st.fails = (st.fails || 0) + 1;
   if (st.fails >= YT_UP_MAX_FAILS_) {
-    const file = DriveApp.getFileById(st.fileId);
-    ytSubFolder_(folder, YT_UP_FAIL_NAME_).addFile(file);
-    folder.removeFile(file);
+    ytMoveTo_(st, folder, YT_UP_FAIL_NAME_);
     ytStateClear_();
     ytNotify_('⚠️ ' + st.name + ' 連續失敗 ' + st.fails + ' 次，已移到「失敗」資料夾。\n原因：' + why);
     return { keepGoing: false, msg: '⚠️ ' + st.name + ' 已移到「失敗」資料夾：' + why };
