@@ -77,7 +77,7 @@ function priceSyncRun() {
     console.log('價目表同步：' + today + ' 沒有變動，不推播。');
     return;
   }
-  const lines = ['💰 價目表有更新（' + today + '）', '', '已更新 ' + changes.length + ' 項：'];
+  const lines = ['💰 康園價目表有更新（' + today + '）', '', '已更新 ' + changes.length + ' 項：'];
   changes.forEach(c => {
     if (c.type === '新增') lines.push('・' + c.name + '（新增）PV ' + c.nPv + '／金額 ' + c.nPrice);
     else lines.push('・' + c.name + '：PV ' + c.oPv + '→' + c.nPv + '，金額 ' + c.oPrice + '→' + c.nPrice);
@@ -128,4 +128,4 @@ function notifyOwner_(msg) {
 }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampPriceSync_() { return '1ebcc2c'; }
+function gasStampPriceSync_() { return '0313b60'; }
