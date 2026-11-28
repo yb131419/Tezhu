@@ -183,7 +183,10 @@ function ytDownloadRange_(fileId, start, end) {
   });
   const c = res.getResponseCode();
   if (c !== 200 && c !== 206) throw new Error('讀取影片失敗（HTTP ' + c + '）');
-  return res.getContent();
+  const bytes = res.getContent();
+  // 段落長度對不上就停下來，避免把整支檔案或錯的一段送上 YouTube
+  if (bytes.length !== end - start + 1) throw new Error('讀取的段落長度不對（要 ' + (end - start + 1) + '，拿到 ' + bytes.length + '）');
+  return bytes;
 }
 
 // 上傳成功：先把檔案移到「已上傳」，再清掉進度，最後通知
@@ -273,6 +276,47 @@ function ytUpErr_(res) {
 function ytNotify_(text) {
   try { const uid = prop_('OWNER_USER_ID'); if (uid) push_(uid, text); } catch (e) { console.error('LINE 通知失敗：' + e); }
   try { const tg = prop_('TG_OWNER_CHAT_ID'); if (tg) tgSend_(tg, text); } catch (e) { console.error('Telegram 通知失敗：' + e); }
+}
+
+// 檢查用：列出排程數量、進行中的進度、資料夾內容，以及頻道最近 20 支影片的處理狀態；結果傳到 LINE／Telegram
+function ytUploadCheck() {
+  const lines = [];
+  const trig = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'ytUploadNow');
+  lines.push('排程數量：' + trig.length + '（應該是 1，多於 1 就執行「ytUploadOn」重設）');
+  const st = ytLoadState_();
+  lines.push('進行中：' + (st ? st.name + '，' + Math.floor(100 * st.offset / st.size) + '%，失敗 ' + (st.fails || 0) + ' 次' : '無'));
+  const folder = ytFolder_();
+  const names = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) names.push(it.next().getName());
+  lines.push('待上傳資料夾：' + (names.join('、') || '無'));
+  const auth = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  const sr = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&forMine=true&type=video&order=date&maxResults=20', { muteHttpExceptions: true, headers: auth });
+  if (sr.getResponseCode() !== 200) {
+    lines.push('查詢頻道影片失敗：' + ytUpErr_(sr));
+  } else {
+    const ids = (JSON.parse(sr.getContentText() || '{}').items || []).map(i => i.id.videoId).filter(Boolean);
+    if (ids.length) {
+      const vr = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet,status,processingDetails&id=' + ids.join(','), { muteHttpExceptions: true, headers: auth });
+      if (vr.getResponseCode() !== 200) {
+        lines.push('查詢影片狀態失敗：' + ytUpErr_(vr));
+      } else {
+        (JSON.parse(vr.getContentText() || '{}').items || []).forEach(v => {
+          const stt = v.status || {}, pd = v.processingDetails || {};
+          let s = (v.snippet.title || '').slice(0, 12) + ' ｜ 上傳:' + (stt.uploadStatus || '-') + ' ｜ 處理:' + (pd.processingStatus || '-');
+          if (pd.processingFailureReason) s += ' ｜ 處理失敗:' + pd.processingFailureReason;
+          if (stt.failureReason) s += ' ｜ 上傳失敗:' + stt.failureReason;
+          if (stt.rejectionReason) s += ' ｜ 拒絕:' + stt.rejectionReason;
+          lines.push(s);
+        });
+      }
+    } else {
+      lines.push('頻道沒有查到影片');
+    }
+  }
+  const text = '🔎 YouTube 上傳檢查\n' + lines.join('\n');
+  ytNotify_(text);
+  return text;
 }
 
 // 只為了讓使用者在編輯器執行一次，跳出上傳影片的授權（新權限第一次要按一次）
