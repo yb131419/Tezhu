@@ -3,7 +3,7 @@
    程式會把影片上傳到「你自己的」YouTube 頻道，加入對應的播放清單，標題／說明／標記來自這份試算表的「影片資料」分頁。
    未通過審核的 API 專案，上傳的影片會被強制設為「私人」，所以這裡一律用私人上傳，公開要到 YouTube Studio 手動改。
    檔名開頭要和「影片資料」A 欄的集數一致，例如 EP01_開場.mp4 對應 A 欄的 EP01。
-   設定順序（每一步都有教學，見 教學.md）：一次設定 → 授權 → 開啟每小時自動上傳 → 開啟每日同步。 */
+   設定順序（每一步都有教學，見 教學.md）：一次設定 → 授權 → 開啟每15分鐘自動上傳 → 開啟每日同步。 */
 
 // ===== 設定區：只需要改這裡 =====
 const CONFIG = {
@@ -54,11 +54,11 @@ function 授權() {
 }
 
 // ===== 排程 =====
-function 開啟每小時自動上傳() {
+function 開啟每15分鐘自動上傳() {
   關閉自動上傳();
-  ScriptApp.newTrigger('立即檢查一次').timeBased().everyHours(1).create();
-  Logger.log('已開啟：每小時檢查一次上傳資料夾');
-  return '已開啟：每小時檢查一次上傳資料夾';
+  ScriptApp.newTrigger('立即檢查一次').timeBased().everyMinutes(15).create();
+  Logger.log('已開啟：每 15 分鐘檢查一次上傳資料夾');
+  return '已開啟：每 15 分鐘檢查一次上傳資料夾';
 }
 function 關閉自動上傳() {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === '立即檢查一次') ScriptApp.deleteTrigger(t); });
@@ -90,7 +90,7 @@ function 檢查設定() {
   return text;
 }
 
-// ===== 入口：每小時的排程與手動執行都用這個。LockService 避免手動與排程同時跑 =====
+// ===== 入口：每 15 分鐘的排程與手動執行都用這個。LockService 避免手動與排程同時跑 =====
 function 立即檢查一次() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return '上一次上傳還在進行中，這次先不跑。';
