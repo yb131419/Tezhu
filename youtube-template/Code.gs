@@ -3,7 +3,7 @@
    程式會把影片上傳到「你自己的」YouTube 頻道，加入對應的播放清單，標題／說明／標記來自這份試算表的「影片資料」分頁。
    未通過審核的 API 專案，上傳的影片會被強制設為「私人」，所以這裡一律用私人上傳，公開要到 YouTube Studio 手動改。
    檔名開頭要和「影片資料」A 欄的集數一致，例如 EP01_開場.mp4 對應 A 欄的 EP01。
-   設定順序（每一步都有教學，見 教學.md）：一次設定 → 授權 → 開啟每15分鐘自動上傳 → 開啟每日同步。 */
+   設定方式：（A）對方自己用網頁版，打開網址按「開始使用」即可；（B）用編輯器依序執行 一次設定 → 授權 → 開啟每15分鐘自動上傳 → 開啟每日同步。見 教學.md。 */
 
 // ===== 設定區：只需要改這裡 =====
 const CONFIG = {
@@ -28,7 +28,7 @@ const STATE_KEY = 'YT_TPL_STATE';         // 目前進行中的上傳進度（�
 // ===== 一次性設定：在編輯器選「一次設定」按「執行」一次 =====
 function 一次設定() {
   const f = 取得上傳資料夾_();
-  const ss = SpreadsheetApp.getActive();
+  const ss = 取得試算表_();
   if (!ss.getSheetByName(CONFIG.DATA_SHEET)) {
     const sh = ss.insertSheet(CONFIG.DATA_SHEET);
     sh.appendRow(['集數', '標題', '說明', '標記']);
@@ -47,7 +47,7 @@ function 一次設定() {
 function 授權() {
   UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', { muteHttpExceptions: true, headers: 授權標頭_() });
   DriveApp.getRootFolder().getName();
-  SpreadsheetApp.getActive().getName();
+  取得試算表_().getName();
   MailApp.getRemainingDailyQuota();
   Logger.log('授權完成');
   return '授權完成';
@@ -299,7 +299,7 @@ function 出錯_(folder, st, e) {
 // ===== 每日同步：把「影片資料」的標題、說明、標記更新到已上傳的影片（只改有變動的） =====
 function 每日同步() {
   const data = 讀影片資料_();
-  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.LOG_SHEET);
+  const sh = 取得試算表_().getSheetByName(CONFIG.LOG_SHEET);
   if (!sh || sh.getLastRow() < 2) return '沒有已上傳的影片可同步。';
   const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues();
   const list = rows
@@ -335,6 +335,49 @@ function 每日同步() {
   return msg;
 }
 
+// ===== 網頁版：對方只要登入 Google 帳號，打開網址、按一次「開始使用」就完成（代建版用） =====
+// 代建者第一次在編輯器執行「設定試算表」，記住試算表；之後網頁版的人（她）就能用。
+function 設定試算表() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('請從試算表的「擴充功能 → Apps Script」開啟編輯器再執行');
+  PropertiesService.getScriptProperties().setProperty('SHEET_ID', ss.getId());
+  return '已記住這份試算表。之後網頁版可以使用。';
+}
+// 取得試算表：有記住的 ID 就用它（網頁版與排程都靠這個），否則用目前開啟的試算表
+function 取得試算表_() {
+  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('找不到試算表：代建者請先在編輯器執行「設定試算表」');
+  return ss;
+}
+// 網頁應用程式入口：部署時選「以存取網頁的使用者身分執行」，所以每個人都用自己的帳號
+function doGet() {
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<style>body{font-family:sans-serif;padding:16px;line-height:1.7;color:#222}h2{margin:8px 0}' +
+    'button{font-size:18px;padding:14px;border:0;border-radius:10px;background:#c00;color:#fff;width:100%}' +
+    'button:disabled{background:#999}pre{white-space:pre-wrap;background:#f4f4f4;padding:12px;border-radius:8px;font-size:15px}</style></head><body>' +
+    '<h2>YouTube 自動上傳</h2>' +
+    '<p>按下面按鈕，會用你目前登入的 Google 帳號，建立你自己的上傳資料夾，並開啟自動上傳與每日同步。</p>' +
+    '<button id="go" onclick="start()">開始使用</button><pre id="out"></pre>' +
+    '<script>function start(){var b=document.getElementById("go");b.disabled=true;b.textContent="處理中，請稍等（約 30 秒）…";' +
+    'google.script.run.withSuccessHandler(function(t){document.getElementById("out").textContent=t;b.textContent="已完成";})' +
+    '.withFailureHandler(function(e){document.getElementById("out").textContent="出錯："+e.message;b.disabled=false;b.textContent="重試";}).一鍵開始();}</script>' +
+    '</body></html>';
+  return HtmlService.createHtmlOutput(html).setTitle('YouTube 自動上傳');
+}
+// 網頁版按鈕呼叫：一次完成授權、設定、排程，並回傳檢查結果與她自己的上傳資料夾連結
+function 一鍵開始() {
+  const out = [];
+  out.push(授權());
+  out.push(一次設定());
+  out.push(開啟每15分鐘自動上傳());
+  out.push(開啟每日同步());
+  out.push(檢查設定());
+  out.push('你的上傳資料夾（把影片放進分類資料夾）：\n' + 取得上傳資料夾_().getUrl());
+  return out.join('\n\n');
+}
+
 // ===== 共用小工具 =====
 function 取得上傳資料夾_() {
   const id = prop_('UPLOAD_FOLDER_ID');
@@ -355,7 +398,7 @@ function 集數代號_(name) {
 // 「影片資料」分頁：A 集數、B 標題、C 說明、D 標記；少一格就略過該集
 function 讀影片資料_() {
   const map = {};
-  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.DATA_SHEET);
+  const sh = 取得試算表_().getSheetByName(CONFIG.DATA_SHEET);
   if (!sh || sh.getLastRow() < 2) return map;
   sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach(r => {
     const key = String(r[0]).trim().toUpperCase();
@@ -395,7 +438,7 @@ function 存進度_(st) { setProp_(STATE_KEY, JSON.stringify(st)); }
 function 清除進度_() { PropertiesService.getScriptProperties().deleteProperty(鍵_(STATE_KEY)); }
 function 記錄_(檔名, 結果, 連結) {
   try {
-    const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.LOG_SHEET);
+    const sh = 取得試算表_().getSheetByName(CONFIG.LOG_SHEET);
     if (sh) sh.appendRow([Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'), 檔名, 結果, 連結]);
   } catch (e) { console.error('寫入紀錄失敗：' + e); }
 }
