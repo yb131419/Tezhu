@@ -65,7 +65,7 @@ function priceSyncRun() {
       changes.push({ name: b.name, type: '更新', oPv: b.pv, oPrice: b.price, nPv: s.pv, nPrice: s.price });
     }
   });
-  const gone = Object.keys(bot).filter(k => !srcKeys[k]).map(k => bot[k].name);
+  const gone = Object.keys(bot).filter(k => !srcKeys[k] && !isIgnoredGone_(bot[k].name)).map(k => bot[k].name);
 
   if (changes.length) {
     const log = ss_().getSheetByName(PRICE_LOG_SHEET);
@@ -104,6 +104,12 @@ function readPriceSource_() {
   return out;
 }
 
+// 「來源表已沒有」提醒要忽略的品項：贈品、入*會 開頭（不列入確認清單，小乖仍保留）
+function isIgnoredGone_(name) {
+  const k = normPriceName_(name);
+  return k.indexOf('贈品') === 0 || k.indexOf('入*會') === 0;
+}
+
 // 比對用：全形轉半形（含全形括號、全形數字）、去空白
 function normPriceName_(v) {
   return String(v || '').normalize('NFKC').replace(/\s+/g, '');
@@ -122,4 +128,4 @@ function notifyOwner_(msg) {
 }
 
 // 版本短碼（tools/stamp_gas.py 自動產生，請勿手動修改）
-function gasStampPriceSync_() { return 'e255b7a'; }
+function gasStampPriceSync_() { return '1ebcc2c'; }
