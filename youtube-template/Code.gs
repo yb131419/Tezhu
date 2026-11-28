@@ -381,11 +381,18 @@ function 錯誤訊息_(res) {
     return (j.error && j.error.message) || ('HTTP ' + res.getResponseCode());
   } catch (e) { return 'HTTP ' + res.getResponseCode(); }
 }
-function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
-function setProp_(k, v) { PropertiesService.getScriptProperties().setProperty(k, String(v)); }
+// 指令碼屬性是整份程式共用的。代建版要讓每位執行者（代建者、頻道主）各用自己的上傳資料夾、進度與播放清單快取，所以鍵名會加上執行者的代號
+function 鍵_(k) {
+  const who = String(Session.getEffectiveUser().getEmail() || 'anon');
+  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, who);
+  const hex = d.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  return k + '_' + hex.slice(0, 12);
+}
+function prop_(k) { return PropertiesService.getScriptProperties().getProperty(鍵_(k)) || ''; }
+function setProp_(k, v) { PropertiesService.getScriptProperties().setProperty(鍵_(k), String(v)); }
 function 讀進度_() { try { const s = prop_(STATE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function 存進度_(st) { setProp_(STATE_KEY, JSON.stringify(st)); }
-function 清除進度_() { PropertiesService.getScriptProperties().deleteProperty(STATE_KEY); }
+function 清除進度_() { PropertiesService.getScriptProperties().deleteProperty(鍵_(STATE_KEY)); }
 function 記錄_(檔名, 結果, 連結) {
   try {
     const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.LOG_SHEET);
