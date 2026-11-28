@@ -4,7 +4,7 @@
    標題、說明、標記以劇本資料為準：先看 titlePlans_()（Code.gs），沒有的集數再讀 GitHub 上的劇本檔（shen/9x16/EpNN 劇本.md）。
    分段續傳：每次最多跑 4 分鐘，影片每段 8MB，進度存在指令碼屬性，下一次接著傳（不會因超時重複上傳）。
    成功後移到「已上傳」；同一支連續失敗 3 次移到「失敗」。
-   設定順序：ytUploadSetup（建立資料夾）→ 授權YT上傳 → ytUploadOn（每小時自動檢查）。 */
+   設定順序：ytUploadSetup（建立資料夾）→ 授權YT上傳 → ytUploadOn（每 30 分鐘自動檢查）。 */
 
 const YT_UP_FOLDER_NAME_ = 'YT自動上傳';
 const YT_UP_DONE_NAME_ = '已上傳';
@@ -25,11 +25,11 @@ function ytUploadSetup() {
   Logger.log('已設定 YT_UPLOAD_FOLDER_ID：' + f.getId() + '（資料夾：' + f.getName() + '）');
 }
 
-// 每小時自動檢查一次資料夾（先移除舊的排程，避免重複）
+// 每 30 分鐘自動檢查一次資料夾（先移除舊的排程，避免重複）
 function ytUploadOn() {
   ytUploadOff();
-  ScriptApp.newTrigger('ytUploadNow').timeBased().everyHours(1).create();
-  Logger.log('已開啟：每小時自動檢查「' + YT_UP_FOLDER_NAME_ + '」資料夾');
+  ScriptApp.newTrigger('ytUploadNow').timeBased().everyMinutes(30).create();
+  Logger.log('已開啟：每 30 分鐘自動檢查「' + YT_UP_FOLDER_NAME_ + '」資料夾');
 }
 function ytUploadOff() {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'ytUploadNow') ScriptApp.deleteTrigger(t); });
